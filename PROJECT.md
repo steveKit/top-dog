@@ -2,13 +2,15 @@
 
 ## Status
 
-**Phase:** Scaffolding
+**Phase:** Active Development
 **Last Updated:** 2026-06-05
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
 "Top Dog" status. The Top Dog earns a badge and can spray decaying mustard on
-other profiles. Plenary complete; blueprint formalized and ready to scaffold.
+other profiles. Plenary complete; scaffold published to `main` (all quality
+gates green). Starting M0 — next: TASK-001 (SSR auth) on `feat/m0-ssr-auth`.
+See [[Handoffs/handoff-001]] for session context.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 

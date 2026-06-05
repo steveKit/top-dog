@@ -334,9 +334,10 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
 
-### ~~TASK-000: Project scaffolding~~ [`pending`]
+### ~~TASK-000: Project scaffolding~~ [`complete`]
 
-**Notes:** SvelteKit + Supabase scaffold, mise pins, docs, agent configs, repo — completed during plenary.
+**Completed:** 2026-06-05
+**Notes:** SvelteKit 2 + Svelte 5 + Supabase scaffold; mise pins (node/pnpm/supabase); Vitest + Playwright + ESLint + Prettier wired; plenary docs, L2 security profile, keep-alive workflow, tech-specific agent configs; repo published to `main`. Quality gates green (check/lint/build/test).
 
 ---
 

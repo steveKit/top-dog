@@ -1,0 +1,7 @@
+[tools]
+node = "24.16.0"
+# pnpm via npm backend: the default aqua backend has a broken asset mapping
+# for this release on linux-x64, and the ubi backend resolves to a musl build
+# that won't run on glibc. The npm backend is pure-JS on mise's node.
+"npm:pnpm" = "11.5.2"
+supabase = "2.105.0"

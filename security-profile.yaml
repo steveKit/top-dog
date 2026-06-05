@@ -1,0 +1,36 @@
+# Top Dog — Security Profile
+# Run `/security-audit` to audit against this profile.
+
+# L2 (Standard) — auth + DMs + user uploads + user data (PII).
+level: L2
+
+stack:
+  language: typescript
+  framework: sveltekit
+  auth_library: supabase-auth
+  orm_database: supabase-js/postgres
+  api_style: rest
+  deployment_target: supabase
+
+scope:
+  has_auth: true
+  has_database: true
+  has_api: true
+  has_file_uploads: true
+  has_payment: false
+  has_pii: true # handles, display names, DMs, wall messages
+  has_external_services: true # Supabase, GitHub Actions
+
+overrides: {}
+
+excluded_paths:
+  - 'node_modules/**'
+  - '.svelte-kit/**'
+  - 'build/**'
+  - 'coverage/**'
+  - 'playwright-report/**'
+  - 'test-results/**'
+  - '**/*.test.*'
+
+existing_security_tooling:
+  - 'eslint'

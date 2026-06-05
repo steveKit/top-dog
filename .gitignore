@@ -1,0 +1,54 @@
+# Secrets & credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+credentials.json
+service-account*.json
+secrets.*
+# Note: project .npmrc (engine-strict only, no tokens) IS committed.
+# Never put auth tokens in it — use ~/.npmrc for those.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.svelte-kit/
+.vercel/
+.netlify/
+.wrangler/
+.output/
+
+# SvelteKit / Vite
+vite.config.*.timestamp-*
+vite.config.ts.timestamp-*
+
+# Supabase (local stack artifacts; keep config.toml + migrations)
+supabase/.branches/
+supabase/.temp/
+
+# Logs & runtime
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.cache/
+coverage/
+
+# Testing
+playwright-report/
+test-results/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*~
+
+# Claude Code
+.claude/worktrees/

@@ -28,7 +28,7 @@ create extension if not exists citext with schema extensions;
 
 create table public.profiles (
   id                 uuid        primary key references auth.users (id) on delete cascade,
-  handle             citext      not null unique,
+  handle             extensions.citext  not null unique,
   display_name       text        not null,
   avatar_path        text,
   joined_at          timestamptz not null default now(),

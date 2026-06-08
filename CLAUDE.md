@@ -124,6 +124,13 @@ top-dog/
   via **form actions** or `+server.ts` endpoints, never client-side secret key.
 - Competitive writes (votes, crown, counters) go through **Postgres RPC
   functions** in a single transaction — never multi-step client writes.
+- Storage ops call `$lib/storage` (`upload`/`getSignedUrl`/`getPublicUrl`/`remove`)
+  and **pass the `SupabaseClient` in** — `event.locals.supabase` for RLS-scoped
+  ops, the service client for privileged ops. These functions return a
+  discriminated `StorageResult<T>` (`{ ok: true; data } | { ok: false; error }`)
+  rather than throwing; branch on `ok`. Build object paths with the pure
+  `hotdogPath`/`avatarPath` helpers — never hand-construct the `{owner_id}/`
+  prefix (uuid validation there backs the storage RLS write policies).
 
 ### State Management
 

@@ -45,18 +45,18 @@ pnpm dev
 
 ## Commands
 
-| Command                       | Description                      |
-| ----------------------------- | -------------------------------- |
-| `pnpm dev`                    | Dev server                       |
-| `pnpm build`                  | Production build                 |
-| `pnpm test`                   | Unit tests (Vitest, CI mode)     |
-| `pnpm test:e2e`               | E2E tests (Playwright)           |
-| `pnpm test:e2e --grep @smoke` | Vertical-slice smoke test        |
-| `pnpm lint`                   | Prettier check + ESLint          |
-| `pnpm check`                  | Type check (svelte-check)        |
-| `supabase start` / `stop`     | Local Supabase stack             |
-| `supabase migration new <n>`  | New migration                    |
-| `supabase db reset`           | Re-apply all migrations locally  |
+| Command                       | Description                     |
+| ----------------------------- | ------------------------------- |
+| `pnpm dev`                    | Dev server                      |
+| `pnpm build`                  | Production build                |
+| `pnpm test`                   | Unit tests (Vitest, CI mode)    |
+| `pnpm test:e2e`               | E2E tests (Playwright)          |
+| `pnpm test:e2e --grep @smoke` | Vertical-slice smoke test       |
+| `pnpm lint`                   | Prettier check + ESLint         |
+| `pnpm check`                  | Type check (svelte-check)       |
+| `supabase start` / `stop`     | Local Supabase stack            |
+| `supabase migration new <n>`  | New migration                   |
+| `supabase db reset`           | Re-apply all migrations locally |
 
 ## Deploying to hosted Supabase
 

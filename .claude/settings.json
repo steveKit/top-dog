@@ -1,17 +1,17 @@
 {
-    "permissions": {
-        "allow": [
-            "Bash(pnpm install*)",
-            "Bash(pnpm dev*)",
-            "Bash(pnpm build*)",
-            "Bash(pnpm test*)",
-            "Bash(pnpm lint*)",
-            "Bash(pnpm check*)",
-            "Bash(supabase start*)",
-            "Bash(supabase stop*)",
-            "Bash(supabase status*)",
-            "Bash(supabase db reset*)",
-            "Bash(supabase migration*)"
-        ]
-    }
+	"permissions": {
+		"allow": [
+			"Bash(pnpm install*)",
+			"Bash(pnpm dev*)",
+			"Bash(pnpm build*)",
+			"Bash(pnpm test*)",
+			"Bash(pnpm lint*)",
+			"Bash(pnpm check*)",
+			"Bash(supabase start*)",
+			"Bash(supabase stop*)",
+			"Bash(supabase status*)",
+			"Bash(supabase db reset*)",
+			"Bash(supabase migration*)"
+		]
+	}
 }

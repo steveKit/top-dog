@@ -182,6 +182,15 @@ top-dog/
   transaction — never write it from the client.
 - **Mustard + emoji are render-time computations** — the DB stores raw timestamps
   and original text; never persist the decayed/filtered output.
+- **Storage `{owner_id}/` prefix is load-bearing for RLS:** `storage.objects`
+  write/update/delete policies allow only objects whose first path segment is the
+  uploader's `auth.uid()` (`(storage.foldername(name))[1] = (select auth.uid()::text)`).
+  Uploads MUST place objects under `auth.uid()/...` or RLS rejects them. Buckets
+  (`hotdogs` private, `avatars` public-read) are defined **in SQL migrations**, not
+  the Supabase dashboard, so they reproduce under `supabase db reset`.
+- **RLS policies use the `(select auth.uid())` subselect idiom**, not bare
+  `auth.uid()`, so the planner caches it as an initplan (Supabase's documented RLS
+  perf pattern). Follow this idiom in new policies.
 - **Auth-trust boundary:** always read the session via `event.locals.safeGetSession()`,
   never a raw `supabase.auth.getSession()`. `safeGetSession()` re-validates the JWT
   with `supabase.auth.getUser()` and refuses unvalidated sessions — a bare

@@ -52,8 +52,8 @@ export const supabase: Handle = async ({ event, resolve }) => {
 
 	return resolve(event, {
 		filterSerializedResponseHeaders(name) {
-			// Supabase needs the content-range and content-encoding headers to
-			// be forwarded for storage range requests.
+			// Supabase needs the content-range and x-supabase-api-version
+			// headers to be forwarded for storage range requests.
 			return name === 'content-range' || name === 'x-supabase-api-version';
 		}
 	});

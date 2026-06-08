@@ -198,6 +198,12 @@ top-dog/
 - **RLS policies use the `(select auth.uid())` subselect idiom**, not bare
   `auth.uid()`, so the planner caches it as an initplan (Supabase's documented RLS
   perf pattern). Follow this idiom in new policies.
+- **Schema-qualify extension-provided types in migrations** (e.g.
+  `extensions.citext`, not bare `citext`). The local migration role has
+  `extensions` in its `search_path` but the hosted role does not, so an unqualified
+  reference passes `supabase db reset` locally yet fails `supabase db push` on
+  hosted with `type "x" does not exist`. Applies to every extension type
+  (invites, hot_dogs, vote RPC migrations, etc.).
 - **Auth-trust boundary:** always read the session via `event.locals.safeGetSession()`,
   never a raw `supabase.auth.getSession()`. `safeGetSession()` re-validates the JWT
   with `supabase.auth.getUser()` and refuses unvalidated sessions — a bare
@@ -207,8 +213,8 @@ top-dog/
   `PUBLIC_` vars go through `getPublicSupabaseConfig()` (`$lib/supabase/env.ts`),
   which throws on missing/empty values. Don't reach for static env imports.
 - **7-day auto-pause:** the keep-alive workflow must stay green or the hosted DB
-  pauses. **Currently the workflow is disabled** (`gh workflow disable`) because no
-  hosted Supabase project/secrets exist yet — its daily runs were failing and
-  emailing the owner. Re-enable it (`gh workflow enable "Supabase keep-alive"`) and
-  verify green as part of TASK-004, once the hosted project is set up.
+  pauses. The hosted project is live and the workflow is **enabled and verified**
+  (TASK-004 — last manual run returned HTTP 200 against `profiles`). It runs daily
+  and depends on the `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets; if it
+  ever goes red, re-check those secrets before anything else.
   Use [[wikilinks]] when cross-referencing project docs.

@@ -9,12 +9,16 @@ Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
 "Top Dog" status. The Top Dog earns a badge and can spray decaying mustard on
 other profiles. Plenary complete; scaffold published to `main` (all quality
-gates green). M0 underway — TASK-001 (SSR auth) landed (PR #1, squash `3978cee`)
-and TASK-003 (RLS baseline + storage buckets) landed (PR #3, squash `cdf7bed`):
+gates green). M0 underway — TASK-001 (SSR auth) landed (PR #1, squash `3978cee`),
+TASK-003 (RLS baseline + storage buckets) landed (PR #3, squash `cdf7bed`):
 `public.profiles` with default-deny + own-row RLS, plus the `hotdogs` (private)
-and `avatars` (public-read) buckets defined in SQL with own-prefix write policies.
-Remaining M0 work: TASK-002 (storage module), TASK-004 (keep-alive secrets +
-verify), TASK-005 (global storage guard).
+and `avatars` (public-read) buckets defined in SQL with own-prefix write policies;
+and TASK-002 (storage module) landed (PR #5, squash `505f4a1`): the swappable
+`src/lib/storage/` seam (decisions #6/#7) with a dependency-injected client, a
+discriminated `StorageResult` error model, and pure uuid-validated path helpers
+that enforce the prefix-containment the TASK-003 write policies rely on — zero new
+deps. Remaining M0 work: TASK-005 (global storage guard), plus TASK-004 (keep-alive
+secrets + verify), which is blocked on the hosted Supabase project.
 
 The auth-trust boundary is established by `safeGetSession()`, which validates
 the JWT via `supabase.auth.getUser()` and refuses an unvalidated `getSession()`
@@ -118,13 +122,13 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 
 ## Milestones
 
-| Milestone                      | Target                                                                              | Status  | Notes                                                     |
-| ------------------------------ | ----------------------------------------------------------------------------------- | ------- | --------------------------------------------------------- |
-| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | in progress | TASK-001 (SSR auth) + TASK-003 (RLS baseline + buckets) done; 002, 004, 005 remain. Keep-alive workflow disabled until hosted project exists (TASK-004) |
-| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | pending | Vertical slice; all later milestones must keep it passing |
-| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending | TDD-first                                                 |
-| M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending |                                                           |
-| M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending |                                                           |
-| M5 — Walls & DMs               | message walls + direct messages                                                     | pending |                                                           |
-| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | pending | TDD-first for filter                                      |
-| M7 — Safety & polish           | upload limits, report button, polish                                                | pending |                                                           |
+| Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | in progress | TASK-001 (SSR auth) + TASK-003 (RLS baseline + buckets) + TASK-002 (storage seam) done; 005 remains, 004 blocked on hosted project. Keep-alive workflow disabled until hosted project exists (TASK-004) |
+| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | pending     | Vertical slice; all later milestones must keep it passing                                                                                                                                               |
+| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending     | TDD-first                                                                                                                                                                                               |
+| M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                         |
+| M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                         |
+| M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                         |
+| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | pending     | TDD-first for filter                                                                                                                                                                                    |
+| M7 — Safety & polish           | upload limits, report button, polish                                                | pending     |                                                                                                                                                                                                         |

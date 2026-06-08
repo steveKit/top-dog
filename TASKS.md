@@ -13,18 +13,6 @@
 
 Goal: SvelteKit + Supabase wired, SSR auth, RLS baseline, keep-alive, secrets.
 
-### TASK-002: Storage module (swappable seam) [`pending`] [`P1`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-001
-**Description:** Thin `$lib/storage/` API hiding Supabase Storage (R2 swap seam).
-**Acceptance Criteria:**
-
-- [ ] `upload(bucket, path, blob)`, `getSignedUrl(path)`, `getPublicUrl(path)`, `remove(path)`
-- [ ] `hotdogs` (private) and `avatars` (public) bucket helpers
-- [ ] No `supabase.storage` calls exist outside this module
-- [ ] Unit tests for path construction (`{owner_id}/{dog_id}.webp`)
-
 ### TASK-004: Keep-alive workflow secrets + verify [`pending`] [`P1`] [`S`]
 
 **Owner:** unassigned
@@ -311,6 +299,43 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-002: Storage module (swappable seam)~~ [`complete`]
+
+**Completed:** 2026-06-08 · **PR:** #5 (squash `505f4a1`) · **Reviewer:** APPROVE
+**Acceptance Criteria:**
+
+- [x] `upload(bucket, path, blob)`, `getSignedUrl(path)`, `getPublicUrl(path)`, `remove(path)`
+- [x] `hotdogs` (private) and `avatars` (public) bucket helpers
+- [x] No `supabase.storage` calls exist outside this module
+- [x] Unit tests for path construction (`{owner_id}/{dog_id}.webp`)
+
+**Notes:** Landed the swappable storage seam (decisions #6/#7) as `src/lib/storage/`
+— the single place `supabase.storage` is ever called, so swapping to Cloudflare R2
+later touches one module. `index.ts` exposes `upload(client, bucket, path, blob, opts?)`,
+`getSignedUrl(client, path, ttl?)` (always hotdogs/private), `getPublicUrl(client, path)`
+(always avatars/public), and `remove(client, bucket, paths)`.
+
+Key decisions: the `SupabaseClient` is **dependency-injected** — callers pass
+`event.locals.supabase` for RLS-scoped ops or the service client for privileged
+ops, so the module is auth-context-agnostic and stays unit-testable with a mocked
+client. Errors are surfaced via a discriminated `StorageResult<T> = { ok: true; data } | { ok: false; error }` instead of throwing, pushing the error/success branch
+into the caller's type. `StorageError` is derived **structurally** from the
+installed `@supabase/supabase-js` return type — **zero new deps** (no import from
+the transitive `@supabase/storage-js`).
+
+Path helpers live in pure `paths.ts`: `hotdogPath(ownerId, dogId)` →
+`{ownerId}/{dogId}.webp` and `avatarPath(ownerId)` → `{ownerId}/avatar.webp`, with
+strict uuid validation on the **RLS-significant owner prefix** — this is the
+prefix-containment guarantee that backs the storage write policies from TASK-003
+(rejects traversal/slash/newline-bypass shapes before they can spoof another
+owner's folder).
+
+Review: APPROVE on a clean first pass (0 fix cycles) — reviewer confirmed the
+seam invariant, prefix-containment security, zero new deps, and no server-client
+leak. Metrics: 33 unit tests (path construction incl. hostile prefix-escape
+vectors; mocked-client API behavior, bucket selection, error wrapping); `pnpm check`
+and `pnpm lint` green.
 
 ### ~~TASK-003: RLS baseline migration + buckets~~ [`complete`]
 

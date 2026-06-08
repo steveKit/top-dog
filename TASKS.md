@@ -9,24 +9,11 @@
 
 ---
 
-## Milestone M0 — Scaffold & Infra [`in_progress`]
+## Milestone M0 — Scaffold & Infra [`complete`]
 
-Goal: SvelteKit + Supabase wired, SSR auth, RLS baseline, keep-alive, secrets.
+_All tasks complete. Details in Completed Tasks section below._
 
-### TASK-004: Keep-alive workflow secrets + verify [`pending`] [`P1`] [`S`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-003
-**Description:** Finalize `.github/workflows/keepalive.yml` against the real schema.
-The workflow was disabled via `gh workflow disable` during M0 (no hosted project
-yet → daily scheduled runs were failing and emailing the owner). Re-enabling and
-verifying it green is part of this task, once the hosted project + secrets exist.
-**Acceptance Criteria:**
-
-- [ ] Workflow queries an existing table (`profiles`) and returns 200
-- [ ] Repo secrets `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` documented in README
-- [ ] `workflow_dispatch` manual run succeeds
-- [ ] Keep-alive workflow re-enabled (`gh workflow enable "Supabase keep-alive"`) after secrets are set, and a run completes green (it was disabled during M0 to silence pre-setup failure emails)
+**Tag:** milestone-00-scaffold-infra
 
 ---
 
@@ -290,6 +277,29 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-004: Keep-alive workflow secrets + verify~~ [`complete`]
+
+**Completed:** 2026-06-08 · **Ops task (no PR)** · keep-alive run [#27162466166] → HTTP 200
+**Acceptance Criteria:**
+
+- [x] Workflow queries an existing table (`profiles`) and returns 200 (verified in run log)
+- [x] Repo secrets `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` documented in README (Deployment guide, PR #10)
+- [x] `workflow_dispatch` manual run succeeds
+- [x] Keep-alive workflow re-enabled (`gh workflow enable`) after secrets set; run green
+
+**Notes:** Pure **ops task — no PR / no code change**. The director set the two
+GitHub repo secrets (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`), re-enabled the
+previously-disabled "Supabase keep-alive" workflow (`gh workflow enable`), and
+triggered a manual `workflow_dispatch` run that returned **HTTP 200** against the
+hosted `profiles` table (run [#27162466166]) — a genuine DB hit that resets the
+hosted project's 7-day auto-pause timer. The two secrets are documented in the
+README Deployment guide (landed PR #10). 0 fix cycles.
+
+**This closes Milestone M0 — Scaffold & Infra** (TASK-001 SSR auth, TASK-002
+storage module, TASK-003 RLS baseline + buckets, TASK-004 keep-alive, TASK-005
+storage guard). The hosted Supabase project is live with the schema pushed and
+keep-alive verified green; the project is ready to begin M1 (vertical slice).
 
 ### ~~TASK-005: Global storage guard~~ [`complete`]
 

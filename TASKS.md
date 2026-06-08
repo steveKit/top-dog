@@ -25,18 +25,6 @@ Goal: SvelteKit + Supabase wired, SSR auth, RLS baseline, keep-alive, secrets.
 - [ ] No `supabase.storage` calls exist outside this module
 - [ ] Unit tests for path construction (`{owner_id}/{dog_id}.webp`)
 
-### TASK-003: RLS baseline migration + buckets [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** none
-**Description:** Initial migration enabling RLS scaffolding + storage buckets.
-**Acceptance Criteria:**
-
-- [ ] `supabase/migrations/` initial migration creates `profiles` + RLS enabled
-- [ ] `hotdogs` (private) + `avatars` (public-read) buckets created with policies
-- [ ] Storage write policy restricts users to their `{owner_id}/` prefix
-- [ ] `supabase db reset` applies cleanly on local stack
-
 ### TASK-004: Keep-alive workflow secrets + verify [`pending`] [`P1`] [`S`]
 
 **Owner:** unassigned
@@ -324,6 +312,45 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
 
+### ~~TASK-003: RLS baseline migration + buckets~~ [`complete`]
+
+**Completed:** 2026-06-08 · **PR:** #3 (squash `cdf7bed`) · **Reviewer:** APPROVE (empirical L2 RLS validation)
+**Acceptance Criteria:**
+
+- [x] `supabase/migrations/` initial migration creates `profiles` + RLS enabled
+- [x] `hotdogs` (private) + `avatars` (public-read) buckets created with policies
+- [x] Storage write policy restricts users to their `{owner_id}/` prefix
+- [x] `supabase db reset` applies cleanly on local stack
+
+**Notes:** Landed the RLS baseline plus storage buckets in one migration,
+`20260608153759_rls_baseline_and_storage_buckets.sql`. Built the `public.profiles`
+table matching the [[PROJECT]] Data Model: `citext` handle (case-insensitive
+unique), FK to `auth.users` ON DELETE CASCADE, and a handle length CHECK (2–32).
+RLS is enabled everywhere with a **default-deny + explicit-grant** design — select
+for `authenticated`, insert/update own-row only (`auth.uid() = id`, enforced in
+both USING and WITH CHECK so a row can't be reassigned to another owner). No client
+delete (profiles cascade from `auth.users`).
+
+Storage: both buckets are defined **in SQL** (deterministic under `supabase db
+reset`, not dashboard-created) — `hotdogs` (private) and `avatars` (public-read).
+`storage.objects` write/update/delete policies scope each user to their own
+`{owner_id}/` prefix via `(storage.foldername(name))[1] = (select auth.uid()::text)`.
+hotdogs read = owner-only (others use signed URLs); avatars read = public.
+
+Two deliberate choices: (1) **`citext`** (core Postgres contrib, not a third-party
+dep) gives case-insensitive-unique handles at the DB level; (2) policies use the
+`(select auth.uid())` subselect idiom so the planner caches it as an initplan —
+Supabase's documented RLS perf pattern.
+
+Reviewer did **empirical L2 validation**: ran `supabase db reset` twice and
+exercised the policies live as `authenticated`/`anon` roles — confirmed cross-user
+writes blocked, hotdogs private, avatars public-read, and prefix-spoof / no-prefix
+uploads rejected. APPROVE on a clean first pass (0 fix cycles; no standalone tester
+— a migration/config task verified by `db reset` plus live policy testing).
+
+Scope: only `profiles` + the two buckets are in this migration. The remaining
+tables (`hot_dogs`, `votes`, etc.) get their RLS in their own feature milestones.
+
 ### ~~TASK-001: SSR Supabase client + auth hooks~~ [`complete`]
 
 **Completed:** 2026-06-08 · **PR:** #1 (squash `3978cee`) · **Reviewer:** APPROVE
@@ -373,4 +400,14 @@ Re-enabling and verifying it green is folded into TASK-004's acceptance criteria
 _Tasks found during implementation that weren't in the original plan.
 User decides when/whether to promote these to Active Tasks._
 
-- (none yet)
+- **Handle character-set validation (M1, TASK-011):** the DB CHECK on
+  `profiles.handle` enforces length 2–32 but **not** character set — whitespace
+  and control characters are currently possible. Enforce an allowed handle
+  character set at the application boundary in the M1 profile form action
+  (TASK-011). Surfaced by the TASK-003 reviewer; not a defect in TASK-003,
+  flagged so it isn't forgotten.
+- **Automated RLS test harness:** there is currently no DB/RLS test harness —
+  the project uses Vitest (unit/logic) + Playwright (E2E) only, and the TASK-003
+  RLS policies were verified manually / by reviewer. Consider a lightweight RLS
+  integration-test harness (e.g., Vitest connecting to the local Supabase stack
+  as different roles) so future migrations get automated access-control coverage.

@@ -28,17 +28,6 @@ verifying it green is part of this task, once the hosted project + secrets exist
 - [ ] `workflow_dispatch` manual run succeeds
 - [ ] Keep-alive workflow re-enabled (`gh workflow enable "Supabase keep-alive"`) after secrets are set, and a run completes green (it was disabled during M0 to silence pre-setup failure emails)
 
-### TASK-005: Global storage guard [`pending`] [`P1`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-002
-**Description:** Mitigation for adversarial finding D — bound total storage.
-**Acceptance Criteria:**
-
-- [ ] Pure function: given used bytes, returns `ok` / `warn` (≥800MB) / `block` (≥950MB)
-- [ ] Upload path checks the guard before accepting new uploads (TDD)
-- [ ] Friendly UI message when blocked
-
 ---
 
 ## Milestone M1 — Vertical Slice [`pending`]
@@ -85,7 +74,7 @@ Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
 ### TASK-013: Hot dog upload + display [`pending`] [`P0`] [`M`]
 
 **Owner:** unassigned
-**Dependencies:** TASK-002, TASK-011, TASK-012
+**Dependencies:** TASK-002, TASK-005, TASK-011, TASK-012
 **Description:** Upload a compressed hot dog, store path ref, render via signed URL.
 **Acceptance Criteria:**
 
@@ -94,6 +83,8 @@ Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
 - [ ] Hot dog renders via signed URL
 - [ ] Per-user 100 cap enforced ("delete one to add another")
 - [ ] Delete removes BOTH the row AND the storage object (no orphans)
+- [ ] Upload path calls the storage guard (`evaluateUpload`) before accepting uploads; over-cap uploads rejected with the friendly blocked message (deferred from TASK-005)
+- [ ] Re-export the guard from the `$lib/storage` barrel (`index.ts`) so consumers import from one surface (reviewer note, TASK-005)
 
 ### TASK-014: Vertical-slice smoke test [`pending`] [`P0`] [`S`]
 
@@ -299,6 +290,50 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-005: Global storage guard~~ [`complete`]
+
+**Completed:** 2026-06-08 · **PR:** #7 (squash `d95eafc`) · **Reviewer:** APPROVE
+**Acceptance Criteria:**
+
+- [x] Pure function: given used bytes, returns `ok` / `warn` (≥800MB) / `block` (≥950MB)
+- [ ] Upload path checks the guard before accepting new uploads (TDD) — _`evaluateUpload` decision helper built + TDD'd; live wiring into the upload route deferred to TASK-013 (no upload path until M1)_
+- [ ] Friendly UI message when blocked — _blocked message authored + returned by `evaluateUpload`; UI rendering deferred to TASK-013 (no upload UI until M1)_
+
+**Notes:** Landed the global storage guard (decision #11, adversarial finding D)
+as a PURE module, `src/lib/storage/guard.ts`, with co-located `guard.test.ts` —
+zero Supabase/SvelteKit imports so the threshold logic is fully unit-testable in
+isolation.
+
+`storageGuardStatus(usedBytes)` classifies raw byte usage into `ok` / `warn`
+(≥800 MiB) / `block` (≥950 MiB). Thresholds are **binary MiB** (`1024 * 1024`),
+deliberately chosen so both sit under Supabase's ~1 GiB (1024 MiB) hard free-tier
+cap with headroom — the block boundary leaves ~74 MiB of slack so an in-flight
+upload can never push the project past the cap and trigger a pause. Boundary
+validation: a negative or non-finite `usedBytes` is an upstream programming error
+(not a quota state), so the function throws `TypeError` (`Number.isFinite` guard)
+rather than silently misclassifying it.
+
+`evaluateUpload(usedBytes)` is the contract the future upload boundary calls
+before accepting an upload: it returns `{ allowed, status, message? }`, with
+`allowed === false` only when the status is `block`. The blocked path carries a
+friendly, actionable user-facing message: _"The kennel's full! There's no room
+for new hot dogs right now. Delete one of your older dogs to make space, then try
+again."_ — which points the user at decision #10's "delete one to add another"
+remedy.
+
+Built **TDD** — 22 tests written red-first (threshold boundaries incl. the exact
+799/800/949/950 MiB edges, the `evaluateUpload` allowed/blocked contract, and the
+negative/`NaN`/`Infinity` `TypeError` cases), then implemented to green, then
+TDD-verified. Clean review on the first pass (0 fix cycles; reviewer APPROVE).
+
+**Deferred wiring (AC #2/#3):** the live upload boundary does not exist until M1,
+so only the pure guard + decision helper + message are delivered here. Calling
+`evaluateUpload` in the upload path, rendering the blocked message in the UI, and
+re-exporting the guard from the `$lib/storage` barrel (`index.ts`) are deferred to
+**TASK-013** (now carried as TASK-013 ACs + a TASK-005 → TASK-013 dependency). The
+reviewer accepted the guard's exports as orphaned-by-design until TASK-013 wires
+them in.
 
 ### ~~TASK-002: Storage module (swappable seam)~~ [`complete`]
 

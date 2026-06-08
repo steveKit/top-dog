@@ -3,13 +3,28 @@
 ## Status
 
 **Phase:** Active Development
-**Last Updated:** 2026-06-05
+**Last Updated:** 2026-06-08
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
 "Top Dog" status. The Top Dog earns a badge and can spray decaying mustard on
 other profiles. Plenary complete; scaffold published to `main` (all quality
-gates green). Starting M0 — next: TASK-001 (SSR auth) on `feat/m0-ssr-auth`.
+gates green). M0 underway — TASK-001 (SSR auth) is done: the SSR auth
+foundation landed (PR #1, squash `3978cee`). Remaining M0 work: TASK-002
+(storage module), TASK-003 (RLS baseline + buckets), TASK-004 (keep-alive
+secrets + verify), TASK-005 (global storage guard).
+
+The auth-trust boundary is established by `safeGetSession()`, which validates
+the JWT via `supabase.auth.getUser()` and refuses an unvalidated `getSession()`
+(implements decision #4). Env presence is validated at the boundary via
+`getPublicSupabaseConfig()` (the app reads `$env/dynamic/*`, not static).
+
+**Operational note:** the "Supabase keep-alive" GitHub Actions workflow is
+currently **disabled** (`gh workflow disable`) — no hosted Supabase project or
+secrets exist yet, so its daily scheduled runs were failing and emailing the
+owner. Re-enabling and verifying it green is part of TASK-004's acceptance
+criteria; do not forget to re-enable it once the hosted project is set up.
+
 See [[Handoffs/handoff-001]] for session context.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
@@ -103,7 +118,7 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 
 | Milestone                      | Target                                                                              | Status  | Notes                                                     |
 | ------------------------------ | ----------------------------------------------------------------------------------- | ------- | --------------------------------------------------------- |
-| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | pending |                                                           |
+| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | in progress | TASK-001 (SSR auth) done; 002–005 remain. Keep-alive workflow disabled until hosted project exists (TASK-004) |
 | M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | pending | Vertical slice; all later milestones must keep it passing |
 | M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending | TDD-first                                                 |
 | M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending |                                                           |

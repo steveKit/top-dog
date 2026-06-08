@@ -9,23 +9,9 @@
 
 ---
 
-## Milestone M0 — Scaffold & Infra [`pending`]
+## Milestone M0 — Scaffold & Infra [`in_progress`]
 
 Goal: SvelteKit + Supabase wired, SSR auth, RLS baseline, keep-alive, secrets.
-
-### TASK-001: SSR Supabase client + auth hooks [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** none (scaffold done in plenary)
-**Description:** Wire `@supabase/ssr` per-request client and session handling.
-**Acceptance Criteria:**
-
-- [ ] `hooks.server.ts` creates a request-scoped Supabase client from cookies
-- [ ] `event.locals.supabase` + `event.locals.safeGetSession()` available
-- [ ] `+layout.server.ts` passes session; `+layout.ts` builds browser client
-- [ ] `app.d.ts` types `App.Locals` (supabase, safeGetSession)
-- [ ] Server-only secret-key client lives in `$lib/server/supabase.ts`
-- [ ] Integration: hooks registered; a protected route redirects unauthenticated users
 
 ### TASK-002: Storage module (swappable seam) [`pending`] [`P1`] [`M`]
 
@@ -56,11 +42,15 @@ Goal: SvelteKit + Supabase wired, SSR auth, RLS baseline, keep-alive, secrets.
 **Owner:** unassigned
 **Dependencies:** TASK-003
 **Description:** Finalize `.github/workflows/keepalive.yml` against the real schema.
+The workflow was disabled via `gh workflow disable` during M0 (no hosted project
+yet → daily scheduled runs were failing and emailing the owner). Re-enabling and
+verifying it green is part of this task, once the hosted project + secrets exist.
 **Acceptance Criteria:**
 
 - [ ] Workflow queries an existing table (`profiles`) and returns 200
 - [ ] Repo secrets `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` documented in README
 - [ ] `workflow_dispatch` manual run succeeds
+- [ ] Keep-alive workflow re-enabled (`gh workflow enable "Supabase keep-alive"`) after secrets are set, and a run completes green (it was disabled during M0 to silence pre-setup failure emails)
 
 ### TASK-005: Global storage guard [`pending`] [`P1`] [`M`]
 
@@ -333,6 +323,43 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-001: SSR Supabase client + auth hooks~~ [`complete`]
+
+**Completed:** 2026-06-08 · **PR:** #1 (squash `3978cee`) · **Reviewer:** APPROVE
+**Acceptance Criteria:**
+
+- [x] `hooks.server.ts` creates a request-scoped Supabase client from cookies
+- [x] `event.locals.supabase` + `event.locals.safeGetSession()` available
+- [x] `+layout.server.ts` passes session; `+layout.ts` builds browser client
+- [x] `app.d.ts` types `App.Locals` (supabase, safeGetSession)
+- [x] Server-only secret-key client lives in `$lib/server/supabase.ts`
+- [x] Integration: hooks registered; a protected route redirects unauthenticated users
+
+**Notes:** Landed the SSR auth foundation. `hooks.server.ts` builds a
+request-scoped `@supabase/ssr` client and exposes `event.locals.supabase` +
+`event.locals.safeGetSession()` (plus typed `session`/`user`), with a global
+`authGuard` redirecting unauthenticated users (303) to `/sign-in`. The
+`(protected)/app` route group gets defense-in-depth via its own
+`+layout.server.ts`. Server-only secret-key client is `getServiceClient()` in
+`$lib/server/supabase.ts` (lazy singleton, no token refresh/persist); the two
+`PUBLIC_` vars are read through a validated `getPublicSupabaseConfig()` accessor
+that throws on missing/empty (L2 boundary validation).
+
+Key decision: `safeGetSession()` validates the JWT via `supabase.auth.getUser()`
+and refuses an unvalidated `getSession()` — this is the canonical auth-trust
+boundary for the app; never trust a raw `getSession()`. Used `$env/dynamic/*`
+(not `$env/static/*`) because no real `.env` is present at type-check time;
+env presence is validated at the boundary instead.
+
+Review: one cleanup round (no test-failure cycles) — deleted an orphan
+browser-client factory and corrected a stale comment; reviewer then APPROVE.
+Metrics: 21 unit tests passing; `pnpm check` and `pnpm lint` green.
+
+Operational: the "Supabase keep-alive" GitHub Actions workflow was disabled
+(`gh workflow disable`) during M0 — no hosted Supabase project/secrets exist
+yet, so its daily scheduled runs were failing and emailing the owner.
+Re-enabling and verifying it green is folded into TASK-004's acceptance criteria.
 
 ### ~~TASK-000: Project scaffolding~~ [`complete`]
 

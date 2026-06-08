@@ -182,5 +182,17 @@ top-dog/
   transaction — never write it from the client.
 - **Mustard + emoji are render-time computations** — the DB stores raw timestamps
   and original text; never persist the decayed/filtered output.
+- **Auth-trust boundary:** always read the session via `event.locals.safeGetSession()`,
+  never a raw `supabase.auth.getSession()`. `safeGetSession()` re-validates the JWT
+  with `supabase.auth.getUser()` and refuses unvalidated sessions — a bare
+  `getSession()` returns cookie data the server has not verified.
+- **Env access:** the app reads Supabase env via `$env/dynamic/*` (not
+  `$env/static/*`) because no real `.env` exists at type-check time. The two
+  `PUBLIC_` vars go through `getPublicSupabaseConfig()` (`$lib/supabase/env.ts`),
+  which throws on missing/empty values. Don't reach for static env imports.
 - **7-day auto-pause:** the keep-alive workflow must stay green or the hosted DB
-  pauses. Use [[wikilinks]] when cross-referencing project docs.
+  pauses. **Currently the workflow is disabled** (`gh workflow disable`) because no
+  hosted Supabase project/secrets exist yet — its daily runs were failing and
+  emailing the owner. Re-enable it (`gh workflow enable "Supabase keep-alive"`) and
+  verify green as part of TASK-004, once the hosted project is set up.
+  Use [[wikilinks]] when cross-referencing project docs.

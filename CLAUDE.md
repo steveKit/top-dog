@@ -187,7 +187,15 @@ top-dog/
 - **Secret vs publishable keys:** only `PUBLIC_`-prefixed vars reach the browser.
   The secret key must stay server-only (`$lib/server`).
 - **Denormalized `vote_count`** is maintained by a DB trigger/RPC inside the vote
-  transaction — never write it from the client.
+  transaction — never write it from the client. **Enforcement is column-level, on
+  BOTH write paths:** RLS gates rows, not columns, so server-maintained counters
+  (`vote_count`, `peak_votes`, `created_at`) are blocked by revoking table-wide
+  write then re-granting only safe columns — `grant insert (id, owner_id,
+image_path, caption, byte_size)` + `grant update (caption)` on `hot_dogs`.
+  Omitted columns fall to DEFAULTs so a direct PostgREST insert can't forge an
+  opening counter. Restricting only UPDATE is insufficient (it leaves the INSERT
+  path open). Replicate this insert+update column-grant pair for every future
+  denormalized counter.
 - **Single-use guards must key on a column the FK never nulls.** The invite
   single-use check keys on `invites.consumed_at` (set once, never nulled), NOT on
   `consumed_by` (which is `on delete set null` for audit). Keying a single-use

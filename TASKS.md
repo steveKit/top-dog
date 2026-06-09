@@ -22,21 +22,6 @@ _All tasks complete. Details in Completed Tasks section below._
 Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
 **All later milestones must keep the @smoke test passing.**
 
-### TASK-013: Hot dog upload + display [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-002, TASK-005, TASK-011, TASK-012
-**Description:** Upload a compressed hot dog, store path ref, render via signed URL.
-**Acceptance Criteria:**
-
-- [ ] `hot_dogs` table migration + RLS (owner CRUD; vote_count not client-writable)
-- [ ] Upload flow: compress -> storage.upload(hotdogs/) -> insert row with image_path
-- [ ] Hot dog renders via signed URL
-- [ ] Per-user 100 cap enforced ("delete one to add another")
-- [ ] Delete removes BOTH the row AND the storage object (no orphans)
-- [ ] Upload path calls the storage guard (`evaluateUpload`) before accepting uploads; over-cap uploads rejected with the friendly blocked message (deferred from TASK-005)
-- [ ] Re-export the guard from the `$lib/storage` barrel (`index.ts`) so consumers import from one surface (reviewer note, TASK-005)
-
 ### TASK-014: Vertical-slice smoke test [`pending`] [`P0`] [`S`]
 
 **Owner:** unassigned
@@ -241,6 +226,74 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-013: Hot dog upload + display~~ [`complete`]
+
+**Completed:** 2026-06-09 · **PR:** #20 (squash `c552be5`) · **Reviewer:** APPROVE (1 fix cycle)
+**Acceptance Criteria:**
+
+- [x] `hot_dogs` table migration + RLS (owner CRUD; vote_count not client-writable)
+- [x] Upload flow: compress -> storage.upload(hotdogs/) -> insert row with image_path
+- [x] Hot dog renders via signed URL
+- [x] Per-user 100 cap enforced ("delete one to add another")
+- [x] Delete removes BOTH the row AND the storage object (no orphans)
+- [x] Upload path calls the storage guard (`evaluateUpload`) before accepting uploads; over-cap uploads rejected with the friendly blocked message (deferred from TASK-005)
+- [x] Re-export the guard from the `$lib/storage` barrel (`index.ts`) so consumers import from one surface (reviewer note, TASK-005)
+
+**Notes:** Landed hot dog upload + display as the **fourth M1 task** (after
+TASK-010 invite redemption, TASK-012 compression, and TASK-011 profile creation) —
+the photo-posting half of the vertical slice. Migration
+`20260609181013_hot_dogs.sql` adds the `hot_dogs` table per the [[PROJECT]] Data
+Model (with an added `byte_size` column and a caption-length CHECK ≤280) and
+schema-qualifies `extensions.gen_random_uuid()`, applying the M0 hosted-parity
+lesson. RLS follows the project's **default-deny + explicit-grant** shape: SELECT
+for `authenticated` (image **bytes** are protected by the private `hotdogs` bucket
+
+- signed URLs, NOT row RLS — the row is just a path ref), and owner-scoped
+  insert/update/delete via the `(select auth.uid())` initplan idiom. An
+  `app_storage_bytes()` SECURITY DEFINER RPC sums global usage for the storage guard.
+
+**Counters made non-client-writable via COLUMN-LEVEL privileges on BOTH write
+paths (L2 hardening, the key fix-cycle catch).** `vote_count` / `peak_votes` /
+`created_at` must never be client-seeded. Enforcement revokes table-wide write,
+then re-grants only the safe columns: `grant update (caption)` and `grant insert
+(id, owner_id, image_path, caption, byte_size)`. The omitted columns fall to their
+DEFAULTs, so a direct PostgREST insert **cannot forge** an opening `vote_count` or
+`peak_votes`. The reviewer's two major DB-integrity findings drove this: the
+original PR restricted only UPDATE, leaving the INSERT path open to seed counters —
+the column-level INSERT grant closes that. This is the column-privilege complement
+to the existing "denormalized `vote_count` maintained server-side" gotcha.
+
+**Orphan-safe upload/display/delete ordering.** Upload (`/app/dogs`): client-side
+`compressToWebp` (TASK-012) → per-user **100 cap** ("delete one to add another",
+decision #10) → `evaluateUpload` storage guard (returns the friendly blocked
+message when over threshold) → `upload(hotdogs/{uid}/{id}.webp)` → row insert. The
+owner prefix is built from the **trusted `owner_id`** (never client-supplied), so
+the storage RLS `{owner_id}/` prefix policy holds, and the server re-checks the
+caption cap (≤280) **before any side effect**. The upload **fails closed both
+ways**: an insert failure triggers a **compensating storage delete** so no object
+is orphaned, and the caption-cap check runs before the upload. Display: the load
+lists the owner's dogs plus a **per-row signed URL** (private bucket, 1h TTL); a
+failed signing degrades that single row gracefully rather than failing the page.
+Delete removes the **row first, then the storage object** (orphan-free; a
+storage-removal failure is logged, not fatal).
+
+**Closes the last M0 foundational orphans.** The `$lib/storage` barrel now
+re-exports `evaluateUpload` / `storageGuardStatus`, giving the storage guard its
+first live consumer. M0 closed with three accepted orphans (`getServiceClient`,
+the storage module, `evaluateUpload`); TASK-010 wired `getServiceClient`, TASK-011
+wired the storage module for avatars, and TASK-013 now wires the storage module for
+hot dogs **plus** the guard — so **all M0 foundational orphans are resolved**.
+
+**Accepted v1 residual — `byte_size` is a client-supplied soft guard input.** A
+direct PostgREST insert can understate `byte_size`, so `app_storage_bytes()` / the
+global guard is **best-effort, not a hard quota**. Accepted for v1 under the
+invite-only trust model; it cannot be closed at the DB (a trigger can't see the
+real storage-object size). Carried as Discovered Work below.
+
+Metrics: `pnpm test` 281 passed (+55); `pnpm check` 0 errors; `pnpm lint` clean;
+`supabase db reset` exit 0. **1 fix cycle** (2 major DB-integrity findings + 1
+minor, all resolved, then reviewer APPROVE on re-review).
 
 ### ~~TASK-011: Profile creation~~ [`complete`]
 
@@ -655,3 +708,19 @@ User decides when/whether to promote these to Active Tasks._
   silently get the target profile, not the viewer's. Suggested remedy: rename the
   layout key (e.g. `viewerProfile`) when it gains a consumer. Surfaced by the
   TASK-011 reviewer (2026-06-09, non-blocking, not actionable now).
+- **`byte_size` is a client-supplied soft storage-guard input (accepted v1
+  residual, TASK-013):** the `hot_dogs.byte_size` column feeds `app_storage_bytes()`
+  and the global storage guard, but a direct PostgREST insert could **understate**
+  it, so the guard is best-effort, not a hard quota. Accepted for v1 under the
+  invite-only trust model. It **cannot** be closed at the DB — a trigger can't see
+  the real storage-object size. Revisit if the trust model changes: recompute usage
+  from storage object metadata, or run a periodic reconciliation job that reconciles
+  `byte_size` against actual stored bytes. Surfaced by the TASK-013 reviewer
+  (2026-06-09).
+- **TASK-014 @smoke must assert the DB-level write guards (TASK-013):** the
+  column-level INSERT grant (forged `vote_count` / `peak_votes` rejected) and the
+  caption-length CHECK (oversized caption rejected) are **migration-level guarantees
+  only testable against a live Postgres** — the TASK-013 unit tests recorded these
+  as deferred obligations (see the `dogs-action.test.ts` header). The TASK-014
+  Playwright `@smoke` should add a direct-PostgREST **forged-counter insert** and an
+  **oversized-caption insert**, asserting both are rejected by the DB.

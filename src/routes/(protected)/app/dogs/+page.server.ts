@@ -93,6 +93,17 @@ export const actions: Actions = {
 			return fail(400, { caption: rawCaption, error: 'Pick a hot dog photo to upload.' });
 		}
 
+		// Caption length bound (friendly UX layer; the hot_dogs_caption_length DB
+		// CHECK is the authoritative backstop). Reject before any upload/insert so
+		// an oversized caption never reaches storage. Empty captions are stored as
+		// null (see `caption` above); the limit applies only to actual text.
+		if (caption !== null && caption.length > 280) {
+			return fail(400, {
+				caption: rawCaption,
+				error: 'Keep your caption to 280 characters or less.'
+			});
+		}
+
 		// Per-user cap (decision #10): count first, reject at the cap.
 		const countResult = await countByOwner(supabase, user.id);
 		if (!countResult.ok) {

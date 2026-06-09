@@ -8,8 +8,10 @@
 --
 -- Counters (`vote_count`, `peak_votes`) are denormalized and SERVER-MAINTAINED:
 -- they are written only by the M2 vote RPC, never by a client. We enforce that
--- with column-level privileges (revoke UPDATE, grant UPDATE only on `caption`)
--- so even an owner UPDATE cannot touch the counters.
+-- with column-level privileges on BOTH write paths — revoke UPDATE / grant
+-- UPDATE(caption), and revoke INSERT / grant INSERT only on the columns the app
+-- supplies — so neither an owner UPDATE nor a direct INSERT can touch the
+-- counters (RLS only checks owner_id, so the column grant is the real guard).
 --
 -- Gotcha (M0 lesson): schema-qualify all extension-provided functions/types
 -- (extensions.gen_random_uuid()) — the hosted migration role lacks `extensions`
@@ -34,7 +36,11 @@ create table public.hot_dogs (
   vote_count  integer     not null default 0,
   peak_votes  integer     not null default 0,
   byte_size   integer     not null,
-  constraint hot_dogs_byte_size_nonneg check (byte_size >= 0)
+  constraint hot_dogs_byte_size_nonneg check (byte_size >= 0),
+  -- DB-authoritative caption bound (L2: a direct API poster can't bypass it).
+  -- The app action enforces the same 280 limit for friendly UX; this CHECK is
+  -- the backstop. NULL is allowed (no caption); the limit applies only to text.
+  constraint hot_dogs_caption_length check (caption is null or char_length(caption) <= 280)
 );
 
 comment on table public.hot_dogs is
@@ -46,7 +52,11 @@ comment on column public.hot_dogs.image_path is
   'image bytes are never stored in the DB (decision #6).';
 comment on column public.hot_dogs.byte_size is
   'Size in bytes of the stored WebP. Summed across all rows (app_storage_bytes) '
-  'to compute global storage usage for the upload guard (decision #11).';
+  'to compute global storage usage for the upload guard (decision #11). '
+  'CLIENT-SUPPLIED via the app upload path: a direct API insert could understate '
+  'it (a trigger cannot see the real storage-object size), so the storage guard '
+  'is a best-effort SOFT measure, not a hard quota — accepted for v1 under the '
+  'invite-only trust model; revisit if the trust model changes.';
 comment on column public.hot_dogs.vote_count is
   'Denormalized vote count. Server-maintained by the M2 vote RPC; NOT '
   'client-writable (column-level privileges revoke UPDATE on this column).';
@@ -111,10 +121,21 @@ create policy "hot_dogs_delete_own"
 -- WHICH COLUMNS. Revoking UPDATE on the whole table and re-granting it only on
 -- `caption` means an owner UPDATE can never set vote_count/peak_votes — those
 -- are maintained exclusively by the M2 vote RPC (running with elevated rights).
--- INSERT/SELECT/DELETE remain governed by the policies above (a fresh INSERT
--- uses the column defaults 0/0, which is correct).
+-- SELECT/DELETE remain governed by the policies above.
 revoke update on public.hot_dogs from authenticated;
 grant update (caption) on public.hot_dogs to authenticated;
+
+-- INSERT is column-restricted by the SAME mechanism, for the same reason: the
+-- hot_dogs_insert_own RLS policy only checks owner_id, so without this grant a
+-- direct PostgREST insert (browser publishable key) could seed vote_count /
+-- peak_votes and corrupt the M2 ranking. Revoking table-wide INSERT and
+-- re-granting only the columns the app's createHotDog supplies means a client
+-- cannot supply the counters at all — vote_count, peak_votes, and created_at
+-- are omitted, so they always fall to their column DEFAULTs (0/0/now()). This
+-- column-level grant — not RLS — is what actually prevents clients seeding the
+-- denormalized counters on insert.
+revoke insert on public.hot_dogs from authenticated;
+grant insert (id, owner_id, image_path, caption, byte_size) on public.hot_dogs to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- app_storage_bytes RPC — global storage usage for the upload guard
@@ -141,6 +162,10 @@ $$;
 comment on function public.app_storage_bytes() is
   'Sum of byte_size across all hot_dogs (global storage usage in bytes). Drives '
   'the upload guard (evaluateUpload) per decision #11. Avatars are not counted '
-  '(minor unaccounted component, acceptable for M1).';
+  '(minor unaccounted component, acceptable for M1). Because byte_size is '
+  'client-supplied (see the byte_size column comment), a direct API insert could '
+  'understate it, so this total is a BEST-EFFORT SOFT GUARD INPUT, not a hard '
+  'quota — accepted for v1 under the invite-only trust model; revisit if the '
+  'trust model changes.';
 
 grant execute on function public.app_storage_bytes() to authenticated;

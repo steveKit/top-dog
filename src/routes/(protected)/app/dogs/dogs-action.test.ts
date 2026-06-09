@@ -6,9 +6,11 @@ import { isActionFailure, isRedirect } from '@sveltejs/kit';
 // vertical-slice core, so the security- and orphan-sensitive paths are the focus:
 //
 //   - upload: cap rejection (no upload/insert), storage-guard rejection (no
-//     upload/insert), happy-path CALL ORDER (count -> usage -> upload -> insert),
-//     and the ORPHAN-SAFETY compensating delete (insert fails after a successful
-//     upload -> the just-uploaded object is removed with the SAME path).
+//     upload/insert), caption-length rejection (>280 fails BEFORE any
+//     count/upload/insert; 280 is accepted; empty -> null), happy-path CALL
+//     ORDER (count -> usage -> upload -> insert), and the ORPHAN-SAFETY
+//     compensating delete (insert fails after a successful upload -> the
+//     just-uploaded object is removed with the SAME path).
 //   - auth: safeGetSession() used (never raw getSession()); owner_id is the
 //     trusted user.id; a smuggled client owner_id/id is ignored; unauth fails closed.
 //   - delete: removes the DB row AND the storage object; a storage-removal failure
@@ -21,6 +23,13 @@ import { isActionFailure, isRedirect } from '@sveltejs/kit';
 // trusted ids, compensating cleanup) directly. The RLS / column-privilege /
 // real-signed-URL guarantees remain a live-DB coverage gap (deferred to the
 // TASK-014 Playwright @smoke), consistent with the tracked feature-test gaps.
+//
+// DEFERRED to the TASK-014 @smoke (not unit-testable without a live-DB harness;
+// no harness is invented here): the DB-level column INSERT grant (a direct
+// PostgREST insert cannot seed vote_count / peak_votes) and the
+// hot_dogs_caption_length CHECK (a direct insert with a >280-char caption is
+// rejected by the DB even when the friendly action layer is bypassed). The
+// smoke should assert a forged-counter / oversized-caption direct insert fails.
 
 vi.mock('$lib/features/hotdogs/hotdogs', () => ({
 	createHotDog: vi.fn(),
@@ -170,6 +179,58 @@ describe('dogs upload action', () => {
 		expect((result as { status: number }).status).toBe(400);
 		expect(countByOwner).not.toHaveBeenCalled();
 		expect(upload).not.toHaveBeenCalled();
+	});
+
+	it('rejects a caption longer than 280 chars with a friendly 400 BEFORE any upload/insert', async () => {
+		const longCaption = 'd'.repeat(281);
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { photo: aPhoto(), caption: longCaption }
+		});
+
+		const result = await upload_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		const failure = result as { status: number; data: { error: string; caption: string } };
+		expect(failure.status).toBe(400);
+		expect(failure.data.error).toMatch(/280 characters/i);
+		// Other entered state is preserved so the user doesn't retype.
+		expect(failure.data.caption).toBe(longCaption);
+		// Hard guarantee: nothing was counted, measured, uploaded, or inserted.
+		expect(countByOwner).not.toHaveBeenCalled();
+		expect(appStorageBytes).not.toHaveBeenCalled();
+		expect(upload).not.toHaveBeenCalled();
+		expect(createHotDog).not.toHaveBeenCalled();
+	});
+
+	it('accepts a caption of exactly 280 chars (boundary) and inserts it verbatim', async () => {
+		const maxCaption = 'd'.repeat(280);
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { photo: aPhoto(), caption: maxCaption }
+		});
+
+		const result = await upload_(event);
+
+		expect(result).toEqual({ uploaded: true });
+		const insertArg = vi.mocked(createHotDog).mock.calls[0][1];
+		expect(insertArg.caption).toBe(maxCaption);
+	});
+
+	it('treats an empty/whitespace caption as null on insert', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { photo: aPhoto(), caption: '   ' }
+		});
+
+		const result = await upload_(event);
+
+		expect(result).toEqual({ uploaded: true });
+		const insertArg = vi.mocked(createHotDog).mock.calls[0][1];
+		expect(insertArg.caption).toBeNull();
 	});
 
 	it('at the per-user cap: friendly "delete one to add another" 400, NO upload/insert', async () => {

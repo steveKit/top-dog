@@ -3,7 +3,7 @@
 ## Status
 
 **Phase:** Active Development
-**Last Updated:** 2026-06-08
+**Last Updated:** 2026-06-09
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
@@ -49,7 +49,39 @@ Two items from the going-live session are recorded here for auditability:
    auth foundation (hooks, layouts, protected route, `getPublicSupabaseConfig`) is
    fully wired.
 
-See [[Handoffs/handoff-001]] for session context.
+**Milestone M1 — Vertical Slice is now in progress.** The first M1 task landed:
+TASK-010 (invite generation + redemption, PR #13 `ef59aea`). The invite-only
+growth path (decision #17) is end-to-end — an authed user mints a unique invite
+link at `(protected)/app/invite`, and the public `/sign-up` flow consumes it
+(pre-check → `signUp` → atomic redeem RPC → session-branch redirect). M1 is **not
+closed**: TASK-011 (profile creation), TASK-012 (client WebP compression),
+TASK-013 (hot dog upload + display), and TASK-014 (the `@smoke` vertical slice)
+remain.
+
+### Milestone M1 progress notes
+
+1. **Single-use invariant keys on `consumed_at`, not `consumed_by` (TASK-010,
+   PR #13).** The `invites` table tracks consumption with two columns; the redeem
+   guard and the single-use CHECK key on `consumed_at` (which the FK never nulls),
+   while `consumed_by` → `auth.users` uses `on delete set null` for audit only,
+   guarded by a one-directional CHECK `(consumed_by is null or consumed_at is not
+   null)`. An earlier bidirectional CHECK + `on delete set null` pairing both
+   blocked deleting any redeemer *and* would have let a spent token become
+   re-redeemable after its redeemer was deleted — caught and fixed in review.
+   **Reusable lesson:** single-use guards must key on a column the FK never nulls
+   (captured as a [[CLAUDE]] gotcha).
+2. **Pre-auth redemption via anon-executable SECURITY DEFINER RPCs.** Redemption
+   runs while unauthenticated, so it can't use the inviter's RLS; `redeem_invite`
+   / `invite_is_redeemable` (both `search_path=''`, schema-qualified, granted
+   `anon` + `authenticated`) are the controlled single-transaction write path —
+   reinforcing the project convention that consuming writes go through RPC.
+3. **`getServiceClient` M0 seam now partially realized.** The sign-up action's
+   orphaned-account cleanup (`getServiceClient().auth.admin.deleteUser` on a
+   lost-race redeem failure after a successful `signUp`, so the email stays
+   reusable) is the **first real consumer** of the privileged service client —
+   the M0 "accepted foundational orphan" is now server-side wired.
+
+See [[Handoffs/handoff-002]] for session context.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 
@@ -78,6 +110,8 @@ See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 | 19  | Runtime/tool management | mise: node 24.16.0, pnpm 11.5.2, supabase 2.105.0                                                                                                            | Pinned, reproducible toolchain                                                                                                        | 2026-06-05 |
 | 20  | Package manager         | pnpm                                                                                                                                                         | Fast, strict, disk-efficient; first-class SvelteKit support                                                                           | 2026-06-05 |
 | 21  | Security level          | L2 (Standard)                                                                                                                                                | Auth + DMs + user uploads + PII                                                                                                       | 2026-06-05 |
+| 22  | Invite single-use guard | Authoritative single-use signal is `invites.consumed_at` (FK never nulls it); `consumed_by` is `on delete set null` for audit only, guarded by a one-directional CHECK | Keying the guard on a column an FK can null would re-open a spent token if the redeemer is deleted — guard must key on a never-nulled column | 2026-06-09 |
+| 23  | Invite redemption path  | Consumption via anon-executable SECURITY DEFINER RPCs (`redeem_invite` / `invite_is_redeemable`), `search_path=''`, schema-qualified; no client UPDATE/DELETE on `invites` | Redemption happens pre-auth (can't use inviter's RLS); a single-transaction RPC is the controlled write path — consistent with the consuming-writes-via-RPC convention | 2026-06-09 |
 
 ### Accepted Risks (from Adversarial Review)
 
@@ -143,7 +177,7 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 | Milestone                      | Target                                                                              | Status   | Notes                                                                                                                                                                                                                   |
 | ------------------------------ | ----------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above |
-| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | pending  | Vertical slice; all later milestones must keep it passing                                                                                                                                                               |
+| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | in progress | First task landed: TASK-010 invite mint + redemption (PR #13 `ef59aea`). TASK-011/012/013/014 remain. All later milestones must keep the `@smoke` test passing                                                          |
 | M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending  | TDD-first                                                                                                                                                                                                               |
 | M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending  |                                                                                                                                                                                                                         |
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending  |                                                                                                                                                                                                                         |

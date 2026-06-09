@@ -22,18 +22,6 @@ _All tasks complete. Details in Completed Tasks section below._
 Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
 **All later milestones must keep the @smoke test passing.**
 
-### TASK-010: Invite generation + redemption [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-001, TASK-003
-**Description:** User-generated invite links; redeem on sign-up.
-**Acceptance Criteria:**
-
-- [ ] `invites` table migration + RLS (inviter creates; token single-use)
-- [ ] Generate invite link (unique token) for an authed user
-- [ ] Sign-up via valid token consumes it; invalid/used token rejected
-- [ ] Integration: redemption wired into the sign-up flow
-
 ### TASK-011: Profile creation [`pending`] [`P0`] [`M`]
 
 **Owner:** unassigned
@@ -278,6 +266,64 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
 
+### ~~TASK-010: Invite generation + redemption~~ [`complete`]
+
+**Completed:** 2026-06-09 · **PR:** #13 (squash `ef59aea`) · **Reviewer:** APPROVE (1 fix cycle)
+**Acceptance Criteria:**
+
+- [x] `invites` table migration + RLS (inviter creates; token single-use)
+- [x] Generate invite link (unique token) for an authed user
+- [x] Sign-up via valid token consumes it; invalid/used token rejected
+- [x] Integration: redemption wired into the sign-up flow
+
+**Notes:** Landed invite-only growth (decision #17) as the **first M1 task** —
+the end-to-end mint → redeem flow that gates account creation. Migration
+`20260609140525_invites.sql` adds the `invites` table (id, `inviter_id` →
+`auth.users`, unique `token`, `created_at`, `consumed_by` → `auth.users`,
+`consumed_at`) with **default-deny + explicit-grant** RLS: owner-only
+insert/select via the `(select auth.uid())` initplan idiom, and **no client
+UPDATE/DELETE** — consumption is mediated entirely by RPC. Schema-qualified
+`extensions.gen_random_uuid()`, applying the M0 hosted-parity lesson.
+
+Two **SECURITY DEFINER** RPCs (`search_path=''`, fully schema-qualified, granted
+to `anon` + `authenticated`) own consumption: `redeem_invite(invite_token text,
+redeemer_id uuid) returns uuid` does the atomic single-use consumption, and
+`invite_is_redeemable(invite_token text) returns boolean` is a read-only
+pre-check. Redemption happens **while unauthenticated**, so it can't ride the
+inviter's RLS — the anon-executable RPCs are the deliberate, controlled write
+path. This reinforces the project's "competitive/consuming writes go through a
+single-transaction RPC" convention.
+
+Feature module `src/lib/features/invites/`: `token.ts` (Web Crypto token
+generation + validation, **zero deps**) and `invites.ts` (`createInvite` /
+`redeemInvite` / `isInviteRedeemable`, each returning a discriminated
+`InviteResult<T>`). Routes: authed invite-mint at `(protected)/app/invite`;
+public `/sign-up` running pre-check → `signUp` → redeem RPC → session-branch
+redirect.
+
+**Key fix-cycle redesign — `consumed_at` is the authoritative single-use
+signal, NOT `consumed_by`.** Review surfaced one blocking + one major + one
+minor finding. The blocking issue: the original schema coupled the two consumed
+columns with a bidirectional CHECK and `on delete set null` on `consumed_by`,
+which (a) blocked deleting any user who had ever redeemed an invite, and (b)
+worse — would have let a spent token become **re-redeemable** once its redeemer
+was deleted. The fix decoupled them: the redeem guard now keys on `consumed_at
+is null`, `consumed_by` keeps `on delete set null` purely for audit, and a
+**one-directional** CHECK `(consumed_by is null or consumed_at is not null)`
+replaced the bidirectional one. Reusable lesson (now a [[CLAUDE]] gotcha):
+**single-use guards must key on a column the FK never nulls.**
+
+**Orphaned-account race handling.** Sign-up is `signUp` → `redeem`; on a
+lost-race redeem failure *after* a successful `signUp`, the action deletes the
+orphaned auth user via `getServiceClient().auth.admin.deleteUser` so the email
+stays reusable. This is the **first real consumer of the `getServiceClient` M0
+foundational seam** — the accepted M0 orphan is now partially realized
+(server-side privileged op live).
+
+Metrics: 139 tests passing; `pnpm check` and `pnpm lint` green; `supabase db
+reset` clean. **1 fix cycle** (blocking + major + minor all resolved, then
+APPROVE on re-review).
+
 ### ~~TASK-004: Keep-alive workflow secrets + verify~~ [`complete`]
 
 **Completed:** 2026-06-08 · **Ops task (no PR)** · keep-alive run [#27162466166] → HTTP 200
@@ -476,8 +522,16 @@ User decides when/whether to promote these to Active Tasks._
   character set at the application boundary in the M1 profile form action
   (TASK-011). Surfaced by the TASK-003 reviewer; not a defect in TASK-003,
   flagged so it isn't forgotten.
-- **Automated RLS test harness:** there is currently no DB/RLS test harness —
-  the project uses Vitest (unit/logic) + Playwright (E2E) only, and the TASK-003
-  RLS policies were verified manually / by reviewer. Consider a lightweight RLS
-  integration-test harness (e.g., Vitest connecting to the local Supabase stack
-  as different roles) so future migrations get automated access-control coverage.
+- **Automated RLS / DB integration-test harness:** there is currently no DB/RLS
+  test harness — the project uses Vitest (unit/logic) + Playwright (E2E) only, and
+  the TASK-003 RLS policies were verified manually / by reviewer. Consider a
+  lightweight RLS integration-test harness (e.g., Vitest connecting to the local
+  Supabase stack as different roles) so future migrations get automated
+  access-control coverage. **Reinforced by the TASK-010 reviewer (2026-06-09):**
+  invite single-use atomicity, RLS enforcement, and anon-executable
+  SECURITY DEFINER RPC behavior are currently only **mock-tested** — there is no
+  live-DB coverage of the `consumed_at` single-use guard or the redeem/pre-check
+  RPCs. Given how central single-use correctness is to an invite-only app, the
+  reviewer recommends treating this as a **real near-term follow-up**, not a
+  someday-maybe item — the harness should land before more consuming-write RPCs
+  (the M2 vote RPC) accumulate without integration coverage.

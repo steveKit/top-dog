@@ -22,18 +22,6 @@ _All tasks complete. Details in Completed Tasks section below._
 Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
 **All later milestones must keep the @smoke test passing.**
 
-### TASK-011: Profile creation [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-010
-**Description:** Create profile with @handle, display name, avatar.
-**Acceptance Criteria:**
-
-- [ ] On first sign-in, prompt to set unique @handle (validated, case-insensitive unique)
-- [ ] Optional avatar upload to `avatars` bucket via storage module
-- [ ] Profile page shows handle, join date, stats (zeros initially)
-- [ ] Integration: profile row created post-redemption
-
 ### TASK-013: Hot dog upload + display [`pending`] [`P0`] [`M`]
 
 **Owner:** unassigned
@@ -253,6 +241,71 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-011: Profile creation~~ [`complete`]
+
+**Completed:** 2026-06-09 · **PR:** #18 (squash `38db5d9`) · **Reviewer:** APPROVE (0 fix cycles, 3 minor notes)
+**Acceptance Criteria:**
+
+- [x] On first sign-in, prompt to set unique @handle (validated, case-insensitive unique)
+- [x] Optional avatar upload to `avatars` bucket via storage module
+- [x] Profile page shows handle, join date, stats (zeros initially)
+- [x] Integration: profile row created post-redemption
+
+**Notes:** Landed profile creation as the **third M1 task** (after TASK-010
+invite redemption and TASK-012 compression) — the onboarding step that turns a
+freshly-redeemed auth user into a named member, and the first route to put the
+M0/M1 foundational seams under live load. Feature module
+`src/lib/features/profiles/` follows the established `invites/` shape: a pure
+validator plus typed server wrappers.
+
+**Handle validation splits along the same pure/IO seam as the rest of the
+codebase.** `handle.ts` is the **PURE** validator — it enforces the charset
+`^[A-Za-z0-9_]{2,32}$` at the **app boundary**, which is the layer the DB CHECK
+deliberately does not cover (the migration's CHECK is length-only, 2–32). This
+**closes the TASK-003 Discovered Work item** "Handle character-set validation
+(M1, TASK-011)": whitespace and control characters can no longer reach the
+`profiles.handle` column. Casing is **preserved** on write — display fidelity is
+kept while DB uniqueness stays case-insensitive via the `citext` column from
+TASK-003 (validate-for-shape app-side, enforce-uniqueness DB-side).
+
+`profiles.ts` holds the server wrappers — `getProfileById` / `getProfileByHandle`,
+`isHandleAvailable`, and `createProfile`. `createProfile` maps a Postgres `23505`
+unique-violation to a `HANDLE_TAKEN` sentinel **keyed on the SQLSTATE, never on
+constraint text** (so the error message can't leak schema internals) and surfaces
+the friendly "handle taken" to the user. This mirrors TASK-010's invite pattern: a
+best-effort `isHandleAvailable` pre-check for UX, backed by the authoritative DB
+UNIQUE constraint as the real race guard — the pre-check is advisory, the
+constraint is law.
+
+**First live consumer of BOTH the image and storage seams.** The onboarding route
+`(protected)/app/onboarding/` validates the handle, defaults `display_name` to the
+handle when left blank, and (optionally) compresses an avatar **client-side** via
+`compressToWebp` (TASK-012) before uploading it to `{uid}/avatar.webp` through
+`$lib/storage` (TASK-002). This realizes two of the M0/M1 "accepted foundational
+orphans" at once — the image module and the storage module now have a real
+non-test caller. The owner prefix is built from the **trusted `user.id`**, never a
+client-supplied value (so the storage RLS `{owner_id}/` prefix policy holds), and
+the upload **fails closed**: a storage failure aborts before any profile insert,
+so a profile row never references an avatar that didn't land.
+
+The profile view route `(protected)/app/profile/[handle]/` renders handle, join
+date, zeroed stats, and the avatar via its public URL, 404ing on a missing handle.
+The **integration funnel** lives in `(protected)/app/+layout.server.ts`: an
+authenticated user with no profile row is routed to `/app/onboarding` (no redirect
+loop; the unauthenticated → `/sign-in` guard is preserved), which satisfies
+"profile row created post-redemption."
+
+**Bundled fix — `compressToWebp` bitmap leak.** This PR hardened `compressToWebp`
+(`src/lib/image/compress.ts`) with a `try/finally` so the decoded `ImageBitmap` is
+released on **all** exit paths (the null-context throw, an encode reject, and the
+success path). This **resolves the bitmap-close nit** raised in TASK-012
+bookkeeping — addressed here because avatar upload is its first live consumer, so
+the leak path became reachable.
+
+Metrics: `pnpm test` 226 passed (+12); `pnpm check` 0 errors; `pnpm lint` clean.
+**0 fix cycles** — reviewer APPROVE on the first pass with 3 minor non-blocking
+notes (one folded into Discovered Work below; two informational).
 
 ### ~~TASK-012: Client-side WebP compression~~ [`complete`]
 
@@ -559,12 +612,14 @@ Re-enabling and verifying it green is folded into TASK-004's acceptance criteria
 _Tasks found during implementation that weren't in the original plan.
 User decides when/whether to promote these to Active Tasks._
 
-- **Handle character-set validation (M1, TASK-011):** the DB CHECK on
+- ~~**Handle character-set validation (M1, TASK-011):** the DB CHECK on
   `profiles.handle` enforces length 2–32 but **not** character set — whitespace
   and control characters are currently possible. Enforce an allowed handle
   character set at the application boundary in the M1 profile form action
   (TASK-011). Surfaced by the TASK-003 reviewer; not a defect in TASK-003,
-  flagged so it isn't forgotten.
+  flagged so it isn't forgotten.~~ **RESOLVED by TASK-011 (PR #18):** charset
+  `^[A-Za-z0-9_]{2,32}$` is now enforced at the app boundary in
+  `src/lib/features/profiles/handle.ts`.
 - **Automated RLS / DB integration-test harness:** there is currently no DB/RLS
   test harness — the project uses Vitest (unit/logic) + Playwright (E2E) only, and
   the TASK-003 RLS policies were verified manually / by reviewer. Consider a
@@ -578,11 +633,25 @@ User decides when/whether to promote these to Active Tasks._
   reviewer recommends treating this as a **real near-term follow-up**, not a
   someday-maybe item — the harness should land before more consuming-write RPCs
   (the M2 vote RPC) accumulate without integration coverage.
-- **`compressToWebp` bitmap cleanup on the null-context path (M1, fold into
+- ~~**`compressToWebp` bitmap cleanup on the null-context path (M1, fold into
   TASK-013):** `compressToWebp` (`src/lib/image/compress.ts`) calls
   `bitmap.close()` only after a successful `getContext('2d')`; on the rare path
   where `getContext('2d')` returns `null` it throws without releasing the decoded
   bitmap (a negligible leak on an essentially-never path). Suggested fix: wrap the
   draw + encode in `try/finally` so `bitmap.close?.()` always runs. Not a defect —
   a tidy to fold into TASK-013 when compression is wired into the upload path, or
-  a standalone nit. Surfaced by the TASK-012 reviewer (2026-06-09, non-blocking).
+  a standalone nit. Surfaced by the TASK-012 reviewer (2026-06-09, non-blocking).~~
+  **RESOLVED by TASK-011 (PR #18):** wrapped the draw + encode in `try/finally` so
+  the decoded `ImageBitmap` is released on all exit paths. Fixed here because
+  avatar upload (TASK-011) is the module's first live consumer, making the path
+  reachable.
+- **Shared `profile` layout/page data key is a footgun (M1, TASK-011):**
+  `(protected)/app/+layout.server.ts` returns `{ user, profile }` where `profile`
+  is the **viewer's own** profile, while `profile/[handle]/+page.server.ts` returns
+  `{ profile }` for the **target** profile. SvelteKit's data merge resolves this
+  correctly today (the page's `profile` shadows the layout's on that route), so it
+  is not a current defect. But the shared `profile` key is a latent footgun: a
+  future consumer reading `profile` from layout context on the profile route would
+  silently get the target profile, not the viewer's. Suggested remedy: rename the
+  layout key (e.g. `viewerProfile`) when it gains a consumer. Surfaced by the
+  TASK-011 reviewer (2026-06-09, non-blocking, not actionable now).

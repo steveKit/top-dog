@@ -49,16 +49,20 @@ Two items from the going-live session are recorded here for auditability:
    auth foundation (hooks, layouts, protected route, `getPublicSupabaseConfig`) is
    fully wired.
 
-**Milestone M1 — Vertical Slice is now in progress.** Two M1 tasks have landed:
-TASK-010 (invite generation + redemption, PR #13 `ef59aea`) and TASK-012
-(client-side WebP compression, PR #16 `2828468`). The invite-only growth path
-(decision #17) is end-to-end — an authed user mints a unique invite link at
-`(protected)/app/invite`, and the public `/sign-up` flow consumes it (pre-check →
-`signUp` → atomic redeem RPC → session-branch redirect). Client compression
-(decisions #8/#9, the linchpin that makes the 1 GB free-tier cap viable) now has
-its pure resize/encode pipeline in place as a shared seam. M1 is **not closed**:
-TASK-011 (profile creation), TASK-013 (hot dog upload + display), and TASK-014
-(the `@smoke` vertical slice) remain.
+**Milestone M1 — Vertical Slice is now in progress.** Three M1 tasks have landed:
+TASK-010 (invite generation + redemption, PR #13 `ef59aea`), TASK-012 (client-side
+WebP compression, PR #16 `2828468`), and TASK-011 (profile creation, PR #18
+`38db5d9`). The invite-only growth path (decision #17) is end-to-end — an authed
+user mints a unique invite link at `(protected)/app/invite`, and the public
+`/sign-up` flow consumes it (pre-check → `signUp` → atomic redeem RPC →
+session-branch redirect). Client compression (decisions #8/#9, the linchpin that
+makes the 1 GB free-tier cap viable) is in place as a shared seam. With TASK-011,
+the redeemed user now has an **onboarding funnel**: an authenticated user without a
+profile row is routed to `/app/onboarding`, sets a validated unique `@handle`, and
+optionally uploads an avatar that is compressed client-side and stored via the
+storage seam — the first live consumer of **both** the image and storage modules.
+M1 is **not closed**: TASK-013 (hot dog upload + display) and TASK-014 (the
+`@smoke` vertical slice) remain.
 
 ### Milestone M1 progress notes
 
@@ -96,6 +100,25 @@ null)`. An earlier bidirectional CHECK + `on delete set null` pairing both
    pixel-encoding fidelity (~100–200 KB target) is deferred to the TASK-014
    Playwright `@smoke` (the node Vitest env can't simulate a real canvas); the unit
    tests own the deterministic dimension math, type-rejection, and option flow.
+5. **Profile creation + onboarding funnel (TASK-011, PR #18).** Feature module
+   `src/lib/features/profiles/` follows the `invites/` shape: a pure `handle.ts`
+   validator enforcing the charset `^[A-Za-z0-9_]{2,32}$` at the app boundary (the
+   DB CHECK is length-only; casing preserved, uniqueness case-insensitive via
+   `citext`), plus typed server wrappers in `profiles.ts`. `createProfile` maps a
+   Postgres `23505` unique-violation to a `HANDLE_TAKEN` sentinel keyed on SQLSTATE
+   (never constraint text) — best-effort pre-check backed by the authoritative DB
+   UNIQUE constraint, mirroring TASK-010's invite pattern. The
+   `(protected)/app/+layout.server.ts` load routes a profile-less authenticated
+   user to `/app/onboarding` (no redirect loop; unauthenticated → `/sign-in`
+   preserved), satisfying "profile row created post-redemption." Onboarding
+   validates the handle, defaults `display_name` to the handle if blank, and
+   optionally compresses an avatar client-side via `compressToWebp` then uploads it
+   to `{uid}/avatar.webp` (owner prefix built from the trusted `user.id`) — the
+   **first live consumer of both the image and storage seams**, realizing two of
+   the accepted M0/M1 foundational orphans. Upload **fails closed**: a storage
+   failure aborts before any profile insert. The PR also hardened `compressToWebp`
+   with a `try/finally` so the decoded `ImageBitmap` is always released (resolving
+   the TASK-012 bitmap-leak nit, now reachable via its first live consumer).
 
 See [[Handoffs/handoff-002]] for session context.
 
@@ -190,13 +213,13 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 
 ## Milestones
 
-| Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                                                        |
-| ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above                      |
-| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | in progress | Two tasks landed: TASK-010 invite mint + redemption (PR #13 `ef59aea`) and TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam). TASK-011/013/014 remain. All later milestones must keep the `@smoke` test passing |
-| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending     | TDD-first                                                                                                                                                                                                                                    |
-| M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                                              |
-| M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                                              |
-| M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                                                              |
-| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | pending     | TDD-first for filter                                                                                                                                                                                                                         |
-| M7 — Safety & polish           | upload limits, report button, polish                                                | pending     |                                                                                                                                                                                                                                              |
+| Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above                                                                                                                                                                                   |
+| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | in progress | Three tasks landed: TASK-010 invite mint + redemption (PR #13 `ef59aea`), TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam), and TASK-011 profile creation + onboarding funnel (PR #18 `38db5d9`, new `src/lib/features/profiles/` module — first live consumer of the image + storage seams). TASK-013/014 remain. All later milestones must keep the `@smoke` test passing |
+| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending     | TDD-first                                                                                                                                                                                                                                                                                                                                                                                                 |
+| M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                                                                                                                                                                                                           |
+| M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                                                                                                                                                                                                           |
+| M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                                                                                                                                                                                                                           |
+| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | pending     | TDD-first for filter                                                                                                                                                                                                                                                                                                                                                                                      |
+| M7 — Safety & polish           | upload limits, report button, polish                                                | pending     |                                                                                                                                                                                                                                                                                                                                                                                                           |

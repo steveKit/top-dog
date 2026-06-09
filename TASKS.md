@@ -314,7 +314,7 @@ replaced the bidirectional one. Reusable lesson (now a [[CLAUDE]] gotcha):
 **single-use guards must key on a column the FK never nulls.**
 
 **Orphaned-account race handling.** Sign-up is `signUp` → `redeem`; on a
-lost-race redeem failure *after* a successful `signUp`, the action deletes the
+lost-race redeem failure _after_ a successful `signUp`, the action deletes the
 orphaned auth user via `getServiceClient().auth.admin.deleteUser` so the email
 stays reusable. This is the **first real consumer of the `getServiceClient` M0
 foundational seam** — the accepted M0 orphan is now partially realized

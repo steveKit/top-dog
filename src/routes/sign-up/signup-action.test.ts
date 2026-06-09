@@ -209,6 +209,39 @@ describe('sign-up default action — invalid / used token rejection', () => {
 		expect((result as { data: { error: string } }).data.error).toMatch(/valid invite/i);
 	});
 
+	it('still fails cleanly (no crash) when orphan cleanup itself errors on the lost-race path', async () => {
+		// The lost-race path tries to delete the just-created auth user. If that
+		// delete ALSO fails (e.g. the admin call errors), the action must log and
+		// still return a friendly fail() — it must not throw or redirect the user
+		// into /app on a half-broken state.
+		deleteUser.mockResolvedValueOnce({ data: null, error: { message: 'admin delete failed' } });
+
+		const { event, signUpFn, rpc } = makeEvent({
+			fields: GOOD_FIELDS,
+			rpcResult: { data: null, error: null }
+		});
+
+		let thrown: unknown;
+		let result: unknown;
+		try {
+			result = await signUp(event);
+		} catch (e) {
+			thrown = e;
+		}
+
+		// The orphan delete was attempted with the new user id and reported an error.
+		expect(signUpFn).toHaveBeenCalledOnce();
+		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
+			invite_token: A_TOKEN,
+			redeemer_id: 'new-user-uuid'
+		});
+		expect(deleteUser).toHaveBeenCalledWith('new-user-uuid');
+		// Despite the cleanup error, the action neither threw nor redirected.
+		expect(thrown).toBeUndefined();
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+	});
+
 	it('preserves the token and email on the failure payload so the form repopulates', async () => {
 		const { event } = makeEvent({
 			fields: GOOD_FIELDS,
@@ -310,7 +343,7 @@ describe('sign-up default action — email confirmation (no session)', () => {
 		// Email confirmation enabled: signUp succeeds but returns no session. The
 		// invite was validly consumed, so this is a success, not a fail() — and we
 		// must NOT redirect into /app (the guard would bounce an unauthenticated user).
-		const { event } = makeEvent({
+		const { event, rpc } = makeEvent({
 			fields: GOOD_FIELDS,
 			signUpResult: { data: { user: NEW_USER, session: null }, error: null }
 		});
@@ -326,5 +359,13 @@ describe('sign-up default action — email confirmation (no session)', () => {
 		expect(thrown).toBeUndefined();
 		expect(isActionFailure(result)).toBe(false);
 		expect(result).toEqual({ success: true, confirmEmail: true, email: 'newchef@topdog.test' });
+		// The invite WAS validly consumed in this branch — redemption ran and the
+		// orphan-cleanup path must NOT fire (the account is legitimate, just
+		// awaiting email confirmation).
+		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
+			invite_token: A_TOKEN,
+			redeemer_id: 'new-user-uuid'
+		});
+		expect(deleteUser).not.toHaveBeenCalled();
 	});
 });

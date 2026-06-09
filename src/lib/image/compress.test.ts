@@ -40,6 +40,20 @@ describe('fitWithinMaxEdge', () => {
 		expect(fitWithinMaxEdge(1280, 960, 1280)).toEqual({ width: 1280, height: 960 });
 	});
 
+	it('never upscales when maxEdge exceeds BOTH dimensions (500x400 @ 1280)', () => {
+		// Distinct from the at-cap case: the whole image is well within the cap, so
+		// no axis may be scaled up.
+		expect(fitWithinMaxEdge(500, 400, 1280)).toEqual({ width: 500, height: 400 });
+	});
+
+	it('downscales an extreme aspect ratio without zeroing the short edge (5000x10 @ 1280)', () => {
+		// 10 * (1280/5000) = 2.56 -> rounds to 3; the long edge caps at 1280.
+		const result = fitWithinMaxEdge(5000, 10, 1280);
+		expect(result.width).toBe(1280);
+		expect(result.height).toBe(3);
+		expect(Math.max(result.width, result.height)).toBe(1280);
+	});
+
 	it('rounds fractional target dimensions to integers and never returns 0 (1281x1 -> 1280x>=1)', () => {
 		const result = fitWithinMaxEdge(1281, 1, 1280);
 		expect(result.width).toBe(1280);

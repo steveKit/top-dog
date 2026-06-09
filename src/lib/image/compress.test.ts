@@ -257,4 +257,26 @@ describe('compressToWebp', () => {
 		expect(harness.canvas.width).toBe(expected.width);
 		expect(harness.canvas.height).toBe(expected.height);
 	});
+
+	it('closes the decoded bitmap on the success path (no resource leak)', async () => {
+		const harness = installCanvasHarness();
+
+		await compressToWebp(imageBlob());
+
+		const bitmap = await harness.createImageBitmap.mock.results[0].value;
+		expect(bitmap.close).toHaveBeenCalledTimes(1);
+	});
+
+	it('closes the decoded bitmap even when getContext fails (no leak on the throw path)', async () => {
+		// Install the standard harness, then make getContext return null so the
+		// canvas-context guard throws AFTER the bitmap is decoded. The finally must
+		// still release the bitmap.
+		const harness = installCanvasHarness();
+		harness.canvas.getContext.mockReturnValue(null);
+
+		await expect(compressToWebp(imageBlob())).rejects.toThrow(/context/i);
+
+		const bitmap = await harness.createImageBitmap.mock.results[0].value;
+		expect(bitmap.close).toHaveBeenCalledTimes(1);
+	});
 });

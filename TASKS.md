@@ -34,18 +34,6 @@ Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
 - [ ] Profile page shows handle, join date, stats (zeros initially)
 - [ ] Integration: profile row created post-redemption
 
-### TASK-012: Client-side WebP compression [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** none
-**Description:** Resize/encode images to WebP in-browser before upload.
-**Acceptance Criteria:**
-
-- [ ] Pure-ish module: resize to ≤1280px, WebP ~80%, target ~100–200 KB
-- [ ] Uses `canvas.toBlob` (zero deps)
-- [ ] Unit tests for dimension math; rejects non-image input
-- [ ] Returns a Blob ready for storage upload
-
 ### TASK-013: Hot dog upload + display [`pending`] [`P0`] [`M`]
 
 **Owner:** unassigned
@@ -265,6 +253,61 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-012: Client-side WebP compression~~ [`complete`]
+
+**Completed:** 2026-06-09 · **PR:** #16 (squash `2828468`) · **Reviewer:** APPROVE (0 fix cycles, 2 minor notes)
+**Acceptance Criteria:**
+
+- [x] Pure-ish module: resize to ≤1280px, WebP ~80%, target ~100–200 KB
+- [x] Uses `canvas.toBlob` (zero deps)
+- [x] Unit tests for dimension math; rejects non-image input
+- [x] Returns a Blob ready for storage upload
+
+**Notes:** Landed client-side WebP compression (decisions #8/#9, adversarial
+finding D) as a new **shared lib seam** `src/lib/image/compress.ts` (co-located
+`compress.test.ts`). Deliberately placed at `src/lib/image/` — a feature-agnostic
+utility **parallel to `src/lib/storage/`, NOT under a feature folder** — because
+both TASK-011 (avatar upload) and TASK-013 (hot dog upload) consume it; a single
+shared module avoids duplicating the resize/encode pipeline per feature. Zero new
+dependencies (browser canvas APIs only).
+
+The module splits along a **pure / canvas seam**, mirroring
+`src/lib/storage/guard.ts`'s boundary-validation style. `fitWithinMaxEdge(width,
+height, maxEdge)` is the **PURE** aspect-preserving downscale (the primary TDD
+target): it caps the longest edge at `maxEdge`, **never upscales** (images already
+within the cap are returned unchanged), returns rounded integer dims clamped ≥1
+(so a thin image like 1281×1 can't round a short edge to a non-drawable 0px), and
+throws `TypeError` on zero/negative/non-finite `width`/`height`/`maxEdge` (those
+are upstream programming errors, not valid states). `compressToWebp(input, opts)`
+is the canvas-bound pipeline: it **validates the image type FIRST** (rejects
+empty/non-`image/` Blobs with a `TypeError` before any decode work), then decodes
+via `createImageBitmap`, resizes on a `<canvas>`, and encodes `image/webp` via
+`canvas.toBlob` at quality. Defaults: `maxEdge` 1280, `quality` 0.8 (decisions
+#8/#9), targeting ~100–200 KB/photo.
+
+Built **TDD**: 23 tests written red-first (dimension math incl. no-upscale,
+longest-edge cap, fractional/clamp-to-1 edges; type rejection; option
+flow-through), implemented to green, then 2 more added at verify (25 module tests
+total). The pure dimension math, type-rejection, and option flow-through are fully
+deterministic in the node Vitest env.
+
+**Accepted foundational-seam orphan (same pattern as the M0 storage guard).** The
+module has no non-test consumer yet — its consumers are TASK-011 (avatar upload)
+and TASK-013 (hot dog upload), both dependency-declared and not yet built. The
+reviewer confirmed this is the intended foundational-seam situation (identical to
+`src/lib/storage/guard.ts` and the other M0 accepted orphans), not accidental dead
+code.
+
+**Deferred coverage gap (by design):** real WebP pixel-encoding fidelity — actual
+output bytes against the ~100–200 KB target — can't be simulated in the node
+Vitest env (no real canvas/`toBlob`). That fidelity check is deferred to the
+TASK-014 Playwright `@smoke` (real browser); the unit tests own the deterministic
+dimension math, type-rejection, and option flow-through.
+
+Metrics: 25 module tests; 164 suite tests green; `pnpm check` 0 errors; `pnpm
+lint` clean. **0 fix cycles** — reviewer APPROVE on the first pass with 2 minor
+non-blocking notes (one folded into Discovered Work below; one informational).
 
 ### ~~TASK-010: Invite generation + redemption~~ [`complete`]
 
@@ -535,3 +578,11 @@ User decides when/whether to promote these to Active Tasks._
   reviewer recommends treating this as a **real near-term follow-up**, not a
   someday-maybe item — the harness should land before more consuming-write RPCs
   (the M2 vote RPC) accumulate without integration coverage.
+- **`compressToWebp` bitmap cleanup on the null-context path (M1, fold into
+  TASK-013):** `compressToWebp` (`src/lib/image/compress.ts`) calls
+  `bitmap.close()` only after a successful `getContext('2d')`; on the rare path
+  where `getContext('2d')` returns `null` it throws without releasing the decoded
+  bitmap (a negligible leak on an essentially-never path). Suggested fix: wrap the
+  draw + encode in `try/finally` so `bitmap.close?.()` always runs. Not a defect —
+  a tidy to fold into TASK-013 when compression is wired into the upload path, or
+  a standalone nit. Surfaced by the TASK-012 reviewer (2026-06-09, non-blocking).

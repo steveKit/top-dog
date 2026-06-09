@@ -49,14 +49,16 @@ Two items from the going-live session are recorded here for auditability:
    auth foundation (hooks, layouts, protected route, `getPublicSupabaseConfig`) is
    fully wired.
 
-**Milestone M1 — Vertical Slice is now in progress.** The first M1 task landed:
-TASK-010 (invite generation + redemption, PR #13 `ef59aea`). The invite-only
-growth path (decision #17) is end-to-end — an authed user mints a unique invite
-link at `(protected)/app/invite`, and the public `/sign-up` flow consumes it
-(pre-check → `signUp` → atomic redeem RPC → session-branch redirect). M1 is **not
-closed**: TASK-011 (profile creation), TASK-012 (client WebP compression),
-TASK-013 (hot dog upload + display), and TASK-014 (the `@smoke` vertical slice)
-remain.
+**Milestone M1 — Vertical Slice is now in progress.** Two M1 tasks have landed:
+TASK-010 (invite generation + redemption, PR #13 `ef59aea`) and TASK-012
+(client-side WebP compression, PR #16 `2828468`). The invite-only growth path
+(decision #17) is end-to-end — an authed user mints a unique invite link at
+`(protected)/app/invite`, and the public `/sign-up` flow consumes it (pre-check →
+`signUp` → atomic redeem RPC → session-branch redirect). Client compression
+(decisions #8/#9, the linchpin that makes the 1 GB free-tier cap viable) now has
+its pure resize/encode pipeline in place as a shared seam. M1 is **not closed**:
+TASK-011 (profile creation), TASK-013 (hot dog upload + display), and TASK-014
+(the `@smoke` vertical slice) remain.
 
 ### Milestone M1 progress notes
 
@@ -80,6 +82,20 @@ null)`. An earlier bidirectional CHECK + `on delete set null` pairing both
    lost-race redeem failure after a successful `signUp`, so the email stays
    reusable) is the **first real consumer** of the privileged service client —
    the M0 "accepted foundational orphan" is now server-side wired.
+4. **New shared `src/lib/image/` seam for client compression (TASK-012, PR #16).**
+   WebP compression (decisions #8/#9) landed as `src/lib/image/compress.ts` — a
+   feature-agnostic utility placed **parallel to `src/lib/storage/`, deliberately
+   NOT under a feature folder**, because both TASK-011 (avatar upload) and TASK-013
+   (hot dog upload) consume it. It splits along a pure/canvas seam:
+   `fitWithinMaxEdge` is the PURE aspect-preserving downscale (caps the longest
+   edge, never upscales, throws on invalid dims), and `compressToWebp`
+   type-validates input first, then decodes → resizes on canvas → encodes
+   `image/webp` (defaults maxEdge 1280, quality 0.8) with zero new dependencies.
+   Like the M0 storage guard, the module is an **accepted foundational orphan** —
+   no non-test consumer until TASK-011/013 wire it into the upload paths. Real
+   pixel-encoding fidelity (~100–200 KB target) is deferred to the TASK-014
+   Playwright `@smoke` (the node Vitest env can't simulate a real canvas); the unit
+   tests own the deterministic dimension math, type-rejection, and option flow.
 
 See [[Handoffs/handoff-002]] for session context.
 
@@ -174,13 +190,13 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 
 ## Milestones
 
-| Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above |
-| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | in progress | First task landed: TASK-010 invite mint + redemption (PR #13 `ef59aea`). TASK-011/012/013/014 remain. All later milestones must keep the `@smoke` test passing                                                          |
-| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending     | TDD-first                                                                                                                                                                                                               |
-| M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                         |
-| M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                         |
-| M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                                         |
-| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | pending     | TDD-first for filter                                                                                                                                                                                                    |
-| M7 — Safety & polish           | upload limits, report button, polish                                                | pending     |                                                                                                                                                                                                                         |
+| Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above                      |
+| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | in progress | Two tasks landed: TASK-010 invite mint + redemption (PR #13 `ef59aea`) and TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam). TASK-011/013/014 remain. All later milestones must keep the `@smoke` test passing |
+| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending     | TDD-first                                                                                                                                                                                                                                    |
+| M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                                              |
+| M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                                              |
+| M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                                                              |
+| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | pending     | TDD-first for filter                                                                                                                                                                                                                         |
+| M7 — Safety & polish           | upload limits, report button, polish                                                | pending     |                                                                                                                                                                                                                                              |

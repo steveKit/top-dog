@@ -188,6 +188,14 @@ top-dog/
   The secret key must stay server-only (`$lib/server`).
 - **Denormalized `vote_count`** is maintained by a DB trigger/RPC inside the vote
   transaction — never write it from the client.
+- **Single-use guards must key on a column the FK never nulls.** The invite
+  single-use check keys on `invites.consumed_at` (set once, never nulled), NOT on
+  `consumed_by` (which is `on delete set null` for audit). Keying a single-use
+  guard on a nullable-by-FK column would re-open a spent record once the
+  referenced user is deleted. Pair with a one-directional CHECK
+  (`consumed_by is null or consumed_at is not null`), never a bidirectional one —
+  a bidirectional CHECK blocks deleting the referenced user entirely. Applies to
+  any future "consume once" record (redemptions, one-shot tokens, claims).
 - **Mustard + emoji are render-time computations** — the DB stores raw timestamps
   and original text; never persist the decayed/filtered output.
 - **Storage `{owner_id}/` prefix is load-bearing for RLS:** `storage.objects`

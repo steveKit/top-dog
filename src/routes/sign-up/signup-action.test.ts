@@ -3,17 +3,31 @@ import { isActionFailure, isRedirect } from '@sveltejs/kit';
 import { actions, load } from './+page.server';
 import { generateInviteToken } from '$lib/features/invites/token';
 
+// Mock the server-only service client so the orphan-cleanup path can be exercised
+// without a real secret-key Supabase client. The default deleteUser succeeds;
+// individual tests can re-stub it via the exposed spy.
+const deleteUser = vi.fn().mockResolvedValue({ data: null, error: null });
+vi.mock('$lib/server/supabase', () => ({
+	getServiceClient: () => ({ auth: { admin: { deleteUser } } })
+}));
+
 // Test-after coverage for the public sign-up + invite redemption flow (the
 // integration AC: redemption is wired into sign-up). The action is exercised
 // with a fake `event` exposing `locals.supabase` (auth.signUp + rpc) and a
 // `request.formData()`. The redemption order under test is:
 //   validate token shape -> validate email -> validate password ->
-//   supabase.auth.signUp() -> redeem_invite RPC keyed to the new user id.
+//   invite_is_redeemable pre-check (best-effort) -> supabase.auth.signUp() ->
+//   redeem_invite RPC keyed to the new user id.
 // Invariants:
-//   - a valid token path calls signUp THEN the redeem RPC, then redirects to /app
-//   - an invalid/empty/used token returns fail() with a friendly message and does
-//     NOT create a usable account (used token: signUp may run, but redemption
-//     rejects and the user is not sent into the app)
+//   - a valid token path pre-checks, calls signUp THEN the redeem RPC, then
+//     redirects to /app when signUp returned a session
+//   - an invalid/empty/used token returns fail() with a friendly message; a token
+//     already used at submit time is rejected by the pre-check BEFORE any account
+//     is created
+//   - a token lost to a concurrent redemption AFTER signUp triggers orphan
+//     cleanup (deleteUser) so the email is reusable
+//   - no session from signUp (email confirmation) returns a success "confirm
+//     email" state instead of redirecting into /app
 //   - input validation (missing token, bad email, short password) fails BEFORE
 //     any signUp call
 
@@ -21,16 +35,21 @@ const signUp = actions.default;
 
 const A_TOKEN = generateInviteToken();
 const NEW_USER = { id: 'new-user-uuid', email: 'newchef@topdog.test' };
+const A_SESSION = { access_token: 'tok', refresh_token: 'ref' };
 
 /**
  * Builds a fake sign-up event. `request.formData()` resolves a FormData built
- * from the supplied fields; `supabase.auth.signUp` and `supabase.rpc` resolve the
- * supplied results. Spies are exposed so tests can assert call order / payloads.
+ * from the supplied fields; `supabase.auth.signUp` resolves `signUpResult` and
+ * `supabase.rpc` routes by function name: `invite_is_redeemable` resolves
+ * `redeemableResult` (default: redeemable), `redeem_invite` resolves
+ * `rpcResult` (default: success). Spies are exposed so tests can assert call
+ * order / payloads.
  */
 function makeEvent(opts: {
 	fields: Record<string, string>;
-	signUpResult?: { data: { user: unknown } | { user: null }; error: unknown };
+	signUpResult?: { data: { user: unknown; session?: unknown } | { user: null }; error: unknown };
 	rpcResult?: { data: unknown; error: unknown };
+	redeemableResult?: { data: unknown; error: unknown };
 }) {
 	const formData = new FormData();
 	for (const [k, v] of Object.entries(opts.fields)) {
@@ -39,8 +58,15 @@ function makeEvent(opts: {
 
 	const signUpFn = vi
 		.fn()
-		.mockResolvedValue(opts.signUpResult ?? { data: { user: NEW_USER }, error: null });
-	const rpc = vi.fn().mockResolvedValue(opts.rpcResult ?? { data: 'inv-1', error: null });
+		.mockResolvedValue(
+			opts.signUpResult ?? { data: { user: NEW_USER, session: A_SESSION }, error: null }
+		);
+
+	const redeemableResult = opts.redeemableResult ?? { data: true, error: null };
+	const rpcResult = opts.rpcResult ?? { data: 'inv-1', error: null };
+	const rpc = vi.fn((fn: string) =>
+		Promise.resolve(fn === 'invite_is_redeemable' ? redeemableResult : rpcResult)
+	);
 
 	const event = {
 		request: { formData: vi.fn().mockResolvedValue(formData) },
@@ -70,7 +96,7 @@ describe('sign-up load', () => {
 describe('sign-up default action — happy path', () => {
 	beforeEach(() => vi.clearAllMocks());
 
-	it('signs the user up, then redeems the invite for the new user id, then redirects to /app', async () => {
+	it('pre-checks, signs the user up, then redeems the invite for the new user id, then redirects to /app', async () => {
 		const { event, signUpFn, rpc } = makeEvent({ fields: GOOD_FIELDS });
 
 		let thrown: unknown;
@@ -85,14 +111,20 @@ describe('sign-up default action — happy path', () => {
 			email: 'newchef@topdog.test',
 			password: 'hunter2hunter2'
 		});
+		// best-effort pre-check ran with the token.
+		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: A_TOKEN });
 		// redemption is keyed to the freshly created user id (not client-supplied).
 		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
 			invite_token: A_TOKEN,
 			redeemer_id: 'new-user-uuid'
 		});
-		// signUp happens before redemption.
-		expect(signUpFn.mock.invocationCallOrder[0]).toBeLessThan(rpc.mock.invocationCallOrder[0]);
-		// success ends in a redirect into the app.
+		// pre-check happens before signUp, which happens before redemption.
+		const preCheckOrder = rpc.mock.invocationCallOrder[0];
+		const redeemOrder = rpc.mock.invocationCallOrder[1];
+		const signUpOrder = signUpFn.mock.invocationCallOrder[0];
+		expect(preCheckOrder).toBeLessThan(signUpOrder);
+		expect(signUpOrder).toBeLessThan(redeemOrder);
+		// success ends in a redirect into the app (signUp returned a session).
 		expect(isRedirect(thrown)).toBe(true);
 		expect((thrown as { status: number }).status).toBe(303);
 		expect((thrown as { location: string }).location).toBe('/app');
@@ -126,9 +158,31 @@ describe('sign-up default action — invalid / used token rejection', () => {
 		expect(signUpFn).not.toHaveBeenCalled();
 	});
 
-	it('rejects a used/invalid token: signUp runs but redemption fails, no redirect into the app', async () => {
-		// The RPC returns NULL — the atomic single-use guard matched zero rows.
-		const { event, rpc } = makeEvent({
+	it('rejects an already-used token at the pre-check, before any signUp call', async () => {
+		// The pre-check RPC reports the token is no longer redeemable.
+		const { event, signUpFn, rpc } = makeEvent({
+			fields: GOOD_FIELDS,
+			redeemableResult: { data: false, error: null }
+		});
+
+		const result = await signUp(event);
+
+		// Pre-check ran; signUp and redeem did NOT — no orphan account is created.
+		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: A_TOKEN });
+		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect((result as { data: { error: string } }).data.error).toMatch(
+			/invalid or has already been used/i
+		);
+	});
+
+	it('cleans up the orphan account when redemption loses the race after signUp', async () => {
+		// Pre-check passes, signUp succeeds, but the atomic redeem RPC returns NULL
+		// (someone consumed the token in the narrow window). The just-created auth
+		// user must be deleted so the email is reusable.
+		const { event, signUpFn, rpc } = makeEvent({
 			fields: GOOD_FIELDS,
 			rpcResult: { data: null, error: null }
 		});
@@ -141,21 +195,24 @@ describe('sign-up default action — invalid / used token rejection', () => {
 			thrown = e;
 		}
 
-		// Redemption was attempted and rejected.
-		expect(rpc).toHaveBeenCalledOnce();
+		// signUp ran, redemption was attempted and rejected, orphan was deleted.
+		expect(signUpFn).toHaveBeenCalledOnce();
+		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
+			invite_token: A_TOKEN,
+			redeemer_id: 'new-user-uuid'
+		});
+		expect(deleteUser).toHaveBeenCalledWith('new-user-uuid');
 		// The user is NOT sent into the app — no redirect, an action failure instead.
 		expect(thrown).toBeUndefined();
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
-		expect((result as { data: { error: string } }).data.error).toMatch(
-			/invalid or has already been used/i
-		);
+		expect((result as { data: { error: string } }).data.error).toMatch(/valid invite/i);
 	});
 
 	it('preserves the token and email on the failure payload so the form repopulates', async () => {
 		const { event } = makeEvent({
 			fields: GOOD_FIELDS,
-			rpcResult: { data: null, error: null }
+			redeemableResult: { data: false, error: null }
 		});
 
 		const result = await signUp(event);
@@ -228,8 +285,9 @@ describe('sign-up default action — signUp failure', () => {
 
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
-		// A failed signUp must not consume the invite token.
-		expect(rpc).not.toHaveBeenCalled();
+		// A failed signUp must not consume the invite token (the best-effort
+		// pre-check may run, but the authoritative redeem RPC must not).
+		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
 	});
 
 	it('treats a null user (no error) as a signUp failure and does not redeem', async () => {
@@ -241,6 +299,32 @@ describe('sign-up default action — signUp failure', () => {
 		const result = await signUp(event);
 
 		expect(isActionFailure(result)).toBe(true);
-		expect(rpc).not.toHaveBeenCalled();
+		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
+	});
+});
+
+describe('sign-up default action — email confirmation (no session)', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('returns a confirm-email success state instead of redirecting when signUp has no session', async () => {
+		// Email confirmation enabled: signUp succeeds but returns no session. The
+		// invite was validly consumed, so this is a success, not a fail() — and we
+		// must NOT redirect into /app (the guard would bounce an unauthenticated user).
+		const { event } = makeEvent({
+			fields: GOOD_FIELDS,
+			signUpResult: { data: { user: NEW_USER, session: null }, error: null }
+		});
+
+		let thrown: unknown;
+		let result: unknown;
+		try {
+			result = await signUp(event);
+		} catch (e) {
+			thrown = e;
+		}
+
+		expect(thrown).toBeUndefined();
+		expect(isActionFailure(result)).toBe(false);
+		expect(result).toEqual({ success: true, confirmEmail: true, email: 'newchef@topdog.test' });
 	});
 });

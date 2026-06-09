@@ -10,27 +10,35 @@
 </script>
 
 <h1>Sign up</h1>
-<p>Top Dog is invite-only. Use the invite link a member shared with you.</p>
 
-<form method="POST" use:enhance>
-	<label>
-		Invite token
-		<input type="text" name="token" value={initialToken} required />
-	</label>
+{#if form?.success && form?.confirmEmail}
+	<p role="status">
+		Almost there — check <strong>{form.email}</strong> for a confirmation link to finish setting up your
+		account.
+	</p>
+{:else}
+	<p>Top Dog is invite-only. Use the invite link a member shared with you.</p>
 
-	<label>
-		Email
-		<input type="email" name="email" value={initialEmail} autocomplete="email" required />
-	</label>
+	<form method="POST" use:enhance>
+		<label>
+			Invite token
+			<input type="text" name="token" value={initialToken} required />
+		</label>
 
-	<label>
-		Password
-		<input type="password" name="password" autocomplete="new-password" minlength="8" required />
-	</label>
+		<label>
+			Email
+			<input type="email" name="email" value={initialEmail} autocomplete="email" required />
+		</label>
 
-	<button type="submit">Create account</button>
-</form>
+		<label>
+			Password
+			<input type="password" name="password" autocomplete="new-password" minlength="8" required />
+		</label>
 
-{#if form?.error}
-	<p role="alert">{form.error}</p>
+		<button type="submit">Create account</button>
+	</form>
+
+	{#if form?.error}
+		<p role="alert">{form.error}</p>
+	{/if}
 {/if}

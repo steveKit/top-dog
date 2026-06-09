@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { createInvite, redeemInvite } from './invites';
+import { createInvite, isInviteRedeemable, redeemInvite } from './invites';
 import { isValidTokenFormat } from './token';
 
 // Unit tests for the server-side invite wrappers with a fully mocked
@@ -155,5 +155,48 @@ describe('redeemInvite', () => {
 		const result = await redeemInvite(client, 'tok-abc', 'redeemer-uuid');
 
 		expect(result.ok).toBe(false);
+	});
+});
+
+describe('isInviteRedeemable', () => {
+	it('calls the invite_is_redeemable RPC with the token', async () => {
+		const { client, rpc } = makeRpcClient({ data: true, error: null });
+
+		await isInviteRedeemable(client, 'tok-abc');
+
+		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: 'tok-abc' });
+	});
+
+	it('returns { ok: true, data: true } when the token is redeemable', async () => {
+		const { client } = makeRpcClient({ data: true, error: null });
+
+		const result = await isInviteRedeemable(client, 'tok-abc');
+
+		expect(result).toEqual({ ok: true, data: true });
+	});
+
+	it('returns { ok: true, data: false } when the token is spent/invalid', async () => {
+		const { client } = makeRpcClient({ data: false, error: null });
+
+		const result = await isInviteRedeemable(client, 'tok-abc');
+
+		expect(result).toEqual({ ok: true, data: false });
+	});
+
+	it('coerces a non-boolean truthy/falsy RPC result to a strict boolean', async () => {
+		// Defensive: only a strict `true` counts as redeemable.
+		const { client } = makeRpcClient({ data: null, error: null });
+
+		const result = await isInviteRedeemable(client, 'tok-abc');
+
+		expect(result).toEqual({ ok: true, data: false });
+	});
+
+	it('surfaces an RPC error as { ok: false } with the SDK message (does not swallow)', async () => {
+		const { client } = makeRpcClient({ data: null, error: SDK_ERROR });
+
+		const result = await isInviteRedeemable(client, 'tok-abc');
+
+		expect(result).toEqual({ ok: false, error: 'boom' });
 	});
 });

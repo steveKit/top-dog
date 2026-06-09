@@ -22,9 +22,13 @@
 -- invites
 -- ---------------------------------------------------------------------------
 -- `token` is an app-generated, unguessable string (Web Crypto, base64url).
--- `consumed_by`/`consumed_at` are NULL until redemption; a non-null `consumed_by`
--- marks the token as spent. Single-use is enforced by the conditional UPDATE in
--- the RPC, not a partial index — `token` is globally unique.
+-- `consumed_at` is the single source of truth for "spent": NULL until redemption,
+-- set to a timestamp once the token is consumed. The FK never touches it, so it
+-- survives redeemer deletion. `consumed_by` is the redeemer FK kept purely as an
+-- audit reference; it may be nulled by ON DELETE SET NULL after a redeemer is
+-- removed without un-spending the token. Single-use is enforced by the
+-- conditional UPDATE in the RPC (consumed_at IS NULL guard), not a partial index
+-- — `token` is globally unique.
 
 create table public.invites (
   id          uuid        primary key default extensions.gen_random_uuid(),
@@ -34,10 +38,13 @@ create table public.invites (
   consumed_by uuid        references auth.users (id) on delete set null,
   consumed_at timestamptz,
   constraint invites_token_length check (char_length(token) between 16 and 256),
-  -- consumed_by and consumed_at move together: either both null (unspent) or
-  -- both set (spent). Keeps the "spent" signal unambiguous.
+  -- `consumed_at` is the authoritative spent-signal; `consumed_by` is the audit
+  -- FK that may be nulled by ON DELETE SET NULL. The invariant is one-directional
+  -- so it never collides with SET NULL: if a redeemer is recorded, the token must
+  -- be marked spent. The valid post-deletion state (consumed_by NULL, consumed_at
+  -- set) is allowed; the nonsensical (consumed_by set, consumed_at NULL) is not.
   constraint invites_consumed_consistency check (
-    (consumed_by is null) = (consumed_at is null)
+    consumed_by is null or consumed_at is not null
   )
 );
 
@@ -47,7 +54,11 @@ comment on table public.invites is
 comment on column public.invites.token is
   'Unguessable app-generated token (Web Crypto base64url). Globally unique.';
 comment on column public.invites.consumed_by is
-  'auth.users id of the redeemer; NULL until the token is spent.';
+  'auth.users id of the redeemer (audit reference). Nulled by ON DELETE SET NULL '
+  'if the redeemer is later deleted; this does NOT un-spend the token.';
+comment on column public.invites.consumed_at is
+  'Authoritative spent-signal: NULL means unspent and redeemable, a timestamp '
+  'means the token is consumed. The single-use RPC guard keys off this column.';
 
 -- Lookup by token is the hot path for redemption; the `unique` constraint
 -- already creates the supporting index, so no extra index is needed.
@@ -88,8 +99,10 @@ create policy "invites_insert_own"
 -- Atomically consumes a single-use token on behalf of a freshly signed-up user.
 -- Returns the invite id on success, or NULL when the token is invalid or already
 -- spent. Single-use is enforced by the conditional UPDATE: only a row whose
--- `consumed_by IS NULL` is matched, so a second redemption updates zero rows and
--- returns NULL. The body is a single statement → one transaction.
+-- `consumed_at IS NULL` is matched, so a second redemption updates zero rows and
+-- returns NULL. Keying off `consumed_at` (not `consumed_by`) means a token stays
+-- spent even after its redeemer is deleted and `consumed_by` is nulled by the FK.
+-- The body is a single statement → one transaction.
 --
 -- SECURITY DEFINER: runs with the function owner's privileges so an anonymous
 -- (pre-auth) caller can mark the token spent without an RLS grant. The function
@@ -116,7 +129,7 @@ begin
      set consumed_by = redeemer_id,
          consumed_at = now()
    where token = invite_token
-     and consumed_by is null
+     and consumed_at is null
   returning id into consumed_id;
 
   -- consumed_id is NULL when no unspent row matched (invalid or already-used).
@@ -127,9 +140,43 @@ $$;
 comment on function public.redeem_invite(text, uuid) is
   'Atomically consumes a single-use invite token for redeemer_id. Returns the '
   'invite id on success or NULL if the token is invalid or already spent. '
-  'Single-use is enforced by the consumed_by IS NULL guard in the UPDATE.';
+  'Single-use is enforced by the consumed_at IS NULL guard in the UPDATE.';
 
 -- Allow the anonymous role (pre-auth sign-up) and authenticated users to call
 -- the RPC. The definer rights inside the function are what actually permit the
 -- write; EXECUTE just gates who may invoke it.
 grant execute on function public.redeem_invite(text, uuid) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- invite_is_redeemable RPC (best-effort pre-check)
+-- ---------------------------------------------------------------------------
+-- Read-only check used BEFORE signUp to reject an invalid/already-used token
+-- without creating an orphaned auth.users row. This is best-effort only: a token
+-- can be consumed in the narrow window between this check and the redeem_invite
+-- UPDATE, which is why the conditional UPDATE remains the authoritative
+-- single-use guard. Keyed off `consumed_at` to match the spent-signal.
+--
+-- SECURITY DEFINER with an empty search_path so an anonymous (pre-auth) caller
+-- can probe redeemability without an RLS grant; every reference is
+-- schema-qualified.
+
+create function public.invite_is_redeemable(invite_token text)
+  returns boolean
+  language sql
+  security definer
+  set search_path = ''
+as $$
+  select exists (
+    select 1
+      from public.invites
+     where token = invite_token
+       and consumed_at is null
+  );
+$$;
+
+comment on function public.invite_is_redeemable(text) is
+  'Read-only, best-effort check that an invite token exists and is unspent '
+  '(consumed_at IS NULL). Used as a pre-signUp gate; redeem_invite remains the '
+  'authoritative single-use guard.';
+
+grant execute on function public.invite_is_redeemable(text) to anon, authenticated;

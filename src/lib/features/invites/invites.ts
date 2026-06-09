@@ -44,9 +44,33 @@ export async function createInvite(
 }
 
 /**
+ * Best-effort pre-check that an invite token exists and is unspent, via the
+ * read-only `invite_is_redeemable` SECURITY DEFINER RPC. Used BEFORE signUp to
+ * reject an invalid/used token without creating an orphaned auth user — it is
+ * NOT the single-use guard (a concurrent redemption can still win the race after
+ * this returns true; `redeemInvite` remains authoritative).
+ *
+ * Returns the boolean redeemability on success; `ok: false` when the RPC errors.
+ */
+export async function isInviteRedeemable(
+	supabase: SupabaseClient,
+	token: string
+): Promise<InviteResult<boolean>> {
+	const { data, error } = await supabase.rpc('invite_is_redeemable', {
+		invite_token: token
+	});
+
+	if (error) {
+		return { ok: false, error: error.message };
+	}
+
+	return { ok: true, data: data === true };
+}
+
+/**
  * Consumes a single-use invite token for the freshly signed-up redeemer via the
  * `redeem_invite` SECURITY DEFINER RPC. Single-use is enforced atomically in the
- * function (the `consumed_by IS NULL` guard): a NULL return means the token was
+ * function (the `consumed_at IS NULL` guard): a NULL return means the token was
  * invalid or already spent.
  *
  * Returns the consumed invite id on success; `ok: false` when the token is

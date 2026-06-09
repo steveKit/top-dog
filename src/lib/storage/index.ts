@@ -21,6 +21,12 @@ import { avatarPath, hotdogPath } from './paths';
 
 export { avatarPath, hotdogPath };
 
+// Re-export the global storage guard (TASK-005) from the single $lib/storage
+// surface so the upload path imports the guard alongside upload/remove/etc.
+// rather than reaching into the guard submodule directly.
+export { evaluateUpload, storageGuardStatus } from './guard';
+export type { StorageGuardStatus } from './guard';
+
 /** The two buckets created by the TASK-003 migration. */
 export const HOTDOGS_BUCKET = 'hotdogs' as const;
 export const AVATARS_BUCKET = 'avatars' as const;

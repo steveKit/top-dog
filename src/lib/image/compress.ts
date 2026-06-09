@@ -84,39 +84,51 @@ export async function compressToWebp(input: Blob, options?: CompressOptions): Pr
 	}
 
 	// Decode the source pixels. createImageBitmap reads the natural dimensions we
-	// need for the resize math.
+	// need for the resize math. The bitmap holds backing memory that MUST be
+	// released on every exit path, so everything after the decode runs inside a
+	// try/finally — fitWithinMaxEdge can throw on corrupt dims, getContext can
+	// return null, and the encode can reject, and the finally closes the bitmap
+	// in all of those cases plus the success path. (Input-type validation stays
+	// ABOVE this point: there is no bitmap to close before it succeeds.)
 	const bitmap = await createImageBitmap(input);
 
-	const { width, height } = fitWithinMaxEdge(bitmap.width, bitmap.height, maxEdge);
+	try {
+		const { width, height } = fitWithinMaxEdge(bitmap.width, bitmap.height, maxEdge);
 
-	const canvas = document.createElement('canvas');
-	canvas.width = width;
-	canvas.height = height;
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
 
-	const context = canvas.getContext('2d');
-	if (!context) {
-		throw new Error('compressToWebp: could not acquire a 2d canvas context');
+		const context = canvas.getContext('2d');
+		if (!context) {
+			throw new Error('compressToWebp: could not acquire a 2d canvas context');
+		}
+
+		// Draw the decoded bitmap scaled into the target-sized canvas. drawImage is
+		// synchronous, so the bitmap is no longer needed once the encode is queued —
+		// awaiting the encode promise INSIDE the try keeps the finally from closing
+		// the bitmap until after the promise settles, which is safe and simplest.
+		context.drawImage(bitmap, 0, 0, width, height);
+
+		// Encode the canvas to WebP. toBlob is callback-based, so wrap it in a Promise.
+		return await new Promise<Blob>((resolve, reject) => {
+			canvas.toBlob(
+				(blob) => {
+					if (!blob) {
+						// A null result means the browser failed/declined the WebP encode.
+						reject(new Error('compressToWebp: canvas.toBlob returned null (encode failed)'));
+						return;
+					}
+					resolve(blob);
+				},
+				'image/webp',
+				quality
+			);
+		});
+	} finally {
+		// Release the decoded bitmap's resources on EVERY exit path — the throw
+		// paths above, the encode rejection, and the success path (no-op if the
+		// runtime doesn't support close).
+		bitmap.close?.();
 	}
-
-	// Draw the decoded bitmap scaled into the target-sized canvas.
-	context.drawImage(bitmap, 0, 0, width, height);
-
-	// Release the decoded bitmap's resources once drawn (no-op if unsupported).
-	bitmap.close?.();
-
-	// Encode the canvas to WebP. toBlob is callback-based, so wrap it in a Promise.
-	return new Promise<Blob>((resolve, reject) => {
-		canvas.toBlob(
-			(blob) => {
-				if (!blob) {
-					// A null result means the browser failed/declined the WebP encode.
-					reject(new Error('compressToWebp: canvas.toBlob returned null (encode failed)'));
-					return;
-				}
-				resolve(blob);
-			},
-			'image/webp',
-			quality
-		);
-	});
 }

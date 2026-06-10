@@ -234,4 +234,13 @@ image_path, caption, byte_size)` + `grant update (caption)` on `hot_dogs`.
   (TASK-004 — last manual run returned HTTP 200 against `profiles`). It runs daily
   and depends on the `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets; if it
   ever goes red, re-check those secrets before anything else.
+- **E2E harness uses the LOCAL stack only, never the hosted `.env`.** Playwright
+  tests (`tests/smoke.e2e.ts`, `tests/db-guards.e2e.ts`) resolve local creds via
+  `supabase status -o env` through `tests/helpers/local-stack.ts`, behind a
+  **non-localhost guardrail** that aborts if the resolved URL isn't local — so a
+  run can never hit the hosted project. Invite-only sign-up needs an unconsumed
+  invite first, so `tests/global-setup.ts` mints one with a local service-role
+  client and hands the token to the spec. Keep the service key Node/server-side
+  only — never expose it to the browser context. Run with `supabase start` up:
+  `pnpm test:e2e --grep @smoke` (and `--grep @security` for the DB write guards).
   Use [[wikilinks]] when cross-referencing project docs.

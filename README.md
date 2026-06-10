@@ -7,6 +7,21 @@ Dog** status — earn the badge and spray decaying mustard on rivals' profiles.
 See [CLAUDE.md](./CLAUDE.md) for conventions, [PROJECT.md](./PROJECT.md) for
 architecture decisions, and [TASKS.md](./TASKS.md) for the work queue.
 
+## Features (M1 vertical slice)
+
+The first end-to-end slice is in place and demoable:
+
+- **Invite-only sign-up** — an existing member mints a single-use invite link;
+  the public sign-up flow redeems it (used/invalid tokens are rejected).
+- **Profiles** — onboarding sets a unique `@handle` and an optional avatar; the
+  profile page shows handle, join date, and (zeroed) stats.
+- **Hot dog upload + display** — photos are compressed to WebP client-side and
+  uploaded to a private bucket (per-user cap + global storage guard), then
+  rendered via a signed URL; deleting a dog removes both the row and the object.
+
+Voting, the Top Dog crown, reactions, mustard, walls/DMs, and the emoji library
+are later milestones (see [PROJECT.md](./PROJECT.md)).
+
 ## Stack
 
 - **SvelteKit 2** + **Svelte 5** (runes), TypeScript
@@ -42,6 +57,22 @@ pnpm dev
 ```
 
 `supabase start` prints your local API URL and keys — copy them into `.env`.
+
+### Running the smoke test
+
+The `@smoke` Playwright test drives the full M1 slice (redeem invite → set handle
+→ upload a dog → see it rendered) against the **local** Supabase stack. With the
+stack running:
+
+```sh
+supabase start                  # if not already up
+pnpm test:e2e --grep @smoke
+```
+
+The test harness bootstraps its own invite and reads local credentials from
+`supabase status` — it never touches a hosted project or your `.env`. A sibling
+`@security` test asserts the DB-level write guards (forged-counter and
+oversized-caption inserts are rejected); run it with `pnpm test:e2e --grep @security`.
 
 ## Commands
 

@@ -17,21 +17,11 @@ _All tasks complete. Details in Completed Tasks section below._
 
 ---
 
-## Milestone M1 — Vertical Slice [`pending`]
+## Milestone M1 — Vertical Slice [`complete`]
 
-Goal: invite -> profile -> upload one compressed dog -> see it. END-TO-END.
-**All later milestones must keep the @smoke test passing.**
+_All tasks complete. Details in Completed Tasks section below._
 
-### TASK-014: Vertical-slice smoke test [`pending`] [`P0`] [`S`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-013
-**Description:** Playwright `@smoke` covering the full slice.
-**Acceptance Criteria:**
-
-- [ ] `@smoke`: redeem invite -> set handle -> upload one dog -> see it rendered
-- [ ] Runs against the local Supabase stack
-- [ ] `pnpm test:e2e --grep @smoke` passes
+**Tag:** milestone-01-vertical-slice
 
 ---
 
@@ -226,6 +216,57 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-014: Vertical-slice smoke test~~ [`complete`]
+
+**Completed:** 2026-06-09 · **PR:** #22 (squash `aed7e90`) · **Reviewer:** APPROVE (0 fix cycles) · **Closes Milestone M1**
+**Acceptance Criteria:**
+
+- [x] `@smoke`: redeem invite -> set handle -> upload one dog -> see it rendered
+- [x] Runs against the local Supabase stack
+- [x] `pnpm test:e2e --grep @smoke` passes
+
+**Notes:** Landed the Playwright `@smoke` vertical-slice E2E as the **fifth and
+final M1 task**, **closing Milestone M1 — Vertical Slice**. `tests/smoke.e2e.ts`
+drives the **real UI end-to-end** against the **local Supabase stack**: redeem an
+invite (`/sign-up?token=`) → onboarding sets an `@handle` → `/app/dogs` uploads a
+PNG (real-browser `compressToWebp` → private `hotdogs` bucket) → asserts the dog
+renders via a **real signed URL** (`naturalWidth > 0`). This is the regression
+backstop the whole project leans on: every later milestone must keep `@smoke`
+green.
+
+**Test infra — the chicken-and-egg invite + local-only creds.** Invite-only
+sign-up needs an unconsumed invite to exist before the first user can register,
+so `tests/global-setup.ts` bootstraps it: a **local service-role client** creates
+an inviter and mints a fresh, unconsumed invite, handing the token to the spec.
+`tests/helpers/local-stack.ts` resolves the **LOCAL** Supabase creds from
+`supabase status -o env` (**never** the gitignored hosted `.env`) behind a
+**non-localhost guardrail** that aborts if the resolved URL isn't local — so the
+harness can never accidentally point at the hosted project. The secret key stays
+confined to the Node/server side; it never reaches the browser context.
+
+**`@security` E2E discharges the TASK-013 deferred DB-guard obligation.**
+`tests/db-guards.e2e.ts` exercises the migration-level write guards that are
+**only testable against a live Postgres** (recorded as deferred obligations in the
+TASK-013 unit-test header): a direct PostgREST insert (authenticated role) is
+**rejected** for a forged `vote_count` / `peak_votes` (the column-level INSERT
+grant) and for a >280-char caption (the DB CHECK). This **resolves the
+"TASK-014 @smoke must assert the DB-level write guards" Discovered Work item.**
+
+**No production wiring gaps.** Building the smoke test exercised the slice as a
+user would and found it **navigable end to end** — no missing wiring between
+invite redemption, onboarding, upload, and signed-URL render. **Zero new deps**
+(Playwright was already in the stack from scaffolding).
+
+Metrics: `pnpm test:e2e --grep @smoke` passes (the director ran it
+independently); `@security` 2 passed; unit suite **281**; `pnpm check` 0 errors;
+`pnpm lint` clean. **0 fix cycles** — reviewer APPROVE on the first pass.
+
+**This closes Milestone M1 — Vertical Slice** (TASK-010 invite redemption,
+TASK-012 client WebP compression, TASK-011 profile creation + onboarding,
+TASK-013 hot dog upload + display, TASK-014 `@smoke`). The full invite → profile
+→ compress → upload → see-it slice is navigable and guarded by `@smoke` +
+`@security`; the project is ready to begin M2 (voting & Top Dog engine, TDD-first).
 
 ### ~~TASK-013: Hot dog upload + display~~ [`complete`]
 
@@ -717,10 +758,24 @@ User decides when/whether to promote these to Active Tasks._
   from storage object metadata, or run a periodic reconciliation job that reconciles
   `byte_size` against actual stored bytes. Surfaced by the TASK-013 reviewer
   (2026-06-09).
-- **TASK-014 @smoke must assert the DB-level write guards (TASK-013):** the
+- ~~**TASK-014 @smoke must assert the DB-level write guards (TASK-013):** the
   column-level INSERT grant (forged `vote_count` / `peak_votes` rejected) and the
   caption-length CHECK (oversized caption rejected) are **migration-level guarantees
   only testable against a live Postgres** — the TASK-013 unit tests recorded these
   as deferred obligations (see the `dogs-action.test.ts` header). The TASK-014
   Playwright `@smoke` should add a direct-PostgREST **forged-counter insert** and an
-  **oversized-caption insert**, asserting both are rejected by the DB.
+  **oversized-caption insert**, asserting both are rejected by the DB.~~ **RESOLVED
+  by TASK-014 (PR #22):** `tests/db-guards.e2e.ts` (`@security`) does direct
+  authenticated PostgREST inserts asserting both the forged-counter and
+  oversized-caption inserts are rejected by the DB.
+- **`isValidHandle` is an accepted test-only export (tidy candidate, M1 wiring
+  audit / TASK-014):** the M1 wiring audit flagged `isValidHandle`
+  (`src/lib/features/profiles/handle.ts`) as `export`ed with **no production
+  consumer** — it is not called inside `handle.ts`, not referenced by any route
+  or `.svelte` component, and is exercised only by its own unit tests. The wired,
+  production-used validator is `validateHandle` (onboarding route);
+  `isValidHandle` is a redundant one-line sibling predicate
+  (`HANDLE_PATTERN.test(normalizeHandle(raw))`). Benign test-only export, **not**
+  unwired functionality — accepted and documented at M1 close (see [[PROJECT]] M1
+  close notes). **Non-blocking** tidy: drop the `export` or remove the redundant
+  predicate so it isn't forgotten. Surfaced by the M1 wiring audit (2026-06-10).

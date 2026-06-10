@@ -18,7 +18,7 @@ PR). The **hosted Supabase project is now live**: the schema is pushed
 (`supabase db push`), the two GitHub repo secrets (`SUPABASE_URL`,
 `SUPABASE_PUBLISHABLE_KEY`) are set, and the keep-alive workflow is enabled and
 **verified green** (manual run returned HTTP 200 against `profiles`, resetting the
-7-day auto-pause timer). The project is **ready to begin M1 (vertical slice)**.
+7-day auto-pause timer).
 
 The auth-trust boundary is established by `safeGetSession()`, which validates
 the JWT via `supabase.auth.getUser()` and refuses an unvalidated `getSession()`
@@ -49,23 +49,22 @@ Two items from the going-live session are recorded here for auditability:
    auth foundation (hooks, layouts, protected route, `getPublicSupabaseConfig`) is
    fully wired.
 
-**Milestone M1 — Vertical Slice is nearly complete.** Four M1 tasks have landed:
+**Milestone M1 — Vertical Slice is complete.** All five M1 tasks have landed:
 TASK-010 (invite generation + redemption, PR #13 `ef59aea`), TASK-012 (client-side
 WebP compression, PR #16 `2828468`), TASK-011 (profile creation, PR #18 `38db5d9`),
-and TASK-013 (hot dog upload + display, PR #20 `c552be5`). The invite-only growth
-path (decision #17) is end-to-end — an authed user mints a unique invite link at
-`(protected)/app/invite`, and the public `/sign-up` flow consumes it (pre-check →
-`signUp` → atomic redeem RPC → session-branch redirect). Client compression
-(decisions #8/#9, the linchpin that makes the 1 GB free-tier cap viable) is in place
-as a shared seam. With TASK-011, the redeemed user has an **onboarding funnel** that
-sets a validated unique `@handle` and optionally an avatar; with TASK-013 a member
-can now **upload a compressed hot dog and see it rendered via a signed URL**,
-guarded by the per-user 100 cap and the global storage guard, with orphan-safe
-upload/delete ordering. **All M0 foundational orphans are now wired** — TASK-013's
-`$lib/storage` barrel re-export gives the storage guard its first live consumer, the
-last of the three M0 accepted orphans (`getServiceClient`, the storage module, and
-`evaluateUpload`) to be realized. M1 is **not closed**: only TASK-014 (the `@smoke`
-vertical slice) remains.
+TASK-013 (hot dog upload + display, PR #20 `c552be5`), and TASK-014 (the `@smoke`
+vertical slice, PR #22 `aed7e90`). The invite-only growth path (decision #17) is
+end-to-end — an authed user mints a unique invite link at `(protected)/app/invite`,
+and the public `/sign-up` flow consumes it (pre-check → `signUp` → atomic redeem
+RPC → session-branch redirect). Client compression (decisions #8/#9, the linchpin
+that makes the 1 GB free-tier cap viable) is in place as a shared seam. The redeemed
+user has an **onboarding funnel** that sets a validated unique `@handle` and
+optionally an avatar; a member can **upload a compressed hot dog and see it rendered
+via a signed URL**, guarded by the per-user 100 cap and the global storage guard,
+with orphan-safe upload/delete ordering. **All M0 foundational orphans are now
+wired.** The whole slice is locked in by a Playwright `@smoke` that later milestones
+must keep green. The project is **ready to begin M2 (voting & Top Dog engine,
+TDD-first)**.
 
 ### Milestone M1 progress notes
 
@@ -144,6 +143,48 @@ byte_size)` after revoking table-wide write — so a direct PostgREST insert can
    residual: `byte_size` is a client-supplied soft guard input (a direct insert could
    understate it), so the global guard is best-effort, not a hard quota — carried as
    Discovered Work in [[TASKS]].
+
+### Milestone M1 close notes
+
+M1 delivered the **full vertical slice** end to end: invite-only sign-up +
+single-use redemption → profile onboarding (`@handle` + optional avatar) →
+client-side WebP compression → hot dog upload to the **private** bucket (per-user
+100 cap + global storage guard) → **signed-URL render** → orphan-free delete. The
+entire path is gated by a Playwright `@smoke` (TASK-014) that all later milestones
+must keep green.
+
+1. **All M0 foundational orphans are now wired.** M0 closed with three exports that
+   had no non-test consumer yet — each is now live: `getServiceClient` (TASK-010,
+   sign-up orphan-account cleanup), the `$lib/storage` module (TASK-011 avatars +
+   TASK-013 hot dogs), and `evaluateUpload` (TASK-013, re-exported from the
+   `$lib/storage` barrel as the storage guard's first live consumer). No dead code
+   remains from the M0 seam-first approach.
+2. **L2 security posture realized at the DB.** The slice lands the project's
+   defense-at-the-DB stance concretely: a single-use invite RPC (`consumed_at`
+   guard, decisions #22/#23), owner-scoped RLS everywhere via the
+   `(select auth.uid())` initplan idiom, **column-level privileges** keeping the
+   denormalized counters (`vote_count` / `peak_votes` / `created_at`)
+   non-client-writable on both INSERT and UPDATE (decision #24), and storage
+   **owner-prefix** policies binding objects to `auth.uid()/...`.
+3. **Accepted v1 residual + regression backstop.** One residual is carried into
+   v1: `hot_dogs.byte_size` is a client-supplied **soft** storage-guard input (a
+   direct insert could understate it), so the global guard is best-effort, not a
+   hard quota — accepted under the invite-only trust model and tracked as Discovered
+   Work in [[TASKS]]. As the regression backstop, `@smoke` now exercises the live UI
+   slice and a sibling `@security` E2E (`tests/db-guards.e2e.ts`) asserts the
+   migration-level write guards (forged-counter and oversized-caption inserts both
+   rejected) against a live Postgres — guards that unit tests cannot reach.
+4. **Accepted minor test-only export (M1 wiring audit).** The milestone wiring
+   audit came back clean save for one benign finding: `isValidHandle`
+   (`src/lib/features/profiles/handle.ts`) is exported but has **no production
+   consumer** — it is exercised only by its own unit tests, while the wired,
+   production-used validator is `validateHandle` (the onboarding route). It is a
+   redundant one-line sibling predicate
+   (`HANDLE_PATTERN.test(normalizeHandle(raw))`), not unwired functionality —
+   far more trivial than, but analogous to, the M0 "accepted foundational
+   orphans" precedent above. Accepted and documented at M1 close; the optional
+   tidy (drop the `export` or remove the redundant predicate) is tracked as
+   non-blocking Discovered Work in [[TASKS]].
 
 See [[Handoffs/handoff-002]] for session context.
 
@@ -242,7 +283,7 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 | Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above                                                                                                                                                                                                                                                                  |
-| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | in progress | Four tasks landed: TASK-010 invite mint + redemption (PR #13 `ef59aea`), TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam), TASK-011 profile creation + onboarding funnel (PR #18 `38db5d9`, new `src/lib/features/profiles/` module), and TASK-013 hot dog upload + display (PR #20 `c552be5`, wires the storage guard — last M0 foundational orphan resolved). Only TASK-014 (`@smoke`) remains. All later milestones must keep the `@smoke` test passing |
+| M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | complete    | All 5 tasks done: TASK-010 invite mint + redemption (PR #13 `ef59aea`), TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam), TASK-011 profile creation + onboarding funnel (PR #18 `38db5d9`, new `src/lib/features/profiles/` module), TASK-013 hot dog upload + display (PR #20 `c552be5`, last M0 foundational orphan resolved), and TASK-014 `@smoke` + `@security` E2E (PR #22 `aed7e90`). Tag `milestone-01-vertical-slice`. All later milestones must keep the `@smoke` test passing. See M1 close notes above |
 | M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | pending     | TDD-first                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |

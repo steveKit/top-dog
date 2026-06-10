@@ -25,7 +25,7 @@ Canonical [[wikilink]] targets for this project:
 - [[TASKS]] — work queue with priorities and acceptance criteria
 - [[README]] — setup, usage, contributing
 - [[memory/MEMORY]] — stable cross-session agent patterns
-- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-003]])
+- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-004]])
 
 ## Commands
 

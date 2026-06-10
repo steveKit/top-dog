@@ -8,9 +8,10 @@
 // dog's `ownerId` is the Top Dog user. Ties break on stickiness (earliest to
 // hold the crown), then on dog id for total determinism.
 //
-// NOTE: this is a STUB. The real ranking algorithm is implemented by the
-// implementer in the TDD-verify pass. The placeholder body below makes the file
-// type-check and the co-located tests run RED.
+// Live wiring: this is the pure crown-selection logic, consumed by the TASK-021
+// vote RPC's crown-recompute path. That consumer does not exist yet, so this
+// module currently has no non-test caller by design — same pattern as
+// src/lib/storage/guard.ts.
 
 export interface RankableDog {
 	/** hot dog id — stable identity / final deterministic tie-break */
@@ -19,7 +20,11 @@ export interface RankableDog {
 	ownerId: string;
 	/** denormalized vote_count */
 	voteCount: number;
-	/** ISO-8601 timestamp the OWNER has held the crown since, or null if never crowned */
+	/**
+	 * ISO-8601 timestamp the OWNER has held the crown since, or null if never crowned.
+	 * Compared lexically (string `<`) in the tie-break, which assumes a single
+	 * canonical ISO-8601 / UTC form — as emitted by PostgREST for `timestamptz`.
+	 */
 	topDogSince: string | null;
 }
 

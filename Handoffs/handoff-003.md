@@ -125,20 +125,20 @@ Open items worth triaging before / during M2 (full text in [[TASKS]]
 Discovered Work):
 
 - [ ] **Automated RLS / DB integration-test harness** — found during TASK-003,
-  **reinforced by the TASK-010 reviewer**: invite single-use atomicity, RLS,
-  and the SECURITY DEFINER RPCs are currently only mock-tested with no live-DB
-  coverage. **Recommended to land before the M2 vote RPC** accumulates
-  consuming-write logic without integration coverage. Treat as a real near-term
-  follow-up, not someday-maybe.
+      **reinforced by the TASK-010 reviewer**: invite single-use atomicity, RLS,
+      and the SECURITY DEFINER RPCs are currently only mock-tested with no live-DB
+      coverage. **Recommended to land before the M2 vote RPC** accumulates
+      consuming-write logic without integration coverage. Treat as a real near-term
+      follow-up, not someday-maybe.
 - [ ] **`byte_size` client-supplied soft storage-guard residual** — accepted v1
-  residual (TASK-013): a direct insert could understate `byte_size`, so the
-  global guard is best-effort, not a hard quota. Cannot be closed at the DB;
-  revisit (storage-metadata recompute / reconciliation job) if the trust model
-  changes.
+      residual (TASK-013): a direct insert could understate `byte_size`, so the
+      global guard is best-effort, not a hard quota. Cannot be closed at the DB;
+      revisit (storage-metadata recompute / reconciliation job) if the trust model
+      changes.
 - [ ] **`isValidHandle` tidy candidate** — non-blocking (M1 wiring audit): drop
-  the `export` or remove the redundant predicate.
+      the `export` or remove the redundant predicate.
 - [ ] **Shared `profile` layout/page data key footgun** (TASK-011, non-blocking)
-  — rename the layout key (e.g. `viewerProfile`) when it gains a consumer.
+      — rename the layout key (e.g. `viewerProfile`) when it gains a consumer.
 
 ## Next Steps
 

@@ -29,17 +29,6 @@ _All tasks complete. Details in Completed Tasks section below._
 
 Goal: vote rules, ranking, sticky tie-break, daily tally, badge. TDD-first.
 
-### TASK-020: Ranking + sticky tie-break logic [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-013
-**Description:** Pure logic for crown selection (adversarial finding A). TDD.
-**Acceptance Criteria:**
-
-- [ ] Pure module: given dogs with (vote_count, top_dog_since), returns the Top Dog
-- [ ] Highest vote_count wins; ties -> earliest `top_dog_since` (sticky)
-- [ ] Tests cover: clear winner, tie, crown handoff, no-votes edge case
-
 ### TASK-021: Vote RPC (move-vote + counter + crown) [`pending`] [`P0`] [`L`]
 
 **Owner:** unassigned
@@ -216,6 +205,63 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-020: Ranking + sticky tie-break logic~~ [`complete`]
+
+**Completed:** 2026-06-10 · **PR:** #25 (squash `835c2f0`) · **Reviewer:** REQUEST_CHANGES → resolved (1 review fix cycle — docs only: stale STUB comment + timestamp-compare precondition; fast-track re-confirm)
+**Acceptance Criteria:**
+
+- [x] Pure module: given dogs with (vote_count, top_dog_since), returns the Top Dog
+- [x] Highest vote_count wins; ties -> earliest `top_dog_since` (sticky)
+- [x] Tests cover: clear winner, tie, crown handoff, no-votes edge case
+
+**Notes:** Landed the ranking + sticky tie-break logic as the **first M2 task** —
+the entry point of Milestone M2 (Voting & Top Dog Engine). New **PURE** module
+`src/lib/features/voting/ranking.ts` (co-located `ranking.test.ts`) under the
+`voting/` feature folder, with **no SvelteKit/Supabase imports** so the crown
+math is fully unit-testable in isolation — the same pure/IO seam discipline as
+`src/lib/storage/guard.ts` and `src/lib/image/compress.ts`.
+
+`selectTopDog(dogs: readonly RankableDog[]): RankableDog | null` realizes
+**decision #13** (Top Dog = the user whose single highest-voted dog leads; sticky
+tie-break = earliest to hold the crown). It is deliberately modeled at the **dog
+level** — each dog is one entry and the winning dog's `ownerId` is the Top Dog
+user. This gives the queued TASK-021 (Vote RPC) a single-value seam to write
+`top_dog_since` / `is_current_top_dog` from, rather than re-deriving the crown
+across a per-user aggregation.
+
+**The contract is a strict total-order comparator**, so the result is
+**input-order independent**: `voteCount` descending → earliest non-null
+`topDogSince` (sticky; `null` sorts **LAST**, so a previously-crowned dog keeps
+the crown against a never-crowned challenger) → ascending `id` for final
+determinism. **Eligibility:** `voteCount >= 1` is required; `selectTopDog`
+returns `null` when no dog is eligible (the no-votes edge case). **Boundary
+validation:** a negative or non-finite `voteCount` is an upstream programming
+error, so the function throws `TypeError` (validating the whole input) — matching
+the `storage/guard.ts` / `image/compress.ts` house style.
+
+Built **TDD throughout** — 17 tests written **red-first** (clear winner, tie →
+sticky earliest-`topDogSince`, crown handoff, null-last stickiness, `id`
+tie-break determinism, no-votes → `null`, and the negative/non-finite
+`TypeError` cases), implemented to **green**, then verified. The reviewer
+**empirically verified total-order soundness** — ran the comparator against an
+independent reference sort across **all permutations** of a mixed pool with
+**0 order-dependent mismatches**.
+
+**Accepted orphan by design.** `selectTopDog` / `RankableDog` have no non-test
+consumer yet — this is the established **TDD-first pure-logic-before-consumer**
+pattern (identical to `src/lib/storage/guard.ts` and the M1 compression seam).
+The queued consumer is **TASK-021 (Vote RPC)**, which has a hard dependency on
+TASK-020. The reviewer did **not** block on the orphan.
+
+**Review: 1 fix cycle, DOCS ONLY — no logic change.** REQUEST_CHANGES →
+resolved: a stale red-phase `STUB` header comment was corrected to a live-wiring
+note (it now documents the accepted-orphan situation honestly), and the lexical
+timestamp-compare precondition was documented in the `selectTopDog` JSDoc. **No
+test-failure fix cycles.** **Zero new dependencies.**
+
+Metrics: full suite **298 passed** (19 files); `pnpm check` **0 errors**; the
+ranking source files are prettier + eslint clean.
 
 ### ~~TASK-014: Vertical-slice smoke test~~ [`complete`]
 
@@ -779,3 +825,14 @@ User decides when/whether to promote these to Active Tasks._
   unwired functionality — accepted and documented at M1 close (see [[PROJECT]] M1
   close notes). **Non-blocking** tidy: drop the `export` or remove the redundant
   predicate so it isn't forgotten. Surfaced by the M1 wiring audit (2026-06-10).
+- **TASK-021 crown-recompute must stay in lockstep with `selectTopDog` (M2,
+  TASK-021):** when building the Vote RPC, the crown-recompute path must either
+  call `selectTopDog` (`src/lib/features/voting/ranking.ts`) directly **or** the
+  SQL crown logic must **provably mirror** this comparator's rules — `voteCount`
+  descending → earliest non-null `topDogSince` (sticky, **null sorts last**) →
+  ascending `id` tie-break. **The risk:** TASK-021 recomputes the crown in SQL
+  and silently **diverges** from the TS comparator — especially the **null-last
+  stickiness** (a never-crowned challenger must not displace a previously-crowned
+  dog on a vote tie) and the **`id` tie-break**. Keep the two implementations in
+  lockstep and **verify the equivalence at TASK-021**. Surfaced by the TASK-020 /
+  PR #25 review (2026-06-10, forward-looking).

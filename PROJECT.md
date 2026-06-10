@@ -3,7 +3,7 @@
 ## Status
 
 **Phase:** Active Development
-**Last Updated:** 2026-06-09
+**Last Updated:** 2026-06-10
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
@@ -186,7 +186,7 @@ must keep green.
    tidy (drop the `export` or remove the redundant predicate) is tracked as
    non-blocking Discovered Work in [[TASKS]].
 
-See [[Handoffs/handoff-002]] for session context.
+See [[Handoffs/handoff-003]] for session context.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 

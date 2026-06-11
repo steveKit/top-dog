@@ -2,6 +2,8 @@
 
 > **Milestone status:** `pending` (stub — not yet exploded) | `active` (exploded, in progress) | `deferred` (parked — body preserved) | `complete`
 > **Task status (inside milestone files):** `pending` | `in_progress` | `blocked` | `complete`
+> **Priority key:** `P0` (critical) | `P1` (high) | `P2` (medium) | `P3` (low)
+> **Size key:** `S` (< 1 hour) | `M` (1-4 hours) | `L` (4+ hours)
 > See [[PROJECT]] for architecture decisions and [[CLAUDE]] for conventions.
 
 ## How this works

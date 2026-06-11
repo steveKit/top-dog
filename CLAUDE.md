@@ -22,7 +22,10 @@ Canonical [[wikilink]] targets for this project:
 
 - [[CLAUDE]] — this file (agent conventions, stack, commands)
 - [[PROJECT]] — status, architecture decisions, milestones
-- [[TASKS]] — work queue with priorities and acceptance criteria
+- [[TASKS]] — milestone index / dashboard
+- [[tasks/discovered]] — discovered-work log
+- [[tasks/deferred]] — deferred / descoped task log
+- [[TASKS-ARCHIVE]] — completed-milestone archive (pre-migration M0/M1)
 - [[README]] — setup, usage, contributing
 - [[memory/MEMORY]] — stable cross-session agent patterns
 - [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-005]])

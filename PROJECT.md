@@ -81,7 +81,15 @@ TASK-022 then counts reign-time into the `days_as_top_dog` stat: the
 (`UNIQUE(profile_id, day)` + `ON CONFLICT DO NOTHING`, plus `days_as_top_dog`
 recomputed authoritatively from `COUNT` — never a blind `+1`) and is wired into the
 daily keep-alive workflow as an anon-callable, no-caller-input job (decision #26).
-The only remaining M2 task is TASK-023 (badge UI).
+TASK-023 (badge UI, PR #37 `6d1b206`) then added the read-only display layer — a
+shared `<TopDogBadge>` on the Top Dog's profile and their winning-dog tile, with
+the winning dog resolved by **reusing the pure `selectTopDog` comparator** so the
+badge stays in lockstep with `recompute_top_dog()` (no parallel ordering). **M2 is
+held open, not complete:** the M2-close wiring audit found the vote wrapper
+(`castVote` / `removeVote`) has **no production consumer** — there is no
+vote-casting UI in the app, so a member cannot actually cast a vote (logged as
+DW-009). A vote-casting UI task must land and re-pass the wiring audit before M2
+can close.
 
 ### Milestone M1 progress notes
 
@@ -263,6 +271,29 @@ must keep green.
    `@security` suite mutates the global singleton crown against one shared local
    Postgres — default multi-worker parallelism races across spec files (pre-existing
    latent fragility this third crown-mutating spec surfaced).
+4. **Top Dog badge UI — read-only, `selectTopDog` lockstep (TASK-023, PR #37).**
+   The display layer for the crown the engine maintains, landed with **zero SQL /
+   RLS / RPC changes**. New shared component `src/lib/components/TopDogBadge.svelte`
+   (👑, `role="status"`, optional `label`); the profile page refactored its inline
+   badge to it against the same `profiles.is_current_top_dog` gate, and `/app/dogs`
+   grew a badge on the winning-dog tile. The winning dog is resolved by **reusing
+   the pure `selectTopDog` comparator** (`$lib/features/voting/ranking.ts`) — the
+   load fetches the signed-in user's own profile, maps their dogs to `RankableDog`,
+   and runs the same single-source-of-truth seam the vote RPC writes from, so there
+   is **no parallel ordering** and the badge stays in lockstep with
+   `recompute_top_dog()` (decision #13). Both surfaces derive from live server crown
+   state on each load (never cached). +8 test-after unit cases for the load wiring
+   (`dogs-action.test.ts`, real `selectTopDog` left unmocked); `pnpm test` 320/320,
+   `pnpm check` 0 errors, lint clean, `@smoke` + `@security` (27/27) green. Reviewer
+   APPROVE, 0 fix cycles, 2 minor non-blocking notes (unstyled `class="badge"`,
+   consistent with the app-wide unstyled markup; a redundant `rankable.length > 0`
+   guard before `selectTopDog`).
+   **M2 is held open** by the wiring audit, not closed: the vote wrapper
+   (`castVote` / `removeVote` in `src/lib/features/voting/votes.ts`) still has **no
+   production consumer** — there is no vote-casting UI anywhere in the app, so a
+   member cannot actually cast a vote. TASK-021 repeatedly deferred this to "a later
+   M2 task" that was never created. A vote-casting UI task must land and re-pass the
+   wiring audit before M2 can close (logged as DW-009 in [[TASKS]]).
 
 See [[Handoffs/handoff-003]] for session context.
 
@@ -375,7 +406,7 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 | ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | complete    | All 5 tasks done: TASK-010 invite mint + redemption (PR #13 `ef59aea`), TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam), TASK-011 profile creation + onboarding funnel (PR #18 `38db5d9`, new `src/lib/features/profiles/` module), TASK-013 hot dog upload + display (PR #20 `c552be5`, last M0 foundational orphan resolved), and TASK-014 `@smoke` + `@security` E2E (PR #22 `aed7e90`). Tag `milestone-01-vertical-slice`. All later milestones must keep the `@smoke` test passing. See M1 close notes above                                                                                                                                                                                                                |
-| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | in progress | TDD-first. TASK-020 landed (ranking + sticky tie-break logic, PR #25 `835c2f0`) — pure `selectTopDog` crown-selection seam (`src/lib/features/voting/ranking.ts`). TASK-021 landed (Vote RPC, PR #28 `a170676`) — `cast_vote`/`remove_vote` SECURITY DEFINER RPCs (sole write path), drift-free `vote_count` recomputed from `COUNT(votes)` in-transaction, crown recompute that provably mirrors `selectTopDog`; decision #25 (crown-column write lockdown) added in the fix cycle. TASK-022 landed (daily Top Dog tally, PR #31 `4351aa9`) — `top_dog_days` + idempotent anon-callable `tally_top_dog_day()` RPC (decision #26) wired into the keep-alive workflow; `days_as_top_dog` recomputed authoritatively from `COUNT`. Remaining: TASK-023 (badge UI) |
+| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | in progress | TDD-first. TASK-020 landed (ranking + sticky tie-break logic, PR #25 `835c2f0`) — pure `selectTopDog` crown-selection seam (`src/lib/features/voting/ranking.ts`). TASK-021 landed (Vote RPC, PR #28 `a170676`) — `cast_vote`/`remove_vote` SECURITY DEFINER RPCs (sole write path), drift-free `vote_count` recomputed from `COUNT(votes)` in-transaction, crown recompute that provably mirrors `selectTopDog`; decision #25 (crown-column write lockdown) added in the fix cycle. TASK-022 landed (daily Top Dog tally, PR #31 `4351aa9`) — `top_dog_days` + idempotent anon-callable `tally_top_dog_day()` RPC (decision #26) wired into the keep-alive workflow; `days_as_top_dog` recomputed authoritatively from `COUNT`. TASK-023 landed (badge UI, PR #37 `6d1b206`) — read-only shared `<TopDogBadge>` on the Top Dog's profile + winning-dog tile, winning dog resolved by reusing the pure `selectTopDog` comparator (no parallel ordering, in lockstep with `recompute_top_dog()`). **M2 held open** (not complete): the wiring audit found `castVote`/`removeVote` have **no production consumer** — no vote-casting UI exists, so a member cannot cast a vote (DW-009). A vote-casting UI task must land + re-pass the wiring audit before M2 closes |
 | M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |

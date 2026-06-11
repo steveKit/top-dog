@@ -6,19 +6,74 @@
 
 ## Active Tasks
 
-### TASK-023: Top Dog badge UI [`pending`] [`P2`] [`S`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-021
-**Description:** Show the hot dog badge on the current Top Dog.
-**Acceptance Criteria:**
-
-- [ ] Badge renders on the current Top Dog's profile + their dog
-- [ ] Updates after a crown handoff
+_No active tasks. **Milestone held open:** the M2-close wiring audit found the vote
+wrapper (`castVote` / `removeVote` in `src/lib/features/voting/votes.ts`) has **no UI
+consumer** — there is no vote-casting surface in the app, so a member cannot actually
+cast a vote. A vote-casting UI task must land and re-pass the wiring audit before M2
+can close. See [[tasks/discovered]] (DW-009)._
 
 ---
 
 ## Completed Tasks (this milestone)
+
+### ~~TASK-023: Top Dog badge UI~~ [`complete`]
+
+**Completed:** 2026-06-11 · **PR:** #37 (squash `6d1b206`) · **Reviewer:** APPROVE (0 fix cycles, 2 minor non-blocking notes)
+**Acceptance Criteria:**
+
+- [x] Badge renders on the current Top Dog's profile + their (winning) dog
+- [x] Updates after a crown handoff
+
+**Notes:** Landed the Top Dog badge UI as the **fourth M2 task** — the read-only
+display layer that surfaces the crown the TASK-021/022 engine maintains. **Zero
+SQL / RLS / RPC changes**: every badge surface derives from live server crown
+state on each load, never hardcoded or cached (AC #2 "updates after a crown
+handoff").
+
+New shared component `src/lib/components/TopDogBadge.svelte` — a 👑 badge with
+`role="status"` and an optional `label` prop (defaulting to "Current Top Dog").
+The profile page (`src/routes/(protected)/app/profile/[handle]/+page.svelte`)
+refactored its inline badge to the shared `<TopDogBadge>` against the same
+`profiles.is_current_top_dog` gate (no behavior change), and `/app/dogs`
+(`+page.server.ts` + `+page.svelte`) grew a badge on the winning dog tile.
+
+**`selectTopDog` lockstep reuse (the key design decision).** Rather than
+re-deriving which of the Top Dog's dogs wears the crown with a parallel ordering,
+the `/app/dogs` load now also fetches the signed-in user's own profile via
+`getProfileById(supabase, user.id)`; when they are the current Top Dog it maps
+their dogs to `RankableDog` and **reuses the pure `selectTopDog` comparator**
+(`$lib/features/voting/ranking.ts`) to resolve the winning-dog id. This is the
+**same single-source-of-truth seam the vote RPC writes from** — there is **no
+parallel ordering**, so the badge stays in lockstep with the vote-RPC
+`recompute_top_dog()` crown (decision #13). The load returns `isCurrentTopDog` +
+`topDogId`, and the badge renders on the matching dog tile.
+
+**Two minor accepted reviewer notes (non-blocking, recorded as accepted).**
+(1) `class="badge"` has no backing CSS — but the whole app is currently unstyled
+markup, so this is consistent with surrounding code (deferred to a future styling
+pass). (2) The `rankable.length > 0` guard before `selectTopDog` is redundant
+since `selectTopDog([])` already returns `null` — harmless, optional tidy. Neither
+blocks; **review APPROVE, 0 fix cycles**.
+
+**Tests — +8 unit cases**, test-after for the load wiring, in
+`src/routes/(protected)/app/dogs/dogs-action.test.ts`: highest `vote_count` wins,
+`id` tie-break, non-Top-Dog → no badge, empty / no-eligible → `null`, and graceful
+handling of a profile-load failure. The real `selectTopDog` module is left
+unmocked so the wiring exercises the production comparator. Quality gates:
+`pnpm test` **320/320**, `pnpm check` **0 errors**, `pnpm lint` clean, `@smoke`
+green, `@security` **27/27** green (after a `supabase db reset` cleared a
+**pre-existing** stale-DB pinned-id flake unrelated to this PR).
+
+**M2 stays in progress — held open.** The M2-close wiring audit found that the
+vote wrapper (`castVote` / `removeVote` in `src/lib/features/voting/votes.ts`) has
+**no production (non-test) consumer** — no route imports it and there is no
+vote-casting surface anywhere in the app, so a member cannot actually cast a vote.
+This is a genuine, previously-uncaptured gap (logged as DW-009 in
+[[tasks/discovered]]). A vote-casting UI task must land and re-pass the wiring
+audit before M2 can close.
+
+**Discovered during this task:** DW-009 (no vote-casting UI consumer for
+`castVote` / `removeVote`) — see [[tasks/discovered]].
 
 ### ~~TASK-022: Daily Top Dog tally job~~ [`complete`]
 

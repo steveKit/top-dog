@@ -446,3 +446,81 @@ test.describe('@security vote RPC: crown handoff + tie-breaks (direct PostgREST)
 		).toBe(false);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// TASK-021 — RPC EXECUTE-permission guards (direct PostgREST)
+//
+// The reviewer found that the helper-RPC EXECUTE revokes were ineffective: a
+// bare `revoke ... from public` does NOT strip the explicit anon/authenticated
+// grants Supabase adds to new public functions, so recompute_top_dog() /
+// recompute_vote_count(uuid) were still client-callable. The migration now
+// revokes EXECUTE from `public, anon, authenticated` on both helpers, and from
+// `public, anon` on the vote RPCs (granting EXECUTE to `authenticated` only).
+//
+// These tests prove the grant surface holds at the EXECUTE-permission layer:
+//   - the two private helpers reject a direct authenticated (and anon) call
+//     with 42501 insufficient_privilege — they are no longer client-callable.
+//   - cast_vote rejects an ANON caller with 42501 at the grant layer — distinct
+//     from the authenticated paths above (self-vote 23514, success, etc.) and
+//     from the function's internal null-auth 28000 (the grant fires first, so
+//     anon never reaches the function body).
+// Tagged @security. Pure PostgREST, LOCAL stack.
+test.describe('@security RPC EXECUTE-permission guards (direct PostgREST)', () => {
+	/** Anon (unauthenticated) client: publishable key, no JWT. */
+	function anonClient(): SupabaseClient {
+		return createClient(creds.apiUrl, creds.publishableKey, {
+			auth: { autoRefreshToken: false, persistSession: false }
+		});
+	}
+
+	test('recompute_top_dog() is NOT callable by an authenticated client (42501)', async () => {
+		const member = await makeUser(uniqueHandle('rt'));
+		const { error } = await member.client.rpc('recompute_top_dog');
+
+		expect(error, 'a private helper must not be client-callable').not.toBeNull();
+		expect(error?.code, 'EXECUTE revoke raises insufficient_privilege 42501').toBe('42501');
+	});
+
+	test('recompute_top_dog() is NOT callable by an anon client (42501)', async () => {
+		const { error } = await anonClient().rpc('recompute_top_dog');
+
+		expect(error, 'a private helper must not be anon-callable').not.toBeNull();
+		expect(error?.code, 'EXECUTE revoke raises insufficient_privilege 42501').toBe('42501');
+	});
+
+	test('recompute_vote_count(uuid) is NOT callable by an authenticated client (42501)', async () => {
+		const member = await makeUser(uniqueHandle('rv'));
+		const { error } = await member.client.rpc('recompute_vote_count', {
+			dog_id: crypto.randomUUID()
+		});
+
+		expect(error, 'a private helper must not be client-callable').not.toBeNull();
+		expect(error?.code, 'EXECUTE revoke raises insufficient_privilege 42501').toBe('42501');
+	});
+
+	test('recompute_vote_count(uuid) is NOT callable by an anon client (42501)', async () => {
+		const { error } = await anonClient().rpc('recompute_vote_count', {
+			dog_id: crypto.randomUUID()
+		});
+
+		expect(error, 'a private helper must not be anon-callable').not.toBeNull();
+		expect(error?.code, 'EXECUTE revoke raises insufficient_privilege 42501').toBe('42501');
+	});
+
+	test('cast_vote — an ANON caller is rejected at the EXECUTE-permission layer (42501)', async () => {
+		// EXECUTE on cast_vote is granted to `authenticated` only; anon was revoked.
+		// So an anon call is refused by the grant (42501) BEFORE the function's own
+		// null-auth 28000 — the grant is the primary gate.
+		const { error } = await anonClient().rpc('cast_vote', { target_dog: crypto.randomUUID() });
+
+		expect(error, 'anon must not be able to call cast_vote').not.toBeNull();
+		expect(error?.code, 'anon cast_vote is refused by the EXECUTE grant (42501)').toBe('42501');
+	});
+
+	test('remove_vote — an ANON caller is rejected at the EXECUTE-permission layer (42501)', async () => {
+		const { error } = await anonClient().rpc('remove_vote');
+
+		expect(error, 'anon must not be able to call remove_vote').not.toBeNull();
+		expect(error?.code, 'anon remove_vote is refused by the EXECUTE grant (42501)').toBe('42501');
+	});
+});

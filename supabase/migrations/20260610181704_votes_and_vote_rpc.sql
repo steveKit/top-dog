@@ -235,8 +235,47 @@ comment on function public.recompute_top_dog() is
 
 -- recompute_top_dog is an internal helper; clients never call it directly. Revoke
 -- the implicit PUBLIC execute grant so only the vote RPCs (which run as the
--- function owner under SECURITY DEFINER) reach it.
-revoke execute on function public.recompute_top_dog() from public;
+-- function owner under SECURITY DEFINER) reach it. `revoke ... from public` alone
+-- is INEFFECTIVE on Supabase: new public functions get an EXPLICIT execute grant
+-- to `anon` and `authenticated`, which a PUBLIC-only revoke does not strip — so we
+-- revoke from all three roles. The vote RPCs still reach it under SECURITY DEFINER
+-- as the function owner, which is not subject to these grants.
+revoke execute on function public.recompute_top_dog() from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Column-level privileges on public.profiles: crown columns are NOT client-writable
+-- ---------------------------------------------------------------------------
+-- Decision #24 pattern (mirrors hot_dogs vote_count/peak_votes; see
+-- 20260609181013_hot_dogs.sql). The `profiles` table got RLS row policies but
+-- never column-level write grants, so an authenticated user could forge crown
+-- state via a plain PostgREST UPDATE (is_current_top_dog / top_dog_since /
+-- days_as_top_dog are all server-maintained and must be unreachable from the
+-- client). RLS gates WHICH ROWS a user may touch; column privileges gate WHICH
+-- COLUMNS — both are needed.
+--
+-- We revoke table-wide INSERT and UPDATE from `authenticated`, then re-grant ONLY
+-- the columns the app legitimately writes from the client:
+--   - INSERT: id, handle, display_name, avatar_path  (createProfile in
+--     src/lib/features/profiles/profiles.ts supplies exactly these). `id` stays
+--     insertable because it IS the auth.uid the row keys on (the insert RLS policy
+--     pins auth.uid() = id). Omitted columns fall to their DEFAULTs: joined_at =>
+--     now(), days_as_top_dog => 0, is_current_top_dog => false, top_dog_since =>
+--     NULL — so a direct PostgREST insert can't forge an opening crown.
+--   - UPDATE: handle, display_name, avatar_path  (the safe profile-edit surface;
+--     a future handle/display-name/avatar edit path writes only these). `id` is
+--     intentionally NOT updatable, and the crown columns are excluded so a client
+--     UPDATE can never set them.
+--
+-- The crown columns days_as_top_dog / is_current_top_dog / top_dog_since are
+-- excluded from BOTH grants: recompute_top_dog() (above) and the keep-alive tally
+-- maintain them, running as the table owner (SECURITY DEFINER), which bypasses
+-- these column grants. Restricting only UPDATE would leave the INSERT path open,
+-- so both are column-restricted — exactly the decision #24 insert+update pair.
+revoke insert on public.profiles from authenticated;
+grant insert (id, handle, display_name, avatar_path) on public.profiles to authenticated;
+
+revoke update on public.profiles from authenticated;
+grant update (handle, display_name, avatar_path) on public.profiles to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- recompute_vote_count(dog) — authoritative counter recompute (private helper)
@@ -277,7 +316,10 @@ comment on function public.recompute_vote_count(uuid) is
   'drift-free under concurrency) and bumps peak_votes. Private helper — called '
   'inside the vote RPCs.';
 
-revoke execute on function public.recompute_vote_count(uuid) from public;
+-- As with recompute_top_dog: `revoke ... from public` does not strip the explicit
+-- anon/authenticated grants Supabase adds to new public functions, so revoke from
+-- all three. The vote RPCs reach it under SECURITY DEFINER as the owner.
+revoke execute on function public.recompute_vote_count(uuid) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- cast_vote(target_dog) RPC — cast OR move a vote
@@ -375,6 +417,10 @@ comment on function public.cast_vote(uuid) is
   '+ new dogs and the crown in one transaction. Returns the vote id.';
 
 grant execute on function public.cast_vote(uuid) to authenticated;
+-- Voting requires auth (decision #23): strip the implicit public/anon EXECUTE so
+-- the grant surface matches the "authenticated only" intent. (The RPC also rejects
+-- a null auth.uid() with 28000, but the grant is the primary gate.)
+revoke execute on function public.cast_vote(uuid) from public, anon;
 
 -- ---------------------------------------------------------------------------
 -- remove_vote() RPC — clear the caller's active vote
@@ -422,3 +468,6 @@ comment on function public.remove_vote() is
   'unauthenticated (28000).';
 
 grant execute on function public.remove_vote() to authenticated;
+-- Voting requires auth (decision #23): strip the implicit public/anon EXECUTE so
+-- the grant surface matches the "authenticated only" intent.
+revoke execute on function public.remove_vote() from public, anon;

@@ -8,6 +8,11 @@
 // Known Postgres error states from the RPCs are mapped to typed sentinels keyed
 // on SQLSTATE (the `code` field PostgREST surfaces), NEVER on message text —
 // matching createProfile's `error.code === UNIQUE_VIOLATION` style.
+//
+// Live wiring: these wrappers are consumed by the vote-button route wiring, a
+// later M2 task. That route does not exist yet, so this module currently has no
+// non-test caller by design — same pattern as src/lib/features/voting/ranking.ts
+// and src/lib/storage/guard.ts.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 

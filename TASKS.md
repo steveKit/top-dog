@@ -20,13 +20,15 @@
 
 ## Active Milestones
 
-| Milestone                             | Status   | Progress  | File                                         |
-| ------------------------------------- | -------- | --------- | -------------------------------------------- |
-| Milestone 02: Voting & Top Dog Engine | `active` | 3/4 tasks | [[tasks/milestone-02-voting-top-dog-engine]] |
+| Milestone                             | Status   | Progress               | File                                         |
+| ------------------------------------- | -------- | ---------------------- | -------------------------------------------- |
+| Milestone 02: Voting & Top Dog Engine | `active` | 4/4 listed · held open | [[tasks/milestone-02-voting-top-dog-engine]] |
 
 _The milestone file is the source of truth for per-task status. The Progress
 column is a coarse rollup the director updates at task/milestone events — keep it
-loose to avoid index drift. (TASK-020/021/022 done; TASK-023 badge UI remaining.)_
+loose to avoid index drift. (TASK-020/021/022/023 all done; M2 **held open** — the
+wiring audit found no vote-casting UI consuming `castVote`/`removeVote`, logged as
+DW-009. A vote-casting UI task must land before M2 can close.)_
 
 ## Planned Milestones
 

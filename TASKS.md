@@ -29,7 +29,7 @@ _All tasks complete. Details in Completed Tasks section below._
 
 Goal: vote rules, ranking, sticky tie-break, daily tally, badge. TDD-first.
 
-### TASK-022: Daily Top Dog tally job [`pending`] [`P1`] [`M`]
+### TASK-022: Daily Top Dog tally job [`in_progress`] [`P1`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-021
@@ -256,9 +256,9 @@ test-failure cycles).** REQUEST_CHANGES → APPROVE:
    `is_current_top_dog` / `top_dog_since` / `days_as_top_dog` via a plain
    PostgREST UPDATE (and seed them on INSERT). Fixed by applying the **same
    decision #24 insert+update column-grant pattern** used for `hot_dogs`: `revoke
-   insert/update on profiles from authenticated`, then `grant insert (id, handle,
-   display_name, avatar_path)` + `grant update (handle, display_name,
-   avatar_path)`. The crown columns fall to DEFAULTs / are non-updatable;
+insert/update on profiles from authenticated`, then `grant insert (id, handle,
+display_name, avatar_path)` + `grant update (handle, display_name,
+avatar_path)`. The crown columns fall to DEFAULTs / are non-updatable;
    `recompute_top_dog()` (SECURITY DEFINER, runs as owner) still maintains them.
 2. **`revoke execute ... from public` is insufficient on Supabase.** Supabase
    grants EXECUTE on new `public.*` functions to `anon` and `authenticated`

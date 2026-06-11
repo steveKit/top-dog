@@ -2,8 +2,8 @@ name: Supabase keep-alive
 
 # Supabase free-tier projects auto-pause after 7 days with no DB activity.
 # This workflow issues a tiny daily read against the REST API to keep the
-# project active. The Top Dog daily tally and mustard prune jobs are added
-# here in M2/M4 once their RPC functions exist.
+# project active, then runs the Top Dog daily tally (M2). The mustard prune
+# job is added here in M4 once its RPC function exists.
 
 on:
   schedule:
@@ -20,6 +20,29 @@ jobs:
             "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1" \
             -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
             -H "Authorization: Bearer ${SUPABASE_PUBLISHABLE_KEY}"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Tally Top Dog day (idempotent)
+        # Records today for the current Top Dog and recomputes days_as_top_dog.
+        # The RPC takes no input and is idempotent (ON CONFLICT DO NOTHING), so a
+        # daily call — even one that runs after an earlier same-day dispatch — is
+        # safe. Anon (publishable) key is sufficient: tally_top_dog_day() is
+        # granted to anon and only ever records the actual current crown-holder.
+        # Fail the step on a non-2xx so a broken tally turns the workflow red.
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -X POST "${SUPABASE_URL}/rest/v1/rpc/tally_top_dog_day" \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "tally_top_dog_day HTTP ${code}"
+          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+            echo "::error::tally_top_dog_day returned non-2xx (${code})"
+            exit 1
+          fi
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}

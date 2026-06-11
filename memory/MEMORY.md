@@ -31,6 +31,21 @@ in one Bash call. The pre-tool-safety hook reads the **current** branch BEFORE
 the compound command runs and rejects it as a commit-on-main. Run the branch
 creation and the commit as separate steps.
 
+### An "orphan-by-design" export needs its future-consumer task actually queued
+
+When a task ships a seam ahead of its consumer (justified as "orphan-by-design,
+wired by a later task"), that later task must be **created in the queue**, not
+just named in prose. The milestone-close wiring audit checks for non-test
+consumers and will (correctly) **block the milestone close** when the promised
+consumer was never queued — the deferral note alone is not a wiring contract.
+This bit M2: `castVote`/`removeVote` (`src/lib/features/voting/votes.ts`) were
+declared orphan-by-design "until a later M2 task" that never got created, so the
+M2-close audit held the milestone open (DW-009). The M0/M1 accepted foundational
+orphans avoided this precisely because each named a **dependency-declared**
+consumer task that existed in the queue. When deferring wiring, either file the
+consumer task immediately or record an explicit accept-the-orphan disposition —
+don't leave a bare "later" pointer.
+
 ## Navigation Patterns
 
 ### `TASKS.md` is an index, not the queue body (since 2026-06-11)

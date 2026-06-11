@@ -97,7 +97,7 @@ Caveats to record so they aren't mistaken for bugs:
   SQL-Server/T-SQL parser mis-applied to a PostgreSQL file (they reference
   T-SQL-only constructs like `CONVERSATION`/`CURSOR` options and choke on valid
   Postgres `CREATE POLICY`, `BEFORE INSERT` triggers, `NULLS LAST`, `language
-  plpgsql`). The migration is verified good: `supabase db reset` exit 0 + 10
+plpgsql`). The migration is verified good: `supabase db reset` exit 0 + 10
   passing live-Postgres tests. **NOT a real defect.**
 - **Tester notes.** A transient `@smoke` flake (sign-up → onboarding navigation
   timeout, unrelated to votes, passed on retry). `resetCrownField()` in

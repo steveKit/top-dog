@@ -30,3 +30,16 @@ Related Bash-hook gotcha: don't chain `git checkout -b <branch> && git commit`
 in one Bash call. The pre-tool-safety hook reads the **current** branch BEFORE
 the compound command runs and rejects it as a commit-on-main. Run the branch
 creation and the commit as separate steps.
+
+## Navigation Patterns
+
+### `TASKS.md` is an index, not the queue body (since 2026-06-11)
+
+The task queue uses the indexed per-milestone layout. `TASKS.md` is the
+dashboard/index only — the per-task detail and status live in
+`tasks/milestone-NN-slug.md`. To find the active work, read the milestone file
+the index points to (the milestone file is the source of truth for per-task
+status; the index Progress column is a coarse rollup). Completed pre-migration
+milestones (M0, M1) are in `TASKS-ARCHIVE.md`; cross-milestone work is in
+`tasks/discovered.md` and `tasks/deferred.md`. New completed milestones freeze in
+their own file — never move completed tasks out to the archive.

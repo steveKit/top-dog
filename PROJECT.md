@@ -358,6 +358,17 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   auto-pauses after 7 days of no DB activity (mitigated by keep-alive ping).
 - AVIF deferred (WASM encode cost); revisit near the 1 GB storage cap.
 
+### Process notes
+
+- **Task queue migrated to the indexed per-milestone layout (2026-06-11).** The
+  monolithic `TASKS.md` is now an index/dashboard; each milestone's tasks live in
+  its own `tasks/milestone-NN-slug.md` file (M2 active, M3–M7 pre-exploded),
+  cross-milestone logs are `tasks/discovered.md` + `tasks/deferred.md`, and the
+  completed pre-migration milestones (M0, M1) are grandfathered into
+  `TASKS-ARCHIVE.md`. New completed milestones freeze in their own file rather than
+  moving to the archive. See [[TASKS]] for the index and [[CLAUDE]] Project Map for
+  the canonical wikilink targets.
+
 ## Milestones
 
 | Milestone                      | Target                                                                              | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |

@@ -29,18 +29,6 @@ _All tasks complete. Details in Completed Tasks section below._
 
 Goal: vote rules, ranking, sticky tie-break, daily tally, badge. TDD-first.
 
-### TASK-022: Daily Top Dog tally job [`in_progress`] [`P1`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-021
-**Description:** Idempotent days-as-Top-Dog count (finding C neighbor).
-**Acceptance Criteria:**
-
-- [ ] `top_dog_days` migration UNIQUE(profile_id, day)
-- [ ] Pure tally logic TDD'd: multiple reigns same calendar day = one day
-- [ ] Wired into the keep-alive workflow (runs daily)
-- [ ] `profiles.days_as_top_dog` reflects the count
-
 ### TASK-023: Top Dog badge UI [`pending`] [`P2`] [`S`]
 
 **Owner:** unassigned
@@ -193,6 +181,78 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-022: Daily Top Dog tally job~~ [`complete`]
+
+**Completed:** 2026-06-11 · **PR:** #31 (squash `4351aa9`) · **Reviewer:** APPROVE (0 fix cycles, 2 minor non-blocking notes)
+**Acceptance Criteria:**
+
+- [x] `top_dog_days` migration UNIQUE(profile_id, day)
+- [x] Pure tally logic TDD'd: multiple reigns same calendar day = one day _(method change, user-approved: realized SQL-authoritative — `UNIQUE(profile_id, day)` + `ON CONFLICT DO NOTHING` + authoritative `COUNT` recompute — and proven by live-DB `@security` tests, not a TS pure module. The invariant is met + tested; the pure-TS-TDD method was descoped because the authoritative logic belongs in SQL, same rationale as the TASK-021 vote RPC.)_
+- [x] Wired into the keep-alive workflow (runs daily)
+- [x] `profiles.days_as_top_dog` reflects the count
+
+**Notes:** Landed the daily Top Dog tally as the **third M2 task** — the
+day-counting half of the Top Dog engine that turns reign-time into the
+`days_as_top_dog` stat. Migration `20260611174243_top_dog_days_and_tally.sql` adds
+the `public.top_dog_days` table (`id`, `profile_id` → `profiles on delete cascade`,
+`day date`, `UNIQUE(profile_id, day)` per decision #14) under the project's
+**default-deny + explicit-grant** RLS: SELECT-only for `authenticated`, **no client
+write path at all** — the tally is mediated entirely by RPC. Zero new dependencies.
+
+**Idempotency at two layers (decision #14, drift-free).** `public.tally_top_dog_day()`
+(SECURITY DEFINER, `search_path=''`, fully schema-qualified) finds the current Top
+Dog (`profiles.is_current_top_dog`), does `insert (holder, current_date) on conflict
+(profile_id, day) do nothing`, then recomputes `profiles.days_as_top_dog = count(*)`
+authoritatively from `top_dog_days` — **never a blind `+1`**. So the DB-level
+`UNIQUE(profile_id, day)` + `ON CONFLICT DO NOTHING` collapses multiple reigns on the
+same calendar day to one day, and the authoritative `COUNT` recompute means re-runs
+and early triggers can't drift the count. This is the **same drift-free discipline as
+the TASK-021 vote RPC** (`vote_count` recomputed from `COUNT(votes)`, never
+incremented). The RPC is a **no-op when no current Top Dog** exists.
+
+**AC #2 method change (user-approved):** the "pure tally logic TDD'd" criterion was
+realized **SQL-authoritative + live-DB integration-tested** rather than as a TS pure
+module — `UNIQUE(profile_id, day)` + `ON CONFLICT DO NOTHING` + authoritative `COUNT`
+recompute, proven by the `@security` specs, not a Vitest pure module. The invariant
+("multiple reigns same calendar day = one day") is met and tested; the pure-TS-TDD
+method was descoped because the authoritative tally logic belongs in SQL — same
+rationale as the TASK-021 vote RPC (see the inline AC annotation above).
+
+**Decision A1 — anon-callable idempotent RPC (user-approved; decision #26).**
+`tally_top_dog_day()` is EXECUTE-granted to `anon` + `authenticated` so the keep-alive
+GitHub Actions workflow can call it via PostgREST with the **existing publishable
+key** — deliberately avoiding a new repo secret. This is safe because the RPC is
+`pronargs = 0` (it takes **no caller input**) and only ever records the **actual**
+current Top Dog's `current_date`; the reviewer **empirically confirmed** it is not
+forgeable and is self-limiting (worst case: an anon caller triggers today's
+idempotent tally early — exactly what the cron does). This sets the auth pattern for
+the **M4 mustard-prune job** (TASK-042), which is wired into the same workflow.
+
+**`days_as_top_dog` stays non-client-writable (decision #24/#25).** The SECURITY
+DEFINER RPC (running as owner) is the **sole writer** of the count, and
+`top_dog_days` has no client write path — verified by the `@security` tests. The
+keep-alive wiring adds a daily tally step that POSTs to the RPC and **fails the step
+on non-2xx**, so a broken tally turns the workflow red — which also protects the
+7-day auto-pause guarantee (a red workflow can't quietly stop hitting the DB).
+
+**Test-infra — `playwright.config.ts` pinned to `workers: 1`.** The `@security`
+suite runs against the **one shared local Postgres** and mutates the global singleton
+crown (`profiles.is_current_top_dog`); default Playwright multi-worker parallelism
+races across spec files. This was **pre-existing latent fragility** (the existing
+suite also failed under default parallelism) that this third crown-mutating spec file
+surfaced. A single worker serializes the small/fast live-DB suite deterministically;
+the reviewer agreed `workers: 1` is the right granularity (a narrower serial scope
+wouldn't close the cross-file race). If the suite grows, isolated per-file fixtures
+are the scaling path.
+
+Live-DB `@security` coverage: `tests/tally.e2e.ts` (7 specs) exercises the idempotency
+(one day per calendar day across multiple reigns), the authoritative `COUNT` recompute,
+the no-current-Top-Dog no-op, and the `top_dog_days` / `days_as_top_dog` write
+lockdown against a real Postgres. **Review: APPROVE, 0 fix cycles**, 2 minor
+non-blocking notes (recompute already covered by the `UNIQUE` index; the format commit
+bundled a benign second concern). **M2 stays in progress** — TASK-023 (badge UI)
+remains.
 
 ### ~~TASK-021: Vote RPC (move-vote + counter + crown)~~ [`complete`]
 

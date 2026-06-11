@@ -251,13 +251,30 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   (TASK-004 — last manual run returned HTTP 200 against `profiles`). It runs daily
   and depends on the `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets; if it
   ever goes red, re-check those secrets before anything else.
+- **Scheduled-job auth pattern — privileged-but-input-free RPCs are anon-callable +
+  idempotent (decision #26).** A daily job whose RPC takes **no caller input**
+  (`pronargs = 0`) and only records server-known facts (e.g. `tally_top_dog_day()`
+  records the actual current Top Dog's `current_date`) is EXECUTE-granted to `anon` +
+  `authenticated` so the keep-alive workflow can call it via PostgREST with the
+  **existing publishable key** — no new repo secret. Safe because it's not forgeable
+  and is self-limiting (worst case: an early idempotent run — exactly what the cron
+  does). Make such jobs idempotent at the DB (`UNIQUE` + `ON CONFLICT DO NOTHING`) and
+  recompute denormalized counts **authoritatively from `COUNT(*)`, never a blind
+  `+1`**, so re-runs and early triggers can't drift. Wire the workflow step to **fail
+  on non-2xx** so a broken job turns red (also protecting the auto-pause guarantee).
+  Reuse this pattern for the M4 mustard-prune job (TASK-042).
 - **E2E harness uses the LOCAL stack only, never the hosted `.env`.** Playwright
-  tests (`tests/smoke.e2e.ts`, `tests/db-guards.e2e.ts`) resolve local creds via
-  `supabase status -o env` through `tests/helpers/local-stack.ts`, behind a
-  **non-localhost guardrail** that aborts if the resolved URL isn't local — so a
-  run can never hit the hosted project. Invite-only sign-up needs an unconsumed
-  invite first, so `tests/global-setup.ts` mints one with a local service-role
-  client and hands the token to the spec. Keep the service key Node/server-side
-  only — never expose it to the browser context. Run with `supabase start` up:
-  `pnpm test:e2e --grep @smoke` (and `--grep @security` for the DB write guards).
+  tests (`tests/smoke.e2e.ts`, `tests/db-guards.e2e.ts`, `tests/votes.e2e.ts`,
+  `tests/tally.e2e.ts`) resolve local creds via `supabase status -o env` through
+  `tests/helpers/local-stack.ts`, behind a **non-localhost guardrail** that aborts if
+  the resolved URL isn't local — so a run can never hit the hosted project.
+  Invite-only sign-up needs an unconsumed invite first, so `tests/global-setup.ts`
+  mints one with a local service-role client and hands the token to the spec. Keep the
+  service key Node/server-side only — never expose it to the browser context. Run with
+  `supabase start` up: `pnpm test:e2e --grep @smoke` (and `--grep @security` for the
+  DB write guards). **`playwright.config.ts` is pinned to `workers: 1`:** the
+  `@security` suite mutates the **global singleton crown** (`profiles.is_current_top_dog`)
+  against the **one shared local Postgres**, so default multi-worker parallelism races
+  across spec files. Keep it serialized; if the suite outgrows a single worker,
+  isolated per-file DB fixtures are the scaling path (not relaxing `workers`).
   Use [[wikilinks]] when cross-referencing project docs.

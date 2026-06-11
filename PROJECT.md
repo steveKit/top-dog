@@ -3,7 +3,7 @@
 ## Status
 
 **Phase:** Active Development
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-11
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
@@ -65,14 +65,18 @@ with orphan-safe upload/delete ordering. **All M0 foundational orphans are now
 wired.** The whole slice is locked in by a Playwright `@smoke` that later milestones
 must keep green.
 
-**Milestone M2 — Voting & Top Dog Engine is now in progress.** Its first task has
-landed: TASK-020 (ranking + sticky tie-break logic, PR #25 `835c2f0`). The
-crown-selection contract from decision #13 is now realized as the **pure
-`selectTopDog` seam** in `src/lib/features/voting/ranking.ts` — a strict
-total-order comparator (vote count desc → earliest non-null `topDogSince` sticky,
-null-last → `id` tie-break) that returns the leading dog (whose `ownerId` is the
-Top Dog) or `null` when no dog has a vote. It is an accepted TDD-first orphan
-until TASK-021 (Vote RPC) wires it in as the crown-recompute seam.
+**Milestone M2 — Voting & Top Dog Engine is in progress.** Two tasks have landed:
+TASK-020 (ranking + sticky tie-break logic, PR #25 `835c2f0`) and TASK-021 (Vote
+RPC, PR #28 `a170676`). The crown-selection contract from decision #13 is realized
+as the **pure `selectTopDog` seam** in `src/lib/features/voting/ranking.ts` — a
+strict total-order comparator (vote count desc → earliest non-null `topDogSince`
+sticky, null-last → `id` tie-break). TASK-021 now consumes it: the `cast_vote` /
+`remove_vote` SECURITY DEFINER RPCs are the **sole write path** for votes (no
+client write), recomputing `vote_count` authoritatively from `COUNT(votes)`
+in-transaction (drift-free) and recomputing the crown with SQL that provably
+**mirrors** `selectTopDog` — discharging the forward-looking lockstep constraint
+raised at the TASK-020 review. The remaining M2 tasks are TASK-022 (daily Top Dog
+tally) and TASK-023 (badge UI).
 
 ### Milestone M1 progress notes
 
@@ -194,6 +198,41 @@ must keep green.
    tidy (drop the `export` or remove the redundant predicate) is tracked as
    non-blocking Discovered Work in [[TASKS]].
 
+### Milestone M2 progress notes
+
+1. **Vote RPC — cast/move/remove + drift-free counter + crown (TASK-021, PR #28).**
+   Migration `20260610181704_votes_and_vote_rpc.sql` adds the `votes` table
+   (`UNIQUE(voter_id)`, one active vote per user — decision #12) with default-deny
+   RLS: SELECT-only for `authenticated` and **no client write path** — voting is
+   mediated entirely by RPC, and a BEFORE INSERT/UPDATE trigger rejects self-votes
+   at the DB. Two SECURITY DEFINER RPCs (`search_path=''`, schema-qualified,
+   EXECUTE to `authenticated` only) own all writes: `cast_vote(target_dog uuid)`
+   casts-or-moves a vote and `remove_vote()` retracts it, each in one transaction;
+   **voter identity is derived from `(select auth.uid())` inside the RPC**, never
+   client-supplied. `vote_count` is recomputed authoritatively from the live
+   `COUNT(votes)` **inside the transaction** (so it cannot drift under concurrent
+   votes — closes adversarial finding B), and `peak_votes` bumped via
+   `greatest()`. `recompute_top_dog()` reproduces `selectTopDog`'s total order in
+   SQL (`vote_count` DESC → earliest non-null `top_dog_since`, NULL last, sticky →
+   ascending `hot_dogs.id`), setting a fresh `now()` only on a new reign — the
+   reviewer **empirically confirmed** the SQL stays in lockstep with the TS
+   comparator, discharging the forward-looking lockstep constraint from the
+   TASK-020 review. The typed wrapper `src/lib/features/voting/votes.ts`
+   (`castVote` / `removeVote`) returns a discriminated `VoteResult` with sentinels
+   keyed on SQLSTATE (`28000`/`23514`/`P0002`), and is an accepted orphan-by-design
+   until route wiring (a later M2 task).
+2. **Two L2 fix-cycle security findings closed (TASK-021 review).** (a) The crown
+   columns on `profiles` (`is_current_top_dog` / `top_dog_since` /
+   `days_as_top_dog`) were client-forgeable — `profiles` had no column-level write
+   grants, so a plain PostgREST INSERT/UPDATE could seed or overwrite them. Fixed
+   by applying **decision #24's insert+update column-grant pattern** (previously on
+   `hot_dogs`) to the `profiles` crown columns — see decision #25. (b)
+   `revoke execute ... from public` was insufficient to lock down the private
+   `recompute_*` helpers: Supabase explicitly grants EXECUTE on new `public.*`
+   functions to `anon` and `authenticated`, so the helpers stayed callable until
+   the grant was revoked from `public, anon, authenticated`. Captured as a
+   [[CLAUDE]] gotcha for all future SECURITY DEFINER helpers.
+
 See [[Handoffs/handoff-003]] for session context.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
@@ -226,6 +265,7 @@ See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 | 22  | Invite single-use guard      | Authoritative single-use signal is `invites.consumed_at` (FK never nulls it); `consumed_by` is `on delete set null` for audit only, guarded by a one-directional CHECK                                                                            | Keying the guard on a column an FK can null would re-open a spent token if the redeemer is deleted — guard must key on a never-nulled column                                                                                                        | 2026-06-09 |
 | 23  | Invite redemption path       | Consumption via anon-executable SECURITY DEFINER RPCs (`redeem_invite` / `invite_is_redeemable`), `search_path=''`, schema-qualified; no client UPDATE/DELETE on `invites`                                                                        | Redemption happens pre-auth (can't use inviter's RLS); a single-transaction RPC is the controlled write path — consistent with the consuming-writes-via-RPC convention                                                                              | 2026-06-09 |
 | 24  | Non-client-writable counters | Server-maintained counters (`vote_count`, `peak_votes`, `created_at`) are blocked from client writes via **column-level GRANTs on both INSERT and UPDATE** — revoke table-wide, then re-grant only safe columns; omitted columns fall to DEFAULTs | RLS alone gates rows, not columns; restricting only UPDATE leaves the INSERT path open to seed a forged opening counter. Column-level grants on both write paths close it (caught in TASK-013 review). Reusable for any future denormalized counter | 2026-06-09 |
+| 25  | Non-client-writable crown columns | The `profiles` crown columns (`is_current_top_dog`, `top_dog_since`, `days_as_top_dog`) are blocked from client writes by applying decision #24's insert+update column-grant pattern: `revoke insert/update on profiles from authenticated`, then `grant insert (id, handle, display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`. Crown columns fall to DEFAULTs / are non-updatable; `recompute_top_dog()` (SECURITY DEFINER) is the sole maintainer | `profiles` previously had no column-level write grants, so an authenticated user could forge crown state via a plain PostgREST INSERT/UPDATE (caught in TASK-021 review). Extends the decision #24 pattern from `hot_dogs` counters to every server-maintained denormalized column | 2026-06-11 |
 
 ### Accepted Risks (from Adversarial Review)
 
@@ -292,7 +332,7 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 | ------------------------------ | ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | M0 — Scaffold & infra          | SvelteKit + Supabase, SSR auth, RLS baseline, keep-alive, secrets, security-profile | complete    | All 5 tasks done (TASK-001/002/003/004/005). Hosted Supabase project live: schema pushed, repo secrets set, keep-alive enabled + verified green (HTTP 200). Tag `milestone-00-scaffold-infra`. See M0 close notes above                                                                                                                                                                                                                                                                                                                          |
 | M1 — Vertical slice            | invite → profile → upload one compressed dog → see it + smoke test                  | complete    | All 5 tasks done: TASK-010 invite mint + redemption (PR #13 `ef59aea`), TASK-012 client WebP compression (PR #16 `2828468`, new `src/lib/image/` seam), TASK-011 profile creation + onboarding funnel (PR #18 `38db5d9`, new `src/lib/features/profiles/` module), TASK-013 hot dog upload + display (PR #20 `c552be5`, last M0 foundational orphan resolved), and TASK-014 `@smoke` + `@security` E2E (PR #22 `aed7e90`). Tag `milestone-01-vertical-slice`. All later milestones must keep the `@smoke` test passing. See M1 close notes above |
-| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | in progress | TDD-first. TASK-020 landed (ranking + sticky tie-break logic, PR #25 `835c2f0`) — pure `selectTopDog` crown-selection seam (`src/lib/features/voting/ranking.ts`), accepted orphan until TASK-021 (Vote RPC) consumes it                                                                                                                                                                                                                                                                                                                         |
+| M2 — Voting & Top Dog engine   | vote/move rules, ranking, sticky tie-break, daily tally, badge                      | in progress | TDD-first. TASK-020 landed (ranking + sticky tie-break logic, PR #25 `835c2f0`) — pure `selectTopDog` crown-selection seam (`src/lib/features/voting/ranking.ts`). TASK-021 landed (Vote RPC, PR #28 `a170676`) — `cast_vote`/`remove_vote` SECURITY DEFINER RPCs (sole write path), drift-free `vote_count` recomputed from `COUNT(votes)` in-transaction, crown recompute that provably mirrors `selectTopDog`; decision #25 (crown-column write lockdown) added in the fix cycle. Remaining: TASK-022 (daily tally), TASK-023 (badge UI)                                                                                                                                                                                                                                                                                                                         |
 | M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | M5 — Walls & DMs               | message walls + direct messages                                                     | pending     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |

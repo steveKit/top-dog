@@ -11,6 +11,15 @@ const local = getLocalStackCreds();
 
 export default defineConfig({
 	globalSetup: './tests/global-setup.ts',
+	// Single worker: the @security specs exercise the ONE shared local Postgres
+	// and mutate global singletons — profiles.is_current_top_dog (the Top Dog
+	// crown) plus shared vote/tally history. Parallel workers across spec files
+	// race on that global state (a sibling file crowns a different profile while
+	// another file's RPC reads `is_current_top_dog limit 1`), producing flaky
+	// cross-file failures. This was latent with two crown-mutating files; a third
+	// (tally.e2e.ts) surfaced it. Serializing removes the race — the live-DB specs
+	// are fast enough that one worker is not a bottleneck.
+	workers: 1,
 	webServer: {
 		command: 'npm run build && npm run preview',
 		port: 4173,

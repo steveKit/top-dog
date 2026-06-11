@@ -20,7 +20,7 @@ queue. **All work is merged to `main` — there are NO open PRs.**
   - **#32 `af40143`** — TASK-022 bookkeeping (Notes + [[PROJECT]] decision #26 +
     [[CLAUDE]] gotchas).
   - **#33 `d9771ea`** — task-system migration to the indexed per-milestone layout.
-  - **#34 `4351aa9`** — restored the priority/size key to the [[TASKS]] index
+  - **#34 `764947e`** — restored the priority/size key to the [[TASKS]] index
     legend.
 - **Stale-task audit:** **clean** — no `[in_progress]` tasks in any milestone
   file. Nothing to surface in Blockers.

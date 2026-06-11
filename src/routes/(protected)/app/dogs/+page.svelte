@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { compressToWebp } from '$lib/image/compress';
+	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 
 	let { data, form } = $props();
 
@@ -88,6 +89,9 @@
 	<ul>
 		{#each data.dogs as dog (dog.id)}
 			<li>
+				{#if data.isCurrentTopDog && dog.id === data.topDogId}
+					<TopDogBadge label="Top Dog" />
+				{/if}
 				{#if dog.signedUrl}
 					<img src={dog.signedUrl} alt={dog.caption ?? 'A hot dog'} width="240" />
 				{:else}

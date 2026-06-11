@@ -51,6 +51,15 @@ vi.mock('$lib/storage', () => ({
 	HOTDOGS_BUCKET: 'hotdogs'
 }));
 
+// The load now reads LIVE crown state from the signed-in user's own profile to
+// drive the Top Dog badge (TASK-023). Mock the profiles module so the load
+// tests control whether this user holds the crown. `selectTopDog` (the winning-
+// dog comparator) is the REAL pure module — we want the load's mapping into it
+// and its real ranking/tie-break to be exercised end-to-end here.
+vi.mock('$lib/features/profiles/profiles', () => ({
+	getProfileById: vi.fn()
+}));
+
 import { actions, load } from './+page.server';
 import {
 	createHotDog,
@@ -61,6 +70,7 @@ import {
 	appStorageBytes
 } from '$lib/features/hotdogs/hotdogs';
 import { upload, remove, getSignedUrl, evaluateUpload } from '$lib/storage';
+import { getProfileById } from '$lib/features/profiles/profiles';
 
 const upload_ = actions.upload;
 const delete_ = actions.delete;
@@ -125,6 +135,13 @@ beforeEach(() => {
 		data: { id: 'dog' } as any
 	});
 	vi.mocked(remove).mockResolvedValue({ ok: true, data: { removed: 1 } });
+	// Default: the signed-in user is NOT the current Top Dog, so the load returns
+	// no badge data. Crown-specific load tests override this.
+	vi.mocked(getProfileById).mockResolvedValue({
+		ok: true,
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		data: { id: USER_ID, is_current_top_dog: false, top_dog_since: null } as any
+	});
 });
 
 describe('dogs upload action', () => {
@@ -595,7 +612,12 @@ describe('dogs load', () => {
 	// The load signature is `void | {...}` because the unauth branch throws a
 	// redirect (typed as a return path). On the authenticated paths the redirect
 	// is never reached, so narrow away `void` for ergonomic, type-safe assertions.
-	type LoadData = { dogs: { signedUrl: string | null }[]; cap: number };
+	type LoadData = {
+		dogs: { signedUrl: string | null }[];
+		cap: number;
+		isCurrentTopDog: boolean;
+		topDogId: string | null;
+	};
 	async function loadData(event: unknown): Promise<LoadData> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const result = await load(event as any);
@@ -645,6 +667,9 @@ describe('dogs load', () => {
 			{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}` },
 			{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}` }
 		]);
+		// Default profile is non-crown, so no badge data accompanies the grid.
+		expect(result.isCurrentTopDog).toBe(false);
+		expect(result.topDogId).toBeNull();
 	});
 
 	it('degrades a failed signed URL to null without crashing the whole grid', async () => {
@@ -671,5 +696,157 @@ describe('dogs load', () => {
 		expect(result.dogs).toEqual([]);
 		expect(result.cap).toBe(100);
 		expect(getSignedUrl).not.toHaveBeenCalled();
+	});
+
+	// TASK-023 — Top Dog badge wiring on the kennel load. The badge derives from
+	// LIVE server crown state (the user's own `profiles.is_current_top_dog`), and
+	// the winning dog is resolved through the SAME shared `selectTopDog` comparator
+	// the vote-RPC crown recompute uses — never a parallel ordering — so it stays
+	// in lockstep across a crown handoff (a handoff just changes what the next load
+	// reads back). These cases exercise the real comparator end-to-end via the load.
+	describe('Top Dog badge wiring', () => {
+		// A crowned-owner profile. The single shared `top_dog_since` means the
+		// stickiness tie-break degenerates to vote_count + id across the owner's dogs.
+		const CROWN_PROFILE = {
+			id: USER_ID,
+			is_current_top_dog: true,
+			top_dog_since: '2026-06-01T00:00:00Z'
+		};
+
+		function crowned() {
+			vi.mocked(getProfileById).mockResolvedValue({
+				ok: true,
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				data: CROWN_PROFILE as any
+			});
+		}
+
+		/** All signed URLs succeed — keep these cases focused on badge wiring. */
+		function signAll() {
+			vi.mocked(getSignedUrl).mockImplementation(async (_c, path) => ({
+				ok: true,
+				data: { signedUrl: `https://signed/${path}` }
+			}));
+		}
+
+		it('reads the live crown from the signed-in user OWN profile (user.id), not a handle', async () => {
+			crowned();
+			signAll();
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A] });
+
+			await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(getProfileById).toHaveBeenCalledWith(expect.anything(), USER_ID);
+		});
+
+		it('when the user IS Top Dog: topDogId is their HIGHEST vote_count dog', async () => {
+			crowned();
+			signAll();
+			const lowVotes = { ...DOG_A, id: 'dog-low', vote_count: 2 };
+			const winner = {
+				...DOG_A,
+				id: 'dog-win',
+				image_path: `${USER_ID}/dog-win.webp`,
+				vote_count: 9
+			};
+			const midVotes = { ...DOG_A, id: 'dog-mid', vote_count: 5 };
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({
+				ok: true,
+				data: [lowVotes, winner, midVotes]
+			});
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.isCurrentTopDog).toBe(true);
+			expect(result.topDogId).toBe('dog-win');
+		});
+
+		it('on a vote_count tie, topDogId breaks to the LOWEST id (matches selectTopDog)', async () => {
+			crowned();
+			signAll();
+			// Same top vote_count; the comparator (single shared top_dog_since) falls
+			// through stickiness to ascending lexicographic id, so 'dog-aaa' wins.
+			const tieHigh = { ...DOG_A, id: 'dog-zzz', vote_count: 7 };
+			const tieLow = {
+				...DOG_A,
+				id: 'dog-aaa',
+				image_path: `${USER_ID}/dog-aaa.webp`,
+				vote_count: 7
+			};
+			const loser = { ...DOG_A, id: 'dog-mmm', vote_count: 3 };
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({
+				ok: true,
+				data: [tieHigh, tieLow, loser]
+			});
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.isCurrentTopDog).toBe(true);
+			expect(result.topDogId).toBe('dog-aaa');
+		});
+
+		it('when the user is NOT Top Dog: isCurrentTopDog false and topDogId null regardless of votes', async () => {
+			// Default beforeEach profile is non-crown. Even with heavily-voted dogs,
+			// a non-crowned user gets NO badge data (selectTopDog isn't consulted).
+			signAll();
+			const heavilyVoted = { ...DOG_A, id: 'dog-hot', vote_count: 999 };
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [heavilyVoted] });
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.isCurrentTopDog).toBe(false);
+			expect(result.topDogId).toBeNull();
+		});
+
+		it('crowned user with an EMPTY dog list: topDogId null (no dog to badge)', async () => {
+			crowned();
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [] });
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.isCurrentTopDog).toBe(true);
+			expect(result.topDogId).toBeNull();
+		});
+
+		it('crowned user but NO dog has vote_count >= 1: topDogId null (no eligible winner)', async () => {
+			crowned();
+			signAll();
+			// DOG_A / DOG_B both have vote_count 0 — selectTopDog returns null.
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A, DOG_B] });
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.isCurrentTopDog).toBe(true);
+			expect(result.topDogId).toBeNull();
+		});
+
+		it('profile-load FAILURE degrades gracefully: no badge, grid still returns, no throw', async () => {
+			vi.mocked(getProfileById).mockResolvedValue({ ok: false, error: 'profile boom' });
+			signAll();
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A, DOG_B] });
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			// Crown state degrades to "not Top Dog"; the dog grid is unaffected.
+			expect(result.isCurrentTopDog).toBe(false);
+			expect(result.topDogId).toBeNull();
+			expect(result.dogs).toEqual([
+				{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}` },
+				{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}` }
+			]);
+		});
+
+		it('crowned user with a null profile row degrades to no badge (no throw)', async () => {
+			// getProfileById can resolve { ok: true, data: null } for a profile-less
+			// user; that must be treated as "not Top Dog", not a crash.
+			vi.mocked(getProfileById).mockResolvedValue({ ok: true, data: null });
+			signAll();
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A] });
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.isCurrentTopDog).toBe(false);
+			expect(result.topDogId).toBeNull();
+		});
 	});
 });

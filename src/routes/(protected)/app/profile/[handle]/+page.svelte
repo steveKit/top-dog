@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
+
 	let { data } = $props();
 
 	const profile = $derived(data.profile);
@@ -25,7 +27,7 @@
 	<p class="handle">@{profile.handle}</p>
 
 	{#if profile.is_current_top_dog}
-		<p class="badge" role="status">👑 Current Top Dog</p>
+		<TopDogBadge />
 	{/if}
 
 	<p class="joined">Joined {joinedAt}</p>

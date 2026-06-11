@@ -18,6 +18,8 @@ import {
 	evaluateUpload,
 	HOTDOGS_BUCKET
 } from '$lib/storage';
+import { getProfileById } from '$lib/features/profiles/profiles';
+import { selectTopDog, type RankableDog } from '$lib/features/voting/ranking';
 
 // Hot dog upload + display (TASK-013) — the M1 vertical slice. This page shows
 // the signed-in user's hot dogs in a grid (each rendered via a short-lived
@@ -53,7 +55,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 			userId: user.id,
 			error: dogsResult.error
 		});
-		return { dogs: [], cap: PER_USER_CAP };
+		return { dogs: [], cap: PER_USER_CAP, isCurrentTopDog: false, topDogId: null };
 	}
 
 	// Mint a signed URL per dog (private bucket). A single failed URL shouldn't
@@ -73,7 +75,37 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		})
 	);
 
-	return { dogs, cap: PER_USER_CAP };
+	// Top Dog badge (TASK-023): read LIVE crown state from the user's own profile
+	// so the badge reflects a crown handoff on the next load. When this user holds
+	// the crown, find which of their dogs is the winning ("crown") dog via the
+	// shared `selectTopDog` comparator — never a parallel ordering, so the badge
+	// stays in lockstep with the vote-RPC crown recompute (PROJECT decision #13).
+	let isCurrentTopDog = false;
+	let topDogId: string | null = null;
+
+	const profileResult = await getProfileById(supabase, user.id);
+	if (!profileResult.ok) {
+		console.error('[hotdogs] failed to load own profile for crown badge', {
+			userId: user.id,
+			error: profileResult.error
+		});
+	} else if (profileResult.data?.is_current_top_dog) {
+		isCurrentTopDog = true;
+		// Map this user's dogs to the comparator's shape. They all share the owner's
+		// single `top_dog_since`, so the stickiness tie-break degenerates to the
+		// vote-count + id ordering across their own dogs — which correctly picks the
+		// owner's highest-voted dog. `selectTopDog` returns null on an empty/no-
+		// eligible set (no dog with >= 1 vote), so we render no dog badge then.
+		const rankable: RankableDog[] = dogsResult.data.map((dog) => ({
+			id: dog.id,
+			ownerId: dog.owner_id,
+			voteCount: dog.vote_count,
+			topDogSince: profileResult.data!.top_dog_since
+		}));
+		topDogId = rankable.length > 0 ? (selectTopDog(rankable)?.id ?? null) : null;
+	}
+
+	return { dogs, cap: PER_USER_CAP, isCurrentTopDog, topDogId };
 };
 
 export const actions: Actions = {

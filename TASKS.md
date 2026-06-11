@@ -29,7 +29,7 @@ _All tasks complete. Details in Completed Tasks section below._
 
 Goal: vote rules, ranking, sticky tie-break, daily tally, badge. TDD-first.
 
-### TASK-021: Vote RPC (move-vote + counter + crown) [`pending`] [`P0`] [`L`]
+### TASK-021: Vote RPC (move-vote + counter + crown) [`in_progress`] [`P0`] [`L`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-020

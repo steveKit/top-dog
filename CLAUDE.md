@@ -196,6 +196,23 @@ image_path, caption, byte_size)` + `grant update (caption)` on `hot_dogs`.
   opening counter. Restricting only UPDATE is insufficient (it leaves the INSERT
   path open). Replicate this insert+update column-grant pair for every future
   denormalized counter.
+- **The same insert+update column-grant pattern applies to the `profiles` crown
+  columns.** `is_current_top_dog` / `top_dog_since` / `days_as_top_dog` are
+  server-maintained by `recompute_top_dog()` (SECURITY DEFINER) — never
+  client-writable. `profiles` originally had no column-level write grants, so a
+  plain PostgREST INSERT/UPDATE could forge crown state; locked down with `revoke
+  insert/update on profiles from authenticated` then `grant insert (id, handle,
+  display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`
+  (decision #25, caught in the TASK-021 review). This is decision #24 applied to
+  the crown columns — replicate it for every server-maintained denormalized
+  column, not just counters.
+- **`revoke execute ... from public` is NOT sufficient to lock down a function on
+  Supabase.** Supabase explicitly grants EXECUTE on new `public.*` functions to
+  `anon` and `authenticated`; `revoke ... from public` only strips the PUBLIC
+  pseudo-role, leaving those grants intact (the function stays callable). To
+  actually lock a SECURITY DEFINER helper down, `revoke execute ... from public,
+  anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g.
+  `recompute_vote_count` / `recompute_top_dog`).
 - **Single-use guards must key on a column the FK never nulls.** The invite
   single-use check keys on `invites.consumed_at` (set once, never nulled), NOT on
   `consumed_by` (which is `on delete set null` for audit). Keying a single-use

@@ -29,18 +29,6 @@ _All tasks complete. Details in Completed Tasks section below._
 
 Goal: vote rules, ranking, sticky tie-break, daily tally, badge. TDD-first.
 
-### TASK-021: Vote RPC (move-vote + counter + crown) [`in_progress`] [`P0`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-020
-**Description:** Transactional vote logic (adversarial findings A + B).
-**Acceptance Criteria:**
-
-- [ ] `votes` migration: UNIQUE(voter_id), RLS forbids voting own dog
-- [ ] Postgres RPC: cast/move vote, update `vote_count`, recompute crown, set `top_dog_since` — one transaction
-- [ ] `vote_count` never client-writable; no drift under concurrent votes
-- [ ] Tests: cast, move, remove, self-vote rejected, counter consistency
-
 ### TASK-022: Daily Top Dog tally job [`pending`] [`P1`] [`M`]
 
 **Owner:** unassigned
@@ -205,6 +193,85 @@ Goal: hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 ## Completed Tasks
 
 _Moved to TASKS-ARCHIVE.md when this section exceeds ~200 lines._
+
+### ~~TASK-021: Vote RPC (move-vote + counter + crown)~~ [`complete`]
+
+**Completed:** 2026-06-11 · **PR:** #28 (squash `a170676`) · **Reviewer:** REQUEST_CHANGES → APPROVE (1 review fix cycle — security: crown-column client-writability + helper-RPC EXECUTE surface; 0 test-failure cycles)
+**Acceptance Criteria:**
+
+- [x] `votes` migration: UNIQUE(voter_id), RLS forbids voting own dog
+- [x] Postgres RPC: cast/move vote, update `vote_count`, recompute crown, set `top_dog_since` — one transaction
+- [x] `vote_count` never client-writable; no drift under concurrent votes
+- [x] Tests: cast, move, remove, self-vote rejected, counter consistency
+
+**Notes:** Landed the Vote RPC as the **second M2 task** — the consuming-write
+half of the voting engine and the live consumer the TASK-020 `selectTopDog` seam
+was built for. Migration `20260610181704_votes_and_vote_rpc.sql` adds the `votes`
+table (`UNIQUE(voter_id)` — one active vote per user, decision #12) under the
+project's **default-deny + explicit-grant** RLS: SELECT-only for `authenticated`,
+**no client write path at all** — voting is mediated entirely by RPC. A BEFORE
+INSERT/UPDATE trigger rejects self-votes at the DB. Zero new dependencies.
+
+Two **SECURITY DEFINER** RPCs (`search_path=''`, fully schema-qualified, EXECUTE
+granted to `authenticated` only) own all writes: `cast_vote(target_dog uuid)`
+casts-or-moves a vote, and `remove_vote()` retracts it — each a single
+transaction. **Voter identity is RPC-derived from `(select auth.uid())` inside
+the function, never client-supplied** (anti-vote-forgery). Two private helpers,
+`recompute_vote_count(uuid)` and `recompute_top_dog()`, have EXECUTE revoked from
+`public`, `anon`, **and** `authenticated` — see the fix-cycle lesson below on why
+`revoke ... from public` alone is insufficient on Supabase.
+
+**`vote_count` recomputed authoritatively from `COUNT(votes)` in-transaction
+(drift-free).** Rather than incrementing a counter, the RPC recomputes
+`vote_count` from the live `COUNT(votes)` inside the same transaction, so it can
+never drift under concurrent votes (closes adversarial finding B); `peak_votes`
+is bumped via `greatest()`. The SECURITY DEFINER RPC is the **sole writer** of
+both columns — the column-level write lockdown (decision #24) backs this at the
+DB layer.
+
+**Crown recompute provably mirrors `selectTopDog` (the TASK-020 lockstep
+constraint, discharged).** `recompute_top_dog()` reproduces the TS comparator's
+strict total order in SQL: `vote_count` DESC → earliest non-null `top_dog_since`
+(NULL sorts **LAST**, sticky) → ascending `hot_dogs.id`. It reads the current
+`top_dog_since` and sets a fresh `now()` **only on a NEW reign** — an incumbent
+keeps its original timestamp — and never clears the crown while an eligible dog
+(`vote_count >= 1`) exists. The reviewer **empirically confirmed** the SQL stays
+in lockstep with `selectTopDog`, including the null-last stickiness and the `id`
+tie-break. This **resolves the "TASK-021 crown-recompute must stay in lockstep
+with `selectTopDog`" Discovered Work item** (struck below).
+
+`src/lib/features/voting/votes.ts` is the typed wrapper (`castVote` / `removeVote`,
+dependency-injected `SupabaseClient`) returning a discriminated `VoteResult`, with
+sentinels keyed on **SQLSTATE, never error text**: `28000 → VOTE_UNAUTHENTICATED`,
+`23514 → VOTE_SELF`, `P0002 → VOTE_NO_SUCH_DOG`. It carries an accepted
+**orphan-by-design** signpost — route wiring is a later M2 task — the same
+TDD-first pure-logic-before-consumer pattern as the rest of the codebase. 18
+mock-unit tests cover the wrapper (`votes.test.ts`).
+
+**Review: 1 fix cycle — two L2 security findings, both DB-integrity (0
+test-failure cycles).** REQUEST_CHANGES → APPROVE:
+
+1. **Crown columns on `profiles` were client-forgeable.** `profiles` had no
+   column-level write grants, so an authenticated user could forge
+   `is_current_top_dog` / `top_dog_since` / `days_as_top_dog` via a plain
+   PostgREST UPDATE (and seed them on INSERT). Fixed by applying the **same
+   decision #24 insert+update column-grant pattern** used for `hot_dogs`: `revoke
+   insert/update on profiles from authenticated`, then `grant insert (id, handle,
+   display_name, avatar_path)` + `grant update (handle, display_name,
+   avatar_path)`. The crown columns fall to DEFAULTs / are non-updatable;
+   `recompute_top_dog()` (SECURITY DEFINER, runs as owner) still maintains them.
+2. **`revoke execute ... from public` is insufficient on Supabase.** Supabase
+   grants EXECUTE on new `public.*` functions to `anon` and `authenticated`
+   explicitly, so `revoke ... from public` (the PUBLIC pseudo-role only) leaves
+   those grants intact — the "private" helpers were still callable. Fixed by
+   `revoke execute ... from public, anon, authenticated`. Reusable lesson for
+   every future SECURITY DEFINER helper (captured as a [[CLAUDE]] gotcha).
+
+Live-DB `@security` Playwright coverage: `tests/votes.e2e.ts` + `tests/db-guards.e2e.ts`
+(8 original vote specs + 10 added in the fix cycle) exercise the cast/move/remove
+RPC behavior, the crown lockstep, and the two write-lockdowns against a real
+Postgres. **M2 stays in progress** — TASK-022 (daily tally) and TASK-023 (badge UI)
+remain.
 
 ### ~~TASK-020: Ranking + sticky tie-break logic~~ [`complete`]
 
@@ -825,7 +892,7 @@ User decides when/whether to promote these to Active Tasks._
   unwired functionality — accepted and documented at M1 close (see [[PROJECT]] M1
   close notes). **Non-blocking** tidy: drop the `export` or remove the redundant
   predicate so it isn't forgotten. Surfaced by the M1 wiring audit (2026-06-10).
-- **TASK-021 crown-recompute must stay in lockstep with `selectTopDog` (M2,
+- ~~**TASK-021 crown-recompute must stay in lockstep with `selectTopDog` (M2,
   TASK-021):** when building the Vote RPC, the crown-recompute path must either
   call `selectTopDog` (`src/lib/features/voting/ranking.ts`) directly **or** the
   SQL crown logic must **provably mirror** this comparator's rules — `voteCount`
@@ -835,4 +902,10 @@ User decides when/whether to promote these to Active Tasks._
   stickiness** (a never-crowned challenger must not displace a previously-crowned
   dog on a vote tie) and the **`id` tie-break**. Keep the two implementations in
   lockstep and **verify the equivalence at TASK-021**. Surfaced by the TASK-020 /
-  PR #25 review (2026-06-10, forward-looking).
+  PR #25 review (2026-06-10, forward-looking).~~ **RESOLVED by TASK-021 (PR #28):**
+  `recompute_top_dog()` reproduces the `selectTopDog` total order in SQL
+  (`vote_count` DESC → earliest non-null `top_dog_since`, NULL last, sticky →
+  ascending `hot_dogs.id`), sets a fresh `now()` only on a new reign, and never
+  clears the crown while an eligible dog exists. The reviewer empirically
+  confirmed the SQL stays in lockstep with the TS comparator (null-last stickiness
+  and `id` tie-break included).

@@ -17,9 +17,9 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { avatarPath, hotdogPath } from './paths';
+import { avatarPath, hotdogPath, isUuid } from './paths';
 
-export { avatarPath, hotdogPath };
+export { avatarPath, hotdogPath, isUuid };
 
 // Re-export the global storage guard (TASK-005) from the single $lib/storage
 // surface so the upload path imports the guard alongside upload/remove/etc.

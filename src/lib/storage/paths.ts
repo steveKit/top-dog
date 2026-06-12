@@ -12,6 +12,16 @@
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * Reports whether a value is a well-formed uuid. Shares the single `UUID_RE`
+ * source of truth used by the storage-path owner-id guard, so callers that need
+ * to pre-validate a uuid-shaped route param (before it reaches Postgres, where a
+ * non-uuid would raise `22P02`) don't re-invent the pattern.
+ */
+export function isUuid(value: string): boolean {
+	return UUID_RE.test(value);
+}
+
+/**
  * Validates that an id is a non-empty, slash-free path segment. Reused for both
  * the owner uid (the RLS-significant first segment) and the file id. Throwing
  * here prevents a malformed id from silently producing a path that lands in

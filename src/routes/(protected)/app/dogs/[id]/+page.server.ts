@@ -3,7 +3,8 @@ import type { PageServerLoad } from './$types';
 import { getDogDetail, DOG_NOT_FOUND } from '$lib/features/hotdogs/detail';
 import { listReactionsForDogs } from '$lib/features/reactions/reactions';
 import { summarizeReactions } from '$lib/features/reactions/summarize';
-import { getSignedUrl } from '$lib/storage';
+import { getSignedUrl, isUuid } from '$lib/storage';
+import { getServiceClient } from '$lib/server/supabase';
 
 // Per-dog detail view (TASK-031). Surfaces per-dog stats — peak_votes (the
 // all-time high, maintained by the M2 vote RPC) alongside the current
@@ -22,6 +23,15 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		throw redirect(303, '/sign-in');
 	}
 
+	// Guard the route param BEFORE the DB read: a non-uuid id would otherwise reach
+	// Postgres as a uuid comparison and raise `22P02 invalid input syntax for type
+	// uuid`, which getDogDetail maps to a read error → 500. A malformed id is not a
+	// server fault — it's just "no such dog", so treat it as a 404 with the same
+	// friendly copy as DOG_NOT_FOUND. Genuine DB read errors below still 500.
+	if (!isUuid(params.id)) {
+		throw error(404, 'No such hot dog.');
+	}
+
 	const detailResult = await getDogDetail(supabase, params.id, user.id);
 	if (!detailResult.ok) {
 		if (detailResult.error === DOG_NOT_FOUND) {
@@ -37,10 +47,20 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 
 	const dog = detailResult.data;
 
-	// Mint a signed URL for the private image. A failed mint shouldn't blank the
-	// page — degrade to null and log it (consistent with the feed/dogs pattern).
+	// Mint a signed URL for the private image. The detail view can show ANOTHER
+	// member's dog, and the `hotdogs` bucket's only storage SELECT policy is
+	// owner-only (hotdogs_select_own) — so the viewer's RLS-scoped client can't
+	// mint a URL for a dog it doesn't own. createSignedUrl is RLS-gated AT
+	// CREATION, so we sign with the privileged service client AFTER the
+	// safeGetSession() gate. This keeps the bucket private (decision #6): the URL
+	// stays a short-lived signed URL, and the service client lives only in this
+	// server-only load — it never reaches the browser. The getDogDetail read above
+	// stays correctly RLS-scoped on `supabase`.
+	//
+	// A failed mint shouldn't blank the page — degrade to null and log it
+	// (consistent with the feed pattern).
 	let signedUrl: string | null = null;
-	const signed = await getSignedUrl(supabase, dog.image_path);
+	const signed = await getSignedUrl(getServiceClient(), dog.image_path);
 	if (!signed.ok) {
 		console.error('[dog-detail] failed to sign url', {
 			dogId: dog.id,

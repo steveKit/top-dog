@@ -60,8 +60,14 @@ pnpm lint                    # eslint + prettier --check
 # Run type checker
 pnpm check                   # svelte-check
 
+# E2E precondition: reset the local DB first for a deterministic run.
+# Some specs use pinned fixture ids (tracked as DW-014), so a dirty DB can
+# collide (e.g. hot_dogs_pkey duplicate). Run with `supabase start` up:
+supabase db reset            # clean slate, all migrations re-applied
 # Smoke test (end-to-end vertical slice: invite -> profile -> upload -> see dog)
 pnpm test:e2e --grep @smoke
+# Security suite (live-DB write guards: RLS, column grants, forged counters)
+pnpm test:e2e --grep @security
 
 # Build for production
 pnpm build
@@ -246,6 +252,23 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   Uploads MUST place objects under `auth.uid()/...` or RLS rejects them. Buckets
   (`hotdogs` private, `avatars` public-read) are defined **in SQL migrations**, not
   the Supabase dashboard, so they reproduce under `supabase db reset`.
+- **`storage.createSignedUrl` is RLS-gated at CREATION — a client can only sign
+  objects it has storage SELECT on.** The bypass is only on the resulting URL's
+  read, NOT on minting it. For the `hotdogs` **private** bucket (owner-only SELECT,
+  `hotdogs_select_own`), the viewer's RLS-scoped client (`event.locals.supabase`)
+  can only sign the viewer's OWN objects — so any **cross-member view of
+  private-bucket content** (the `/app/feed` and `/app/dogs/[id]` loads, which show
+  OTHER members' dogs) MUST mint signed URLs **server-side with the service client**
+  (`$lib/server` `getServiceClient()`), constructed **AFTER** the `safeGetSession()`
+  gate, signing only `image_path` from rows the member's own RLS query already
+  returned (no exposure widening). Keep the dog/owner/reaction QUERIES on the
+  RLS-scoped client — only the storage signing uses the service client; the
+  `/app/dogs` own-dogs gallery correctly stays fully on the RLS client. This
+  preserves decision #6 (bucket private, 1h TTL signed URLs, service client
+  server-only) with no storage RLS / bucket change. (Caught as a P0 in TASK-033 —
+  the storage-baseline migration comment claiming "signed URL bypasses RLS" was
+  wrong about the creation side.) Applies to any future cross-member view of
+  private-bucket content.
 - **RLS policies use the `(select auth.uid())` subselect idiom**, not bare
   `auth.uid()`, so the planner caches it as an initplan (Supabase's documented RLS
   perf pattern). Follow this idiom in new policies.

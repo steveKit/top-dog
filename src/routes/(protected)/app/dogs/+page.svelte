@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { compressToWebp } from '$lib/image/compress';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 
@@ -100,6 +101,8 @@
 				{#if dog.caption}
 					<p>{dog.caption}</p>
 				{/if}
+				<p>Peak: {dog.peak_votes}</p>
+				<p><a href={resolve('/(protected)/app/dogs/[id]', { id: dog.id })}>View details</a></p>
 				<form method="POST" action="?/delete" use:enhance={() => submitDelete(dog.id)}>
 					<input type="hidden" name="id" value={dog.id} />
 					<button type="submit" disabled={deleting === dog.id}>

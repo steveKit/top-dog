@@ -9,10 +9,9 @@
 // on SQLSTATE (the `code` field PostgREST surfaces), NEVER on message text —
 // matching createProfile's `error.code === UNIQUE_VIOLATION` style.
 //
-// Live wiring: these wrappers are consumed by the vote-button route wiring, a
-// later M2 task. That route does not exist yet, so this module currently has no
-// non-test caller by design — same pattern as src/lib/features/voting/ranking.ts
-// and src/lib/storage/guard.ts.
+// Live wiring: these wrappers are consumed by the vote-casting feed
+// (/app/feed) — its +page.server.ts form actions wire castVote / removeVote into
+// the production vote surface (TASK-024).
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 

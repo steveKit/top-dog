@@ -26,6 +26,7 @@ export interface VotableDog {
 	image_path: string;
 	caption: string | null;
 	vote_count: number;
+	peak_votes: number;
 	owner_handle: string;
 	owner_display_name: string;
 }
@@ -42,6 +43,7 @@ interface VotableDogRow {
 	image_path: string;
 	caption: string | null;
 	vote_count: number;
+	peak_votes: number;
 	profiles:
 		| { handle: string; display_name: string }[]
 		| { handle: string; display_name: string }
@@ -65,7 +67,9 @@ export async function listVotableDogs(
 ): Promise<FeedResult<VotableDog[]>> {
 	const { data, error } = await supabase
 		.from('hot_dogs')
-		.select('id, owner_id, image_path, caption, vote_count, profiles(handle, display_name)')
+		.select(
+			'id, owner_id, image_path, caption, vote_count, peak_votes, profiles(handle, display_name)'
+		)
 		.neq('owner_id', viewerId)
 		.order('vote_count', { ascending: false })
 		.order('id', { ascending: true });
@@ -85,6 +89,7 @@ export async function listVotableDogs(
 			image_path: row.image_path,
 			caption: row.caption,
 			vote_count: row.vote_count,
+			peak_votes: row.peak_votes,
 			owner_handle: owner?.handle ?? '',
 			owner_display_name: owner?.display_name ?? ''
 		};

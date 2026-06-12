@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
 
 	let { data, form } = $props();
@@ -57,6 +58,8 @@
 					<p>{dog.caption}</p>
 				{/if}
 				<p>{dog.vote_count} {dog.vote_count === 1 ? 'vote' : 'votes'}</p>
+				<p>Peak: {dog.peak_votes}</p>
+				<p><a href={resolve('/(protected)/app/dogs/[id]', { id: dog.id })}>View details</a></p>
 
 				<ReactionBar dogId={dog.id} summaries={dog.reactions} />
 

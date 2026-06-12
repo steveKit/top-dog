@@ -90,6 +90,9 @@ function aDog(overrides: Partial<Record<string, unknown>> = {}) {
 		image_path: 'owner-a/dog-a.webp',
 		caption: 'frank',
 		vote_count: 3,
+		// peak_votes is selected/mapped by listVotableDogs (TASK-031) and carried
+		// through the load onto each tile; the fixture supplies a value >= vote_count.
+		peak_votes: 7,
 		owner_handle: 'sausage_king',
 		owner_display_name: 'Sausage King',
 		...overrides
@@ -132,7 +135,12 @@ function makeLoadEvent(opts: { session: unknown; user: unknown }) {
 
 type ReactionSummary = { emoji: string; count: number; reactedByMe: boolean };
 type LoadData = {
-	dogs: { id: string; signedUrl: string | null; reactions: ReactionSummary[] }[];
+	dogs: {
+		id: string;
+		peak_votes: number;
+		signedUrl: string | null;
+		reactions: ReactionSummary[];
+	}[];
 	currentVoteDogId: string | null;
 };
 async function loadData(event: unknown): Promise<LoadData> {
@@ -199,6 +207,10 @@ describe('feed load', () => {
 			{ ...dogA, signedUrl: `https://signed/${dogA.image_path}`, reactions: [] },
 			{ ...dogB, signedUrl: `https://signed/${dogB.image_path}`, reactions: [] }
 		]);
+		// peak_votes (TASK-031) is carried through onto each tile for the per-tile
+		// peak indicator — the load must not drop it.
+		expect(result.dogs[0].peak_votes).toBe(dogA.peak_votes);
+		expect(result.dogs[1].peak_votes).toBe(dogB.peak_votes);
 	});
 
 	it('surfaces the viewer current vote as currentVoteDogId', async () => {

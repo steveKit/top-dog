@@ -6,7 +6,7 @@
 
 ## Active Tasks
 
-### TASK-031: Per-dog stats [`pending`] [`P3`] [`S`]
+### TASK-031: Per-dog stats [`in_progress`] [`P3`] [`S`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-021

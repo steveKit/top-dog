@@ -81,6 +81,16 @@ describe('listVotableDogs', () => {
 		expect(chain.order).toHaveBeenNthCalledWith(2, 'id', { ascending: true });
 	});
 
+	it('selects peak_votes alongside vote_count in the query', async () => {
+		const { client, chain } = makeListClient({ data: [], error: null });
+
+		await listVotableDogs(client, VIEWER_ID);
+
+		const selectArg = chain.select.mock.calls[0][0] as string;
+		expect(selectArg).toContain('vote_count');
+		expect(selectArg).toContain('peak_votes');
+	});
+
 	it('normalizes an ARRAY embed to flat owner_handle / owner_display_name', async () => {
 		const row = {
 			id: 'dog-1',
@@ -88,6 +98,7 @@ describe('listVotableDogs', () => {
 			image_path: 'owner-1/dog-1.webp',
 			caption: 'frank',
 			vote_count: 3,
+			peak_votes: 8,
 			profiles: [{ handle: 'sausage_king', display_name: 'Sausage King' }]
 		};
 		const { client } = makeListClient({ data: [row], error: null });
@@ -103,11 +114,34 @@ describe('listVotableDogs', () => {
 					image_path: 'owner-1/dog-1.webp',
 					caption: 'frank',
 					vote_count: 3,
+					peak_votes: 8,
 					owner_handle: 'sausage_king',
 					owner_display_name: 'Sausage King'
 				}
 			]
 		});
+	});
+
+	it('maps peak_votes onto the VotableDog (all-time high carried alongside vote_count)', async () => {
+		const row = {
+			id: 'dog-peak',
+			owner_id: 'owner-1',
+			image_path: 'owner-1/dog-peak.webp',
+			caption: null,
+			vote_count: 2,
+			peak_votes: 11,
+			profiles: { handle: 'peak_chef', display_name: 'Peak Chef' }
+		};
+		const { client } = makeListClient({ data: [row], error: null });
+
+		const result = await listVotableDogs(client, VIEWER_ID);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			expect(result.data[0].peak_votes).toBe(11);
+			// peak_votes is independent of the current vote_count.
+			expect(result.data[0].vote_count).toBe(2);
+		}
 	});
 
 	it('normalizes a SINGLE-OBJECT embed to flat owner fields', async () => {

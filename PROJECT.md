@@ -356,7 +356,7 @@ member votes, not just covered by tests.
    guarantees are covered by the live-DB `@security` specs (`votes.e2e.ts` /
    `tally.e2e.ts`). A future M2/M3 E2E hardening task is the candidate home.
 
-See [[Handoffs/handoff-007]] for session context.
+See [[Handoffs/handoff-008]] for session context.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 

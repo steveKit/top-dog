@@ -22,8 +22,14 @@ The end-to-end slice and the full voting engine are in place and demoable:
   members' dogs (sorted by vote count, so it doubles as the live leaderboard);
   cast a single movable vote, move it, or remove it. Votes drive the **Top Dog**
   crown (sticky tie-break), a daily reign tally, and the Top Dog badge.
+- **Reactions** — drop cosmetic hot-dog emoji reactions on a dog in the feed
+  (many distinct emojis per user, toggleable). Reactions are flair only — they
+  never affect a dog's vote count or the Top Dog ranking.
+- **Per-dog stats + detail view** — each dog has a detail page at
+  `/app/dogs/[id]` showing the full image, owner, current and **peak** votes, and
+  its reactions; feed/gallery tiles show a per-tile peak-votes indicator.
 
-Reactions, mustard, walls/DMs, and the emoji library are later milestones
+Mustard, walls/DMs, and the emoji library are later milestones
 (see [PROJECT.md](./PROJECT.md)).
 
 ## Stack
@@ -65,18 +71,26 @@ pnpm dev
 ### Running the smoke test
 
 The `@smoke` Playwright test drives the full M1 slice (redeem invite → set handle
-→ upload a dog → see it rendered) against the **local** Supabase stack. With the
-stack running:
+→ upload a dog → see it rendered) plus the feed cast/move/remove + reaction toggle
+and the `/app/dogs/[id]` detail render, against the **local** Supabase stack. With
+the stack running:
 
 ```sh
 supabase start                  # if not already up
+supabase db reset               # clean slate — see precondition below
 pnpm test:e2e --grep @smoke
 ```
 
+> **Precondition — reset the DB first.** Some E2E specs use pinned fixture ids,
+> so a dirty local DB can cause collisions (e.g. a `hot_dogs_pkey` duplicate).
+> Run `supabase db reset` before the `@smoke`/`@security` suites for a
+> deterministic run.
+
 The test harness bootstraps its own invite and reads local credentials from
 `supabase status` — it never touches a hosted project or your `.env`. A sibling
-`@security` test asserts the DB-level write guards (forged-counter and
-oversized-caption inserts are rejected); run it with `pnpm test:e2e --grep @security`.
+`@security` suite asserts the DB-level write guards (forged-counter,
+oversized-caption, RLS, and column-grant violations are rejected); run it with
+`pnpm test:e2e --grep @security`.
 
 ## Commands
 

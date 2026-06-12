@@ -20,13 +20,10 @@
 
 ## Active Milestones
 
-| #   | Milestone                 | Progress                                            | File                                           |
-| --- | ------------------------- | --------------------------------------------------- | ---------------------------------------------- |
-| 03  | Reactions & Per-Dog Stats | 2/3 tasks (TASK-030, TASK-031 ✓; TASK-032 E2E next) | [[tasks/milestone-03-reactions-per-dog-stats]] |
-
-_M0, M1, M2 are complete (see § Completed Milestones below). Each milestone file
-is the source of truth for per-task status; the Progress column is a coarse rollup
-the director keeps loose to avoid index drift._
+_None active. **Milestone M3 — Reactions & Per-Dog Stats is complete** (TASK-030
+reactions, TASK-031 per-dog stats, TASK-032 E2E hardening, TASK-033 P0 signed-URL
+fix — see § Completed Milestones below). The next milestone — **M4 — Mustard
+Mechanic** — is pre-exploded under § Planned Milestones; select it to continue._
 
 ## Planned Milestones
 
@@ -48,11 +45,12 @@ None.
 
 ## Completed Milestones
 
-| Milestone                             | Completed  | Tag                                  | File                                         |
-| ------------------------------------- | ---------- | ------------------------------------ | -------------------------------------------- |
-| Milestone 00: Scaffold & Infra        | 2026-06-08 | `milestone-00-scaffold-infra`        | [[TASKS-ARCHIVE]] (§ Milestone M0)           |
-| Milestone 01: Vertical Slice          | 2026-06-09 | `milestone-01-vertical-slice`        | [[TASKS-ARCHIVE]] (§ Milestone M1)           |
-| Milestone 02: Voting & Top Dog Engine | 2026-06-12 | `milestone-02-voting-top-dog-engine` | [[tasks/milestone-02-voting-top-dog-engine]] |
+| Milestone                               | Completed  | Tag                                    | File                                           |
+| --------------------------------------- | ---------- | -------------------------------------- | ---------------------------------------------- |
+| Milestone 00: Scaffold & Infra          | 2026-06-08 | `milestone-00-scaffold-infra`          | [[TASKS-ARCHIVE]] (§ Milestone M0)             |
+| Milestone 01: Vertical Slice            | 2026-06-09 | `milestone-01-vertical-slice`          | [[TASKS-ARCHIVE]] (§ Milestone M1)             |
+| Milestone 02: Voting & Top Dog Engine   | 2026-06-12 | `milestone-02-voting-top-dog-engine`   | [[tasks/milestone-02-voting-top-dog-engine]]   |
+| Milestone 03: Reactions & Per-Dog Stats | 2026-06-12 | `milestone-03-reactions-per-dog-stats` | [[tasks/milestone-03-reactions-per-dog-stats]] |
 
 ## Logs
 

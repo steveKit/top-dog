@@ -20,16 +20,11 @@
 
 ## Active Milestones
 
-| Milestone                             | Status   | Progress                                                | File                                         |
-| ------------------------------------- | -------- | ------------------------------------------------------- | -------------------------------------------- |
-| Milestone 02: Voting & Top Dog Engine | `active` | 4/4 listed + TASK-024 (vote UI) pending · closes DW-009 | [[tasks/milestone-02-voting-top-dog-engine]] |
-
-_The milestone file is the source of truth for per-task status. The Progress
-column is a coarse rollup the director updates at task/milestone events — keep it
-loose to avoid index drift. (TASK-020/021/022/023 all done; M2 **held open** — the
-wiring audit found no vote-casting UI consuming `castVote`/`removeVote`, logged as
-DW-009. **TASK-024 (vote-casting UI) is now drafted as the M2-close task** — see the
-milestone file; it must land and re-pass the wiring audit before M2 can close.)_
+_None active. **Milestone M2 — Voting & Top Dog Engine is complete** (all five tasks
+landed; see § Completed Milestones below). The next milestone — **M3 — Reactions &
+Per-Dog Stats** — is pre-exploded under § Planned Milestones; select it to continue.
+Each milestone file is the source of truth for per-task status; the Progress column
+is a coarse rollup the director keeps loose to avoid index drift._
 
 ## Planned Milestones
 
@@ -52,10 +47,11 @@ None.
 
 ## Completed Milestones
 
-| Milestone                      | Completed  | Tag                           | File                               |
-| ------------------------------ | ---------- | ----------------------------- | ---------------------------------- |
-| Milestone 00: Scaffold & Infra | 2026-06-08 | `milestone-00-scaffold-infra` | [[TASKS-ARCHIVE]] (§ Milestone M0) |
-| Milestone 01: Vertical Slice   | 2026-06-09 | `milestone-01-vertical-slice` | [[TASKS-ARCHIVE]] (§ Milestone M1) |
+| Milestone                             | Completed  | Tag                                  | File                                         |
+| ------------------------------------- | ---------- | ------------------------------------ | -------------------------------------------- |
+| Milestone 00: Scaffold & Infra        | 2026-06-08 | `milestone-00-scaffold-infra`        | [[TASKS-ARCHIVE]] (§ Milestone M0)           |
+| Milestone 01: Vertical Slice          | 2026-06-09 | `milestone-01-vertical-slice`        | [[TASKS-ARCHIVE]] (§ Milestone M1)           |
+| Milestone 02: Voting & Top Dog Engine | 2026-06-12 | `milestone-02-voting-top-dog-engine` | [[tasks/milestone-02-voting-top-dog-engine]] |
 
 ## Logs
 

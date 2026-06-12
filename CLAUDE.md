@@ -95,7 +95,7 @@ top-dog/
 │   │   ├── storage/           # SWAPPABLE storage module (hotdogs/avatars)
 │   │   ├── features/          # one folder per domain
 │   │   │   ├── auth/  invites/  profiles/  hotdogs/
-│   │   │   ├── voting/        # pure ranking/tie-break logic + RPC wrappers (TDD)
+│   │   │   ├── voting/        # pure ranking/tie-break logic + vote RPC wrappers + feed/leaderboard queries
 │   │   │   ├── reactions/  mustard/  walls/  dms/
 │   │   │   └── emoji/         # render-time filter + sprinkle (TDD)
 │   │   └── components/        # shared Svelte components

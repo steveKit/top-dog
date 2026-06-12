@@ -47,6 +47,17 @@ vi.mock('$lib/storage', () => ({
 	getSignedUrl: vi.fn()
 }));
 
+// Cosmetic reactions (TASK-030). The load calls listReactionsForDogs(supabase, …)
+// and the react/unreact actions call addReaction/removeReaction on the RLS-scoped
+// event.locals.supabase. We mock the network-touching wrappers; the pure
+// summarizeReactions and isAllowedReactionEmoji stay REAL so the load's
+// aggregation and the actions' emoji-boundary validation are exercised faithfully.
+vi.mock('$lib/features/reactions/reactions', () => ({
+	addReaction: vi.fn(),
+	removeReaction: vi.fn(),
+	listReactionsForDogs: vi.fn()
+}));
+
 import { actions, load } from './+page.server';
 import { listVotableDogs, getCurrentVote } from '$lib/features/voting/feed';
 import {
@@ -57,9 +68,16 @@ import {
 	VOTE_UNAUTHENTICATED
 } from '$lib/features/voting/votes';
 import { getSignedUrl } from '$lib/storage';
+import {
+	addReaction,
+	removeReaction,
+	listReactionsForDogs
+} from '$lib/features/reactions/reactions';
 
 const vote_ = actions.vote;
 const remove_ = actions.remove;
+const react_ = actions.react;
+const unreact_ = actions.unreact;
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const VALID_USER = { id: USER_ID, email: 'chef@topdog.test' };
@@ -112,8 +130,9 @@ function makeLoadEvent(opts: { session: unknown; user: unknown }) {
 	} as any;
 }
 
+type ReactionSummary = { emoji: string; count: number; reactedByMe: boolean };
 type LoadData = {
-	dogs: { id: string; signedUrl: string | null }[];
+	dogs: { id: string; signedUrl: string | null; reactions: ReactionSummary[] }[];
 	currentVoteDogId: string | null;
 };
 async function loadData(event: unknown): Promise<LoadData> {
@@ -135,6 +154,10 @@ beforeEach(() => {
 	});
 	vi.mocked(castVote).mockResolvedValue({ ok: true, data: 'vote-1' });
 	vi.mocked(removeVote).mockResolvedValue({ ok: true, data: 'dog-a' });
+	// Reactions default to "none"; individual tests override as needed.
+	vi.mocked(listReactionsForDogs).mockResolvedValue({ ok: true, data: [] });
+	vi.mocked(addReaction).mockResolvedValue({ ok: true, data: null });
+	vi.mocked(removeReaction).mockResolvedValue({ ok: true, data: null });
 });
 
 describe('feed load', () => {
@@ -173,8 +196,8 @@ describe('feed load', () => {
 
 		expect(listVotableDogs).toHaveBeenCalledWith(expect.anything(), USER_ID);
 		expect(result.dogs).toEqual([
-			{ ...dogA, signedUrl: `https://signed/${dogA.image_path}` },
-			{ ...dogB, signedUrl: `https://signed/${dogB.image_path}` }
+			{ ...dogA, signedUrl: `https://signed/${dogA.image_path}`, reactions: [] },
+			{ ...dogB, signedUrl: `https://signed/${dogB.image_path}`, reactions: [] }
 		]);
 	});
 
@@ -226,6 +249,41 @@ describe('feed load', () => {
 		expect(result.currentVoteDogId).toBeNull();
 		// The grid is unaffected by a current-vote read failure.
 		expect(result.dogs.length).toBe(1);
+	});
+
+	it('attaches per-dog reaction summaries (viewer-relative) aggregated from the listed rows', async () => {
+		const dogA = aDog();
+		const dogB = aDog({ id: 'dog-b', image_path: 'owner-b/dog-b.webp' });
+		vi.mocked(listVotableDogs).mockResolvedValue({ ok: true, data: [dogA, dogB] });
+		// dog-a: 🌭 from the viewer + another member (count 2, reactedByMe true);
+		// dog-b: 🔥 from one other member (count 1, reactedByMe false).
+		vi.mocked(listReactionsForDogs).mockResolvedValue({
+			ok: true,
+			data: [
+				{ hot_dog_id: 'dog-a', emoji: '🌭', user_id: USER_ID },
+				{ hot_dog_id: 'dog-a', emoji: '🌭', user_id: 'someone-else' },
+				{ hot_dog_id: 'dog-b', emoji: '🔥', user_id: 'someone-else' }
+			]
+		});
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(listReactionsForDogs).toHaveBeenCalledWith(expect.anything(), ['dog-a', 'dog-b']);
+		expect(result.dogs[0].reactions).toEqual([{ emoji: '🌭', count: 2, reactedByMe: true }]);
+		expect(result.dogs[1].reactions).toEqual([{ emoji: '🔥', count: 1, reactedByMe: false }]);
+	});
+
+	it('degrades to empty per-dog reactions (grid not blanked) when the reactions read fails', async () => {
+		vi.mocked(listVotableDogs).mockResolvedValue({ ok: true, data: [aDog()] });
+		vi.mocked(listReactionsForDogs).mockResolvedValue({ ok: false, error: 'reactions boom' });
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(result.dogs).toHaveLength(1);
+		expect(result.dogs[0].reactions).toEqual([]);
+		// The grid (and its signed URL) is unaffected by a reactions read failure.
+		expect(result.dogs[0].signedUrl).toBe('https://signed/x');
+		expect(console.error).toHaveBeenCalled();
 	});
 });
 
@@ -431,5 +489,199 @@ describe('feed remove action', () => {
 		expect(failure.data.error).not.toMatch(/permission denied/i);
 		expect(failure.data.error).toMatch(/try again/i);
 		expect(console.error).toHaveBeenCalled();
+	});
+});
+
+// Cosmetic reaction actions (TASK-030 — decision #12: flair only, never touches
+// vote_count / ranking / the crown). The reacting user is derived from
+// safeGetSession() and passed to the wrapper; the client supplies ONLY the dog id
+// + emoji. The emoji is validated against the allowed set BEFORE any DB write, and
+// a hostile client-supplied user_id in the form MUST be ignored (the trust anchor
+// is the session uid, not the payload). The wrappers run on the RLS-scoped
+// event.locals.supabase.
+const ALLOWED_EMOJI = '🌭';
+const DISALLOWED_EMOJI = '💩';
+
+describe('feed react action', () => {
+	it('reads the session via safeGetSession(), never raw getSession()', async () => {
+		const { event, safeGetSession, rawGetSession } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		await react_(event);
+
+		expect(safeGetSession).toHaveBeenCalledOnce();
+		expect(rawGetSession).not.toHaveBeenCalled();
+	});
+
+	it('success: calls addReaction with the SESSION user id, dog id, emoji, on event.locals.supabase', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		const result = await react_(event);
+
+		expect(addReaction).toHaveBeenCalledWith(
+			event.locals.supabase,
+			USER_ID,
+			'dog-target',
+			ALLOWED_EMOJI
+		);
+		expect(result).toEqual({ reacted: true });
+	});
+
+	it('IGNORES a hostile client-supplied user_id: the viewer id comes from the session, not the form', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI, user_id: 'attacker-uuid' }
+		});
+
+		await react_(event);
+
+		// addReaction(client, viewerId, dogId, emoji) — the viewerId is the trusted
+		// session uid, NEVER the forged form value.
+		const callArgs = vi.mocked(addReaction).mock.calls[0];
+		expect(callArgs[1]).toBe(USER_ID);
+		expect(callArgs[1]).not.toBe('attacker-uuid');
+	});
+
+	it('rejects a disallowed emoji with a boundary 400; never calls addReaction', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: DISALLOWED_EMOJI }
+		});
+
+		const result = await react_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(addReaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects a missing dog id with a boundary 400; never calls addReaction', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { emoji: ALLOWED_EMOJI }
+		});
+
+		const result = await react_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(addReaction).not.toHaveBeenCalled();
+	});
+
+	it('fails closed with 401 when unauthenticated; never calls addReaction', async () => {
+		const { event } = makeEvent({
+			session: null,
+			user: null,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		const result = await react_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(401);
+		expect(addReaction).not.toHaveBeenCalled();
+	});
+
+	it('a wrapper failure -> friendly fail() + server-side log', async () => {
+		vi.mocked(addReaction).mockResolvedValue({
+			ok: false,
+			error: 'Could not add your reaction right now.'
+		});
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		const result = await react_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(console.error).toHaveBeenCalled();
+	});
+});
+
+describe('feed unreact action', () => {
+	it('reads the session via safeGetSession(), never raw getSession()', async () => {
+		const { event, safeGetSession, rawGetSession } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		await unreact_(event);
+
+		expect(safeGetSession).toHaveBeenCalledOnce();
+		expect(rawGetSession).not.toHaveBeenCalled();
+	});
+
+	it('success: calls removeReaction with the SESSION user id, dog id, emoji, on event.locals.supabase', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		const result = await unreact_(event);
+
+		expect(removeReaction).toHaveBeenCalledWith(
+			event.locals.supabase,
+			USER_ID,
+			'dog-target',
+			ALLOWED_EMOJI
+		);
+		expect(result).toEqual({ unreacted: true });
+	});
+
+	it('IGNORES a hostile client-supplied user_id: the viewer id comes from the session, not the form', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI, user_id: 'attacker-uuid' }
+		});
+
+		await unreact_(event);
+
+		const callArgs = vi.mocked(removeReaction).mock.calls[0];
+		expect(callArgs[1]).toBe(USER_ID);
+		expect(callArgs[1]).not.toBe('attacker-uuid');
+	});
+
+	it('rejects a disallowed emoji with a boundary 400; never calls removeReaction', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', emoji: DISALLOWED_EMOJI }
+		});
+
+		const result = await unreact_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(removeReaction).not.toHaveBeenCalled();
+	});
+
+	it('fails closed with 401 when unauthenticated; never calls removeReaction', async () => {
+		const { event } = makeEvent({
+			session: null,
+			user: null,
+			formFields: { id: 'dog-target', emoji: ALLOWED_EMOJI }
+		});
+
+		const result = await unreact_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(401);
+		expect(removeReaction).not.toHaveBeenCalled();
 	});
 });

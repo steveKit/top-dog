@@ -1,12 +1,12 @@
 # Milestone M3: Reactions & Per-Dog Stats
 
-> **Status:** `pending`
+> **Status:** `active`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** cosmetic reactions, peak votes.
 
 ## Active Tasks
 
-### TASK-030: Hot dog reactions (cosmetic) [`pending`] [`P2`] [`M`]
+### TASK-030: Hot dog reactions (cosmetic) [`in_progress`] [`P2`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-013

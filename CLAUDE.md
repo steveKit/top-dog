@@ -209,6 +209,20 @@ display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`
   (decision #25, caught in the TASK-021 review). This is decision #24 applied to
   the crown columns — replicate it for every server-maintained denormalized
   column, not just counters.
+- **Cosmetic / many-allowed tables write through plain owner-scoped RLS, NOT an
+  RPC — the deliberate inverse of the consuming-writes-via-RPC convention.** The
+  RPC convention exists to maintain a denormalized counter transactionally; a
+  table with **no server-maintained denormalized column** (e.g. `hotdog_reactions`)
+  has nothing to maintain, so a plain owner-scoped RLS `insert`/`delete`
+  (`(select auth.uid()) = user_id`) is correct. Counts are computed at **render
+  time** by a pure aggregator (`summarizeReactions`), never stored — so the
+  "no ranking effect" guarantee (decision #12) holds **structurally** (there is
+  no write path that could touch `vote_count`/`peak_votes`/crown), not by code
+  discipline. Corollary: decision #24's insert+update column-grant lockdown does
+  **not** apply to such a table — `created_at`/`id` being client-insertable is
+  inert because there is no denormalized column to forge. Make these writes
+  idempotent (UNIQUE → 23505 maps to a benign add; a missing-row delete is a
+  no-op). Reuse this shape for future flair/cosmetic surfaces (e.g. M6 emoji).
 - **`revoke execute ... from public` is NOT sufficient to lock down a function on
   Supabase.** Supabase explicitly grants EXECUTE on new `public.*` functions to
   `anon` and `authenticated`; `revoke ... from public` only strips the PUBLIC

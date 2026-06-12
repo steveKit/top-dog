@@ -13,9 +13,15 @@ import { isRedirect, isHttpError } from '@sveltejs/kit';
 // import surface, so we mock the network-touching wrappers with vi.mock and
 // assert the load's orchestration directly:
 //   - unauth (no session / no user) -> redirect /sign-in (never reaches the read);
+//   - a MALFORMED (non-uuid) id -> a 404 HttpError BEFORE the read (TASK-033:
+//     the isUuid() guard maps a non-uuid param to 404, not a Postgres 22P02 → 500);
 //   - DOG_NOT_FOUND -> a 404 HttpError (distinct from a read error);
 //   - a real read error -> a 500 HttpError (no raw SDK internals leaked);
 //   - a found dog -> { dog (stats + owner), signedUrl, reactions };
+//   - the signed URL is minted with the PRIVILEGED SERVICE client, never the
+//     RLS-scoped event.locals.supabase (TASK-033 P0: the owner-only hotdogs
+//     SELECT policy means the viewer's RLS client can't sign a URL for a dog it
+//     doesn't own — this assertion is the regression guard for that fix);
 //   - a failed signed-URL mint degrades to a null url (no throw, page not blanked);
 //   - the reaction summary is attached, aggregated viewer-relative;
 //   - the read goes through safeGetSession() + the RLS-scoped client, with the
@@ -38,7 +44,19 @@ vi.mock('$lib/features/hotdogs/detail', async () => {
 });
 
 vi.mock('$lib/storage', () => ({
-	getSignedUrl: vi.fn()
+	getSignedUrl: vi.fn(),
+	// isUuid() gates the route param before the DB read (TASK-033). Defaulted to
+	// `true` in beforeEach so the existing valid-uuid fixtures pass the guard; the
+	// malformed-id test overrides it to `false`.
+	isUuid: vi.fn()
+}));
+
+// The signed URL is minted with the privileged service client (TASK-033 P0 fix),
+// NOT the viewer's RLS-scoped event.locals.supabase. We mock getServiceClient to
+// return a sentinel instance and assert getSignedUrl is called with it — the test
+// that would have caught the original "non-owner gets a null signed URL" bug.
+vi.mock('$lib/server/supabase', () => ({
+	getServiceClient: vi.fn()
 }));
 
 vi.mock('$lib/features/reactions/reactions', () => ({
@@ -47,8 +65,12 @@ vi.mock('$lib/features/reactions/reactions', () => ({
 
 import { load } from './+page.server';
 import { getDogDetail, DOG_NOT_FOUND } from '$lib/features/hotdogs/detail';
-import { getSignedUrl } from '$lib/storage';
+import { getSignedUrl, isUuid } from '$lib/storage';
+import { getServiceClient } from '$lib/server/supabase';
 import { listReactionsForDogs } from '$lib/features/reactions/reactions';
+
+/** Sentinel service-client instance — distinct from event.locals.supabase. */
+const SERVICE_CLIENT = { __brand: 'service-client' } as unknown;
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const VALID_USER = { id: USER_ID, email: 'chef@topdog.test' };
@@ -104,6 +126,10 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 	// Default happy-path stubs; individual tests override as needed.
+	// Valid-uuid fixtures pass the route-param guard by default.
+	vi.mocked(isUuid).mockReturnValue(true);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	vi.mocked(getServiceClient).mockReturnValue(SERVICE_CLIENT as any);
 	vi.mocked(getDogDetail).mockResolvedValue({ ok: true, data: DOG_DETAIL });
 	vi.mocked(getSignedUrl).mockResolvedValue({
 		ok: true,
@@ -172,8 +198,55 @@ describe('dog detail load', () => {
 		expect(result.dog.vote_count).toBe(4);
 		expect(result.dog.owner.handle).toBe('sausage_king');
 		expect(result.signedUrl).toBe('https://signed/owner-1/dog.webp');
-		// The signed URL is minted for the dog's private image path.
-		expect(getSignedUrl).toHaveBeenCalledWith(expect.anything(), DOG_DETAIL.image_path);
+		// The signed URL is minted for the dog's private image path, with the
+		// PRIVILEGED SERVICE client — NOT the viewer's RLS-scoped event.locals.supabase.
+		// This is the TASK-033 P0 regression guard: the owner-only hotdogs SELECT
+		// policy means the viewer's RLS client cannot sign a URL for a dog it doesn't
+		// own, so the load must sign with getServiceClient() after the auth gate.
+		expect(getServiceClient).toHaveBeenCalled();
+		expect(getSignedUrl).toHaveBeenCalledWith(SERVICE_CLIENT, DOG_DETAIL.image_path);
+	});
+
+	it('mints the signed URL with the SERVICE client, NOT the RLS-scoped event.locals.supabase (TASK-033 P0 guard)', async () => {
+		const { event, supabase } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		await loadData(event);
+
+		// The signer must be the privileged service client. If a regression reverts
+		// this to event.locals.supabase, the non-owner viewer gets a failed mint
+		// (owner-only hotdogs_select_own) and a null image — the original P0.
+		expect(getSignedUrl).toHaveBeenCalledTimes(1);
+		const signerArg = vi.mocked(getSignedUrl).mock.calls[0][0];
+		expect(signerArg).toBe(SERVICE_CLIENT);
+		expect(signerArg).not.toBe(supabase);
+		// The DOG READ stays RLS-scoped on event.locals.supabase (unchanged).
+		expect(getDogDetail).toHaveBeenCalledWith(supabase, DOG_ID, USER_ID);
+	});
+
+	it('throws a 404 (NOT 500) for a malformed non-uuid id, BEFORE reaching the DB read (TASK-033)', async () => {
+		// A non-uuid route param would otherwise hit Postgres as a uuid comparison
+		// and raise 22P02 → getDogDetail read error → 500. The isUuid() guard maps it
+		// to a 404 instead, and getDogDetail is never called.
+		vi.mocked(isUuid).mockReturnValue(false);
+		const { event } = makeLoadEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			id: 'not-a-real-uuid'
+		});
+
+		let thrown: unknown;
+		try {
+			await load(event);
+		} catch (e) {
+			thrown = e;
+		}
+
+		expect(isHttpError(thrown)).toBe(true);
+		expect((thrown as { status: number }).status).toBe(404);
+		// The malformed id is rejected at the boundary — the read is never attempted.
+		expect(getDogDetail).not.toHaveBeenCalled();
+		expect(getSignedUrl).not.toHaveBeenCalled();
+		expect(listReactionsForDogs).not.toHaveBeenCalled();
 	});
 
 	it('throws a 404 when the dog is not found (DOG_NOT_FOUND sentinel)', async () => {

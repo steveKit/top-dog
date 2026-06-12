@@ -6,7 +6,7 @@
 
 ## Active Tasks
 
-### TASK-032: E2E hardening — `/app/feed` + `/app/dogs/[id]` flows [`pending`] [`P2`] [`S`]
+### TASK-032: E2E hardening — `/app/feed` + `/app/dogs/[id]` flows [`in_progress`] [`P2`] [`S`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-024 (feed), TASK-031 (detail route)
@@ -21,6 +21,29 @@
       toggle) if low-cost alongside the vote flow
 - [ ] Suite stays green and serialized under `workers: 1`; document any required
       `supabase db reset` precondition
+
+### TASK-033: Fix non-owner signed-URL rendering + malformed-id 404 (P0) [`in_progress`] [`P0`] [`S`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-024 (feed), TASK-031 (detail route)
+**Origin:** P0 bug surfaced by TASK-032's feed/detail E2E — a non-owner's
+`createSignedUrl` is RLS-gated by `hotdogs_select_own`, so members could not see
+each other's hot dog images (every non-owned dog rendered "Image unavailable").
+Latent since TASK-024; masked because `@smoke` only viewed the user's own dog.
+**Approach (user-approved Option 1):** mint feed/detail signed URLs server-side
+with the service client after the `safeGetSession` gate.
+**Acceptance Criteria:**
+
+- [ ] Feed + detail loads mint `hotdogs` signed URLs via the service client
+      (`$lib/server`) after the `safeGetSession` auth gate, so any authenticated
+      member can view any member's dog image (decision #6 privacy model
+      preserved: private bucket + TTL signed URLs; service client stays
+      server-only, never reaches the browser)
+- [ ] `/app/dogs/[id]` with a malformed (non-uuid) id returns 404, not 500
+- [ ] TASK-032's `feed-detail.e2e.ts` passes (image renders for a non-owner
+      viewer; bad id → 404)
+- [ ] No regression: `@smoke` + `@security` green; `pnpm test` / `check` / `lint`
+      clean
 
 ## Completed Tasks (this milestone)
 

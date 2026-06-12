@@ -47,6 +47,16 @@ vi.mock('$lib/storage', () => ({
 	getSignedUrl: vi.fn()
 }));
 
+// The per-row signed URLs are minted with the privileged service client (TASK-033
+// P0 fix), NOT the viewer's RLS-scoped event.locals.supabase: the feed lists OTHER
+// members' dogs, and the owner-only hotdogs SELECT policy means the viewer's RLS
+// client can't sign a URL for a dog it doesn't own. We mock getServiceClient to a
+// sentinel instance and assert getSignedUrl is called with it — the regression
+// guard for the original "non-owner feed images come back null" P0.
+vi.mock('$lib/server/supabase', () => ({
+	getServiceClient: vi.fn()
+}));
+
 // Cosmetic reactions (TASK-030). The load calls listReactionsForDogs(supabase, …)
 // and the react/unreact actions call addReaction/removeReaction on the RLS-scoped
 // event.locals.supabase. We mock the network-touching wrappers; the pure
@@ -68,11 +78,15 @@ import {
 	VOTE_UNAUTHENTICATED
 } from '$lib/features/voting/votes';
 import { getSignedUrl } from '$lib/storage';
+import { getServiceClient } from '$lib/server/supabase';
 import {
 	addReaction,
 	removeReaction,
 	listReactionsForDogs
 } from '$lib/features/reactions/reactions';
+
+/** Sentinel service-client instance — distinct from event.locals.supabase. */
+const SERVICE_CLIENT = { __brand: 'service-client' } as unknown;
 
 const vote_ = actions.vote;
 const remove_ = actions.remove;
@@ -127,8 +141,10 @@ function makeEvent(opts: { session: unknown; user: unknown; formFields?: Record<
 
 function makeLoadEvent(opts: { session: unknown; user: unknown }) {
 	const safeGetSession = vi.fn(async () => ({ session: opts.session, user: opts.user }));
+	// A branded RLS client so the signer-identity assertion can prove getSignedUrl
+	// is NOT called with event.locals.supabase.
 	return {
-		locals: { supabase: {}, safeGetSession }
+		locals: { supabase: { __brand: 'rls-client' }, safeGetSession }
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} as any;
 }
@@ -160,6 +176,8 @@ beforeEach(() => {
 		ok: true,
 		data: { signedUrl: 'https://signed/x' }
 	});
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	vi.mocked(getServiceClient).mockReturnValue(SERVICE_CLIENT as any);
 	vi.mocked(castVote).mockResolvedValue({ ok: true, data: 'vote-1' });
 	vi.mocked(removeVote).mockResolvedValue({ ok: true, data: 'dog-a' });
 	// Reactions default to "none"; individual tests override as needed.
@@ -239,6 +257,29 @@ describe('feed load', () => {
 
 		expect(result.dogs[0].signedUrl).toBeNull();
 		expect(result.dogs[1].signedUrl).toBe(`https://signed/${dogB.image_path}`);
+	});
+
+	it('mints each signed URL with the SERVICE client, NOT the RLS-scoped event.locals.supabase (TASK-033 P0 guard)', async () => {
+		const dogA = aDog();
+		const dogB = aDog({ id: 'dog-b', image_path: 'owner-b/dog-b.webp' });
+		vi.mocked(listVotableDogs).mockResolvedValue({ ok: true, data: [dogA, dogB] });
+		const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		await loadData(event);
+
+		// The feed shows OTHER members' dogs; the owner-only hotdogs_select_own policy
+		// means the viewer's RLS client can't sign a URL for a dog it doesn't own. If a
+		// regression reverts the signer to event.locals.supabase, non-owner images come
+		// back null — the original P0. The service client is constructed once and used
+		// for EVERY row.
+		expect(getServiceClient).toHaveBeenCalled();
+		expect(getSignedUrl).toHaveBeenCalledTimes(2);
+		for (const call of vi.mocked(getSignedUrl).mock.calls) {
+			expect(call[0]).toBe(SERVICE_CLIENT);
+			expect(call[0]).not.toBe(event.locals.supabase);
+		}
+		// The dog/owner/reaction QUERIES stay RLS-scoped on event.locals.supabase.
+		expect(listVotableDogs).toHaveBeenCalledWith(event.locals.supabase, USER_ID);
 	});
 
 	it('returns an empty grid (no crash) when the list query fails', async () => {

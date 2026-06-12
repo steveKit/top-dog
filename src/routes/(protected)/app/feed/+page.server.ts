@@ -9,6 +9,7 @@ import {
 	VOTE_UNAUTHENTICATED
 } from '$lib/features/voting/votes';
 import { getSignedUrl } from '$lib/storage';
+import { getServiceClient } from '$lib/server/supabase';
 import {
 	addReaction,
 	removeReaction,
@@ -95,13 +96,23 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		}
 	}
 
-	// Mint a signed URL per dog (private bucket). A single failed URL shouldn't
-	// blank the whole grid, so we surface null for that one and log it. Attach the
-	// per-dog reaction summary (viewer-relative) alongside.
+	// Mint a signed URL per dog (private bucket). The feed lists OTHER members'
+	// dogs, and the `hotdogs` bucket's only storage SELECT policy is owner-only
+	// (hotdogs_select_own) — so the viewer's RLS-scoped client cannot mint a URL
+	// for a dog it doesn't own. createSignedUrl is RLS-gated AT CREATION, so we
+	// sign with the privileged service client (constructed once, outside the loop)
+	// AFTER the safeGetSession() auth gate above. This keeps the bucket private
+	// (decision #6): URLs stay short-lived signed URLs, and the service client
+	// lives only here in server-only load code — it never reaches the browser.
+	// The dog/owner/reaction QUERIES above stay correctly RLS-scoped on `supabase`.
+	const serviceClient = getServiceClient();
+
+	// A single failed URL shouldn't blank the whole grid, so we surface null for
+	// that one and log it. Attach the per-dog reaction summary (viewer-relative).
 	const dogs = await Promise.all(
 		dogsResult.data.map(async (dog) => {
 			const reactions = summarizeReactions(reactionRowsByDog.get(dog.id) ?? [], user.id);
-			const signed = await getSignedUrl(supabase, dog.image_path);
+			const signed = await getSignedUrl(serviceClient, dog.image_path);
 			if (!signed.ok) {
 				console.error('[feed] failed to sign url', {
 					dogId: dog.id,

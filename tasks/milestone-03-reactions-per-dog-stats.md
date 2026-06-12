@@ -6,14 +6,21 @@
 
 ## Active Tasks
 
-### TASK-031: Per-dog stats [`in_progress`] [`P3`] [`S`]
+### TASK-032: E2E hardening — `/app/feed` + `/app/dogs/[id]` flows [`pending`] [`P2`] [`S`]
 
 **Owner:** unassigned
-**Dependencies:** TASK-021
+**Dependencies:** TASK-024 (feed), TASK-031 (detail route)
+**Origin:** promoted from DW-011 (feed E2E gap) + the PR #45 review (detail-route E2E gap).
 **Acceptance Criteria:**
 
-- [ ] Track/display peak_votes per dog
-- [ ] Stats visible on the dog detail view
+- [ ] End-to-end `@security`/`@smoke`-style E2E for `/app/feed` cast → move →
+      remove against the live local stack (closes DW-011)
+- [ ] E2E for `/app/dogs/[id]` detail view: RLS-scoped read access, signed-URL
+      image render, and a 404 on a missing/invalid dog id
+- [ ] Reactions surface on the feed exercised end-to-end (react / un-react
+      toggle) if low-cost alongside the vote flow
+- [ ] Suite stays green and serialized under `workers: 1`; document any required
+      `supabase db reset` precondition
 
 ## Completed Tasks (this milestone)
 
@@ -83,6 +90,70 @@ defense-in-depth); (b) `created_at`/`id` client-insertable but verified inert
 correctly does not apply).
 
 This task did **not** close M3 — TASK-031 (per-dog stats) remains active.
+
+### TASK-031: Per-dog stats [`complete`] [`P3`] [`S`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-021
+**PR:** #45 (`e1ffa0e`, squash-merged) · **Reviewer:** APPROVE · **Fix cycles:** 0
+**Acceptance Criteria:**
+
+- [x] Track/display peak_votes per dog
+- [x] Stats visible on the dog detail view
+
+**Notes:**
+
+**Pure display/wiring — zero schema, RLS, RPC, or migration change.**
+`peak_votes` / `vote_count` already exist on `hot_dogs`, server-maintained by
+the M2 vote RPC (`cast_vote` recomputes `vote_count` authoritatively from
+`COUNT(votes)` and bumps `peak_votes` via `greatest()` in-transaction). This
+task only surfaces those columns — there is no new write path and the
+column-grant lockdown (decision #24) is untouched.
+
+New per-concern query module `src/lib/features/hotdogs/detail.ts`:
+`getDogDetail(supabase, dogId, viewerId)` returns a discriminated
+`DetailResult<DogDetail>` carrying `vote_count`, `peak_votes`, caption,
+`created_at`, `image_path`, and a normalized owner `profiles` embed (handle,
+display_name, is_current_top_dog, top_dog_since). A `DOG_NOT_FOUND` sentinel is
+kept **distinct from a real read error** so the route can map the two to
+different HTTP statuses. The file is named `detail.ts` (per-concern) mirroring
+the established `voting/feed.ts` vs `voting/votes.ts` split, not folded into a
+catch-all module.
+
+New route `/app/dogs/[id]` (`src/routes/(protected)/app/dogs/[id]/`): a
+`safeGetSession`-gated load that maps `DOG_NOT_FOUND` → `error(404)` and a read
+error → `error(500)` (raw SDK message logged server-side only, never surfaced),
+mints the image signed URL via the `$lib/storage` barrel with **graceful null
+degradation** on a failed mint, and attaches a **read-only** reaction summary
+(`listReactionsForDogs` + the pure `summarizeReactions`). The page renders a
+larger image, caption, owner link, and a **Stats** block (Peak votes / Current
+votes), plus `<TopDogBadge>` when the owner holds the crown. **Reactions here
+are display-only — no react/unreact actions** (decision #12: interactive
+reactions stay on the feed; the detail view is a read surface).
+
+`src/lib/features/voting/feed.ts` gained `peak_votes` as an **additive** field
+on the `listVotableDogs` select / `VotableDog` type / mapper (read-only column;
+no write-path change), and the feed + `/app/dogs` tiles grew a per-tile
+`Peak: N` indicator and a "View details" link into the new route.
+
+**DW-010 folded in:** the obsolete `votes.ts` module-doc comment (which still
+claimed the wrapper had "no non-test caller by design," untrue since TASK-024
+wired `/app/feed`) was corrected — comment-only.
+
+**Three minor review notes, all reviewer-recommended no-change:** (a)
+`getDogDetail`'s `viewerId` param is currently unused but kept for parity with
+`feed.ts` and future viewer-relative reads (scoped `eslint-disable`); (b) a dead
+`|| owner.display_name` link fallback (`profiles.handle` is NOT NULL, so it can
+never fire); (c) no E2E for `/app/dogs/[id]` — now addressed by the promoted
+TASK-032.
+
+**Metrics:** `pnpm test` 420 pass (new: detail query 14, detail load 12, feed
+`peak_votes` cases); `@smoke` + `@security` (31) green; `pnpm check` 0 errors,
+lint clean. Reviewer APPROVE, 0 fix cycles.
+
+This task did **not** close M3 — DW-011 (the `/app/feed` E2E gap) was promoted
+into M3 as a new **TASK-032 (E2E hardening)**, which also subsumes the
+detail-route E2E gap from this PR's review and remains the active M3 task.
 
 ---
 

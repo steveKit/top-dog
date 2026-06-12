@@ -20,9 +20,9 @@
 
 ## Active Milestones
 
-| #   | Milestone                 | Progress                              | File                                           |
-| --- | ------------------------- | ------------------------------------- | ---------------------------------------------- |
-| 03  | Reactions & Per-Dog Stats | 1/2 tasks (TASK-030 ✓; TASK-031 next) | [[tasks/milestone-03-reactions-per-dog-stats]] |
+| #   | Milestone                 | Progress                                            | File                                           |
+| --- | ------------------------- | --------------------------------------------------- | ---------------------------------------------- |
+| 03  | Reactions & Per-Dog Stats | 2/3 tasks (TASK-030, TASK-031 ✓; TASK-032 E2E next) | [[tasks/milestone-03-reactions-per-dog-stats]] |
 
 _M0, M1, M2 are complete (see § Completed Milestones below). Each milestone file
 is the source of truth for per-task status; the Progress column is a coarse rollup

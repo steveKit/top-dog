@@ -1,70 +1,95 @@
 # Milestone M2: Voting & Top Dog Engine
 
-> **Status:** `active`
+> **Status:** `complete`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** vote rules, ranking, sticky tie-break, daily tally, badge. TDD-first.
 
 ## Active Tasks
 
-_**Milestone held open** pending TASK-024: the M2-close wiring audit found the vote
-wrapper (`castVote` / `removeVote` in `src/lib/features/voting/votes.ts`) has **no UI
-consumer** — there is no vote-casting surface in the app, so a member cannot actually
-cast a vote. TASK-024 below closes this gap (DW-009); it must land and re-pass the
-wiring audit before M2 can close._
-
-### TASK-024: Vote-casting UI (browse + cast / move / remove) [`in_progress`]
-
-**Priority:** `P1` · **Size:** `M` · **Closes:** DW-009 (M2 wiring audit) · **Depends on:** TASK-021 (vote RPC + `castVote` / `removeVote` wrapper), TASK-020 (`selectTopDog`)
-
-**Objective:** Give members a surface to discover other chefs' hot dogs and cast
-their single movable vote, wiring the orphaned `castVote` / `removeVote` wrappers
-(`src/lib/features/voting/votes.ts`) into a real route. This is the gap the
-M2-close wiring audit flagged — without it a member cannot vote, so M2 cannot
-close.
-
-**Recommended surface:** a global feed at `(protected)/app/feed` that lists all
-hot dogs except the viewer's own (sorted by `vote_count` desc, doubling as the
-live leaderboard), each with a vote control. This gives discovery + voting in one
-surface — currently profiles are reachable only by direct URL with no way to find
-other chefs. (Alternative under consideration: add a votable dog list + vote
-control to `(protected)/app/profile/[handle]`. Surface choice is the one open
-decision — see the director's note to the user.)
-
-**Acceptance Criteria:**
-
-- [ ] A votable-dog surface lists hot dogs the viewer can vote for — **excludes the
-      viewer's own dogs** — each with owner handle, image (signed URL, graceful
-      per-row degradation), caption, and current `vote_count`.
-- [ ] A vote control casts the viewer's single vote via `castVote`; casting on a
-      different dog **moves** the existing vote (one active vote per user, per the
-      `UNIQUE(voter_id)` RPC contract).
-- [ ] The viewer's current vote is visibly indicated, and a remove control retracts
-      it via `removeVote`.
-- [ ] Vote mutations are **server-side form actions** using the RLS-scoped
-      `event.locals.supabase`; never a client-side write, never a client-supplied
-      voter id (the RPC derives it from `auth.uid()`).
-- [ ] After a cast / move / remove, the UI refreshes (`invalidate` / `depends`) so
-      vote counts and any crown handoff reflect immediately.
-- [ ] `VoteResult` failure sentinels (`VOTE_SELF`, `VOTE_NO_SUCH_DOG`,
-      `VOTE_UNAUTHENTICATED`) surface as friendly messages via `fail()`; raw
-      Supabase errors are logged server-side with operation + ids, never shown raw.
-- [ ] Test-after coverage for the load + form actions (cast, move, remove,
-      self-vote rejected, unauthenticated); the M1 `@smoke` stays green; quality
-      gates clean (`pnpm test`, `pnpm check`, `pnpm lint`).
-- [ ] **M2 wiring audit re-passes:** `castVote` / `removeVote` now have a production
-      (non-test) consumer.
-
-**Files in scope:** `src/routes/(protected)/app/feed/+page.server.ts` (new),
-`src/routes/(protected)/app/feed/+page.svelte` (new), co-located
-`feed-action.test.ts` (new); optional read helper for the votable-dog query under
-`src/lib/features/voting/` or `src/lib/features/hotdogs/`.
-**Do NOT modify:** the vote RPC migration or the `castVote` / `removeVote` wrapper
-signatures in `src/lib/features/voting/votes.ts`; the `selectTopDog` comparator in
-`ranking.ts`.
+_None — **milestone complete.** All five tasks landed (TASK-020/021/022/023/024).
+The M2-close wiring audit re-passed: `castVote` / `removeVote` are now consumed by
+the `/app/feed` route (DW-009 resolved). See § Completed Tasks below._
 
 ---
 
 ## Completed Tasks (this milestone)
+
+### ~~TASK-024: Vote-casting UI (browse + cast / move / remove)~~ [`complete`]
+
+**Completed:** 2026-06-12 · **PR:** #40 (squash `94d2e52`) · **Reviewer:** APPROVE (0 fix cycles, 2 minor non-blocking notes) · **Closes:** DW-009 (M2 wiring audit)
+**Acceptance Criteria:**
+
+- [x] A votable-dog surface (`/app/feed`) lists hot dogs the viewer can vote for — **excludes the viewer's own dogs** — each with owner handle, signed-URL image (graceful per-row degradation), caption, and current `vote_count`, sorted `vote_count` desc.
+- [x] A vote control casts the viewer's single vote via `castVote`; casting on a different dog **moves** the existing vote (`UNIQUE(voter_id)` contract).
+- [x] The viewer's current vote is visibly indicated; a remove control retracts it via `removeVote`.
+- [x] Vote mutations are **server-side form actions** on the RLS-scoped `event.locals.supabase`, gated by `safeGetSession()`; voter id never client-supplied (the RPC derives it from `auth.uid()`).
+- [x] After a cast / move / remove the UI refreshes via `invalidateAll()`.
+- [x] `VoteResult` sentinels (`VOTE_SELF` / `VOTE_NO_SUCH_DOG` / `VOTE_UNAUTHENTICATED`) surface as friendly `fail()` messages; raw Supabase errors logged server-side only.
+- [x] Test-after coverage (`feed.test.ts` ×16, `feed-action.test.ts` ×18); `@smoke` green; gates clean (`pnpm test` 354/354, `pnpm check` 0 errors, lint clean).
+- [x] **M2 wiring audit re-passed at close:** `castVote` / `removeVote` (and `listVotableDogs` / `getCurrentVote`) now have a production consumer in `/app/feed`.
+
+**Notes:** Landed the vote-casting UI as the **fifth and final M2 task** — the
+consumer the engine was always missing, **closing DW-009 and CLOSING Milestone
+M2**. The previously-orphaned vote wrappers (`castVote` / `removeVote` in
+`src/lib/features/voting/votes.ts`) now have a production consumer, so a member
+can finally cast, move, and remove a vote. **Zero schema / RLS / RPC / migration
+changes and zero new dependencies** — TASK-024 is pure consumption of existing
+seams: the TASK-021 vote RPCs, the TASK-020 `selectTopDog` comparator (indirectly,
+via the crown the RPC maintains), and the `$lib/storage` signed-URL barrel.
+
+**The key design decision — a global feed that doubles as the live leaderboard.**
+The vote-casting surface is a single global feed at `/app/feed`, not a per-profile
+vote button. Chosen because the app had **no discovery path** — without a place to
+browse other members' dogs, there was nowhere a vote could originate. Listing every
+_other_ member's dog sorted by `vote_count` desc means the same surface that lets
+you cast a vote is the live leaderboard, so the ranking the vote RPC maintains is
+visible exactly where votes are cast. This is recorded as a progress note rather
+than a formal architecture-decision row: it is a UI-surface choice that introduces
+no new invariant, contract, or cross-cutting pattern — the authoritative crown is
+still `recompute_top_dog()`, and this read merely _mirrors_ the leaderboard ordering
+(the module doc is explicit that the feed ordering is a display convenience, never
+the source of truth).
+
+**Security posture verified at review (L2).** (1) Both the load and the two form
+actions gate on `safeGetSession()` and redirect/`fail(401)` an unauthenticated
+caller — the validated-JWT trust boundary, never a bare `getSession()`. (2) The
+voter id is **never client-supplied**: the actions pass only the target dog id to
+`castVote` / `removeVote`, and the RPC derives the voter from `auth.uid()` inside
+the function — a property **pinned by a `feed-action.test.ts` test** asserting the
+action forwards no voter id. (3) **No direct vote writes** — all mutations go
+through the SECURITY-DEFINER vote RPCs on the RLS-scoped `event.locals.supabase`;
+there is no client write to `votes` / `vote_count`. (4) **No raw error leakage** —
+`VoteResult` sentinels (`VOTE_SELF` / `VOTE_NO_SUCH_DOG` / `VOTE_UNAUTHENTICATED`)
+map to friendly `fail()` copy via `voteErrorMessage`, and any unrecognized
+(raw Supabase) error is logged server-side only and shown as a generic message.
+
+**Embed-normalization robustness.** `listVotableDogs` joins each dog to its owner's
+`profiles(handle, display_name)` via the `owner_id` FK. supabase-js infers a to-one
+embed as an _array_, so the mapper normalizes both shapes (array → first element, or
+a single object) and defensively defaults to empty strings on a null/absent owner —
+even though the NOT NULL FK guarantees exactly one owner per dog. The feed also
+degrades **per-row**: a single failed signed-URL mint surfaces `signedUrl: null` for
+that one dog (logged) rather than blanking the grid, and a `getCurrentVote` read
+failure degrades to "no current vote" rather than blanking the feed.
+
+**Metrics.** Test-after coverage: `feed.test.ts` (16 cases — query shape,
+self-exclusion, sort order, embed normalization, error branches) +
+`feed-action.test.ts` (18 cases — auth gating, voter-never-supplied, sentinel →
+message mapping, cast/move/remove orchestration). Gates: `pnpm test` **354/354**,
+`pnpm check` **0 errors**, `pnpm lint` clean, `@smoke` green. Nav links to the feed
+were added to `src/routes/(protected)/app/+page.svelte`. **Review: APPROVE, 0 fix
+cycles**, 2 minor non-blocking notes (logged as DW-010 — an obsolete "no non-test
+caller" module-doc comment in `votes.ts` now that the feed consumes it; and DW-011 —
+no end-to-end E2E for the `/feed` route, an accepted tracked gap since the action
+orchestration is unit-tested and the RLS/RPC guarantees are covered by
+`votes.e2e.ts` / `tally.e2e.ts`).
+
+**M2 wiring audit re-passed at close.** `castVote` / `removeVote` / `listVotableDogs`
+/ `getCurrentVote` all now have a production consumer in `/app/feed`. **Milestone M2
+(Voting & Top Dog Engine) is complete** — tag `milestone-02-voting-top-dog-engine`.
+
+**Discovered during this task:** DW-010 (obsolete `votes.ts` module-doc comment) and
+DW-011 (no E2E for the `/feed` route) — see [[tasks/discovered]].
 
 ### ~~TASK-023: Top Dog badge UI~~ [`complete`]
 

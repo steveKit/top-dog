@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import ReactionBar from '$lib/components/ReactionBar.svelte';
 
 	let { data, form } = $props();
 
@@ -56,6 +57,8 @@
 					<p>{dog.caption}</p>
 				{/if}
 				<p>{dog.vote_count} {dog.vote_count === 1 ? 'vote' : 'votes'}</p>
+
+				<ReactionBar dogId={dog.id} summaries={dog.reactions} />
 
 				{#if isVoted}
 					<p>Voted ✓</p>

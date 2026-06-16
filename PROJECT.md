@@ -3,7 +3,7 @@
 ## Status
 
 **Phase:** Active Development
-**Last Updated:** 2026-06-12
+**Last Updated:** 2026-06-16
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
@@ -608,6 +608,23 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   `TASKS-ARCHIVE.md`. New completed milestones freeze in their own file rather than
   moving to the archive. See [[TASKS]] for the index and [[CLAUDE]] Project Map for
   the canonical wikilink targets.
+- **Hosted schema drift resolved + keep-alive green again (2026-06-16, ops
+  session).** The daily keep-alive workflow had been red for 4 runs. Root cause was
+  **hosted schema drift**, not a secrets or auto-pause problem: the M2/M3 migrations
+  (`20260610181704_votes_and_vote_rpc.sql`,
+  `20260611174243_top_dog_days_and_tally.sql`,
+  `20260612104439_hotdog_reactions.sql`) had never been `supabase db push`ed to
+  hosted since the M0/M1 going-live, so the workflow's `Tally Top Dog day` step
+  (`tally_top_dog_day()`) got a PostgREST 404. The `ping` step succeeded throughout,
+  so the hosted DB was never actually at auto-pause risk (the daily read kept it
+  alive even while the workflow showed red). Fixed by `supabase db push` (three
+  migrations applied to hosted) + a workflow re-trigger → green. No repo diff (a
+  hosted-DB + workflow-rerun action). **Durable lesson:** push hosted migrations
+  **per-milestone** — at milestone close, or whenever a migration lands — not just at
+  going-live, so a milestone's new RPCs are reachable before any scheduled job calls
+  them. This gate applies immediately to M4: TASK-042 adds a fourth migration + a
+  second prune RPC wired into the same keep-alive workflow, and that migration MUST
+  be pushed to hosted before the prune step ships or this exact failure recurs.
 
 ## Milestones
 

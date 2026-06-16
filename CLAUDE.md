@@ -28,7 +28,7 @@ Canonical [[wikilink]] targets for this project:
 - [[TASKS-ARCHIVE]] — completed-milestone archive (pre-migration M0/M1)
 - [[README]] — setup, usage, contributing
 - [[memory/MEMORY]] — stable cross-session agent patterns
-- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-009]])
+- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-010]])
 
 ## Commands
 
@@ -289,8 +289,17 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
 - **7-day auto-pause:** the keep-alive workflow must stay green or the hosted DB
   pauses. The hosted project is live and the workflow is **enabled and verified**
   (TASK-004 — last manual run returned HTTP 200 against `profiles`). It runs daily
-  and depends on the `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets; if it
-  ever goes red, re-check those secrets before anything else.
+  and depends on the `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets.
+  **Two distinct red-workflow failure modes, diagnosed by which STEP fails:** (1) the
+  `ping` step itself fails → reachability/secrets — re-check the two repo secrets
+  first; (2) `ping` passes but a later RPC step (`tally`, future `prune`) returns a
+  PostgREST **404** → **hosted schema drift**: that RPC's migration was never
+  `supabase db push`ed to hosted. This is NOT a secrets problem (ping proves
+  reachability) and NOT necessarily an auto-pause emergency (the daily `ping` read
+  keeps the DB alive even while the workflow shows red). Remedy: `supabase db push`
+  the missing migration; prevention: push migrations to hosted **per-milestone**, not
+  just at going-live. (Diagnosed handoff-010 — the M2/M3 migrations had never been
+  pushed since the M0/M1 going-live, so `tally_top_dog_day()` 404'd for 4 days.)
 - **Scheduled-job auth pattern — privileged-but-input-free RPCs are anon-callable +
   idempotent (decision #26).** A daily job whose RPC takes **no caller input**
   (`pronargs = 0`) and only records server-known facts (e.g. `tally_top_dog_day()`

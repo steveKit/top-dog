@@ -136,6 +136,20 @@
 
 	<p class="joined">Joined {joinedAt}</p>
 
+	<!--
+		Message button (TASK-051): the conversation-initiation affordance for direct
+		messages, shown only when viewing ANOTHER member's profile (reusing the
+		existing isWallOwner flag — owner of the wall === the viewer themselves). It
+		links to the DM thread route for this handle.
+	-->
+	{#if !isWallOwner}
+		<p class="message-link">
+			<a href={resolve('/(protected)/app/messages/[handle]', { handle: profile.handle })}
+				>Message @{profile.handle}</a
+			>
+		</p>
+	{/if}
+
 	<dl class="stats">
 		<div>
 			<dt>Days as Top Dog</dt>

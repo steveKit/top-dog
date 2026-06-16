@@ -1,12 +1,12 @@
 # Milestone M4: Mustard Mechanic
 
-> **Status:** `pending`
+> **Status:** `active`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** spray + render-time decay + >24h prune.
 
 ## Active Tasks
 
-### TASK-040: Mustard decay math [`pending`] [`P1`] [`M`]
+### TASK-040: Mustard decay math [`in_progress`] [`P1`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-021

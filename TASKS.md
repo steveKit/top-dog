@@ -20,11 +20,10 @@
 
 ## Active Milestones
 
-**Milestone M5 — Walls & DMs** is `active` (activated 2026-06-16). Pre-exploded,
-so activation was a status flip (no planner). See
-[[tasks/milestone-05-walls-dms]] for its two tasks: TASK-050 (message walls) and
-TASK-051 (direct messages). **Milestone M4 — Mustard Mechanic completed**
-2026-06-16 (TASK-040/041/042) — see § Completed Milestones.
+**Milestone M5 — Walls & DMs** is `active` (1/2 tasks complete). **TASK-050
+(message walls)** is complete (PR #60, `d3c7a4d`); **TASK-051 (direct messages)**
+remains. See [[tasks/milestone-05-walls-dms]]. **Milestone M4 — Mustard Mechanic
+completed** 2026-06-16 (TASK-040/041/042) — see § Completed Milestones.
 
 ## Planned Milestones
 
@@ -34,8 +33,8 @@ default is a one-line stub the planner explodes on activation; here the detail
 was already written, so it is preserved.) Depends-on is kept coarse.
 
 | #   | Milestone       | Scope (one line)                                            | Depends on           | File                                 |
-| --- | --------------- | ---------------------------------------------------------- | -------------------- | ------------------------------------ |
-| 06  | Emoji Library   | hot-dog emoji set + render-time filter + random sprinkle   | M5 (TASK-050/051)    | [[tasks/milestone-06-emoji-library]] |
+| --- | --------------- | ----------------------------------------------------------- | -------------------- | ------------------------------------ |
+| 06  | Emoji Library   | hot-dog emoji set + render-time filter + random sprinkle    | M5 (TASK-050/051)    | [[tasks/milestone-06-emoji-library]] |
 | 07  | Safety & Polish | server-side upload limits, report button, final polish pass | all prior milestones | [[tasks/milestone-07-safety-polish]] |
 
 ## Deferred Milestones

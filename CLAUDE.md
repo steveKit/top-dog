@@ -229,6 +229,12 @@ display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`
   inert because there is no denormalized column to forge. Make these writes
   idempotent (UNIQUE → 23505 maps to a benign add; a missing-row delete is a
   no-op). Reuse this shape for future flair/cosmetic surfaces (e.g. M6 emoji).
+  Another instance: `wall_messages` (TASK-050) — plain owner-scoped RLS, store the
+  **original** body verbatim (so the M6 emoji render-time filter applies at render,
+  never persisted); INSERT pins `author_id = (select auth.uid())`, but DELETE allows
+  the message author **OR** the wall owner (`author_id = … OR profile_id = …`) and
+  there is no UPDATE (messages immutable). Decision #24/#25 lockdown likewise does not
+  apply (no server-maintained column to forge).
 - **Privileged-but-cosmetic write = plain RLS write + an authorization `WITH CHECK`
   conjunct that reads a server-maintained, non-client-writable column.** When a
   cosmetic/many-allowed surface (no denormalized counter, see the gotcha above) is

@@ -117,6 +117,19 @@ timestamp. **Hosted-push gate pending:** the two new migrations must be
 `supabase db push`ed to hosted before the next scheduled keep-alive run (see
 Process notes). Next: M5 — Walls & DMs.
 
+**Milestone M5 — Walls & DMs is active.** TASK-050 (message walls, PR #60
+`d3c7a4d`) has landed; TASK-051 (direct messages) remains. Members can now post
+to and read any member's **profile wall** — a `wall_messages` table that, like
+`hotdog_reactions` and `mustard_sprays`, is a **cosmetic / many-allowed table with
+no denormalized counter**, so it writes through plain owner-scoped RLS (the
+deliberate inverse of the consuming-writes-via-RPC convention, decision #12 — not a
+new decision). The wall stores the **original message body verbatim** (so the M6
+emoji render-time filter stays free to apply later), is readable by any member like
+the feed, has an un-forgeable author pin on INSERT, allows DELETE by the **message
+author OR the wall owner**, and is immutable (no UPDATE). The post box and
+author/owner-scoped delete affordance are wired into the existing profile route,
+preserving the M4 mustard-spray UI.
+
 ### Milestone M1 progress notes
 
 1. **Single-use invariant keys on `consumed_at`, not `consumed_by` (TASK-010,
@@ -685,6 +698,53 @@ architecture-decision row** needed.
    exactly as the M2/M3 migrations did. As of this writing the push has not been
    done — the director surfaces it to the user as a post-merge ops step (see
    Process notes).
+
+### Milestone M5 progress notes
+
+1. **Message walls — another cosmetic / many-allowed table, plain owner-scoped RLS
+   (TASK-050, PR #60 `d3c7a4d`).** Migration `20260616184139_wall_messages.sql` adds
+   the `wall_messages` table (`id` uuid PK `extensions.gen_random_uuid()`
+   schema-qualified per the M0 hosted-parity lesson; `profile_id` wall-owner FK and
+   `author_id` poster FK both → `profiles on delete cascade`; `body` text storing the
+   **ORIGINAL** message with a `char_length(body) <= 1000` CHECK; `created_at`; index
+   on `profile_id`). Like `hotdog_reactions` (decision #12 / TASK-030) and
+   `mustard_sprays` (TASK-041), it carries **no denormalized counter and nothing that
+   touches `vote_count` / `peak_votes` / the crown**, so it is a **plain owner-scoped
+   RLS write, the deliberate inverse of the consuming-writes-via-RPC convention** —
+   decision #12 implemented, **not a new architecture-decision row**. Decision
+   #24/#25's column-grant lockdown correctly does **not** apply (`created_at` / `id`
+   are client-insertable but inert — there is no server-maintained column to forge).
+   RLS via the `(select auth.uid())` initplan idiom: SELECT for all `authenticated`
+   members (any member reads any wall, like the global feed); INSERT
+   `with check (author_id = (select auth.uid()))` so the author is **un-forgeable**;
+   DELETE `using (author_id = (select auth.uid()) OR profile_id = (select auth.uid()))`
+   — **either the message author or the wall owner** may remove a message (a two-principal
+   moderation path, the one twist vs. the single-owner reactions/sprays precedents);
+   and **no UPDATE policy** (messages are immutable). The **store-ORIGINAL-body
+   invariant** is deliberate: it keeps the **M6 emoji render-time filter** free to
+   apply at render later (never persist the filtered text), mirroring the mustard /
+   emoji render-time discipline. New feature module
+   `src/lib/features/walls/walls.ts` — discriminated `WallResult<T>` wrappers:
+   `postWallMessage` (boundary-validates non-empty + ≤1000, author derived from the
+   session), `listWallMessages` (latest 50, `created_at` desc, normalizes the
+   array-vs-object author embed), `deleteWallMessage`; SQLSTATE-keyed sentinels, raw
+   errors logged server-side only. Wired into the **existing** profile route
+   (`(protected)/app/profile/[handle]/+page.server.ts` wall load + `post` /
+   `deleteMessage` actions, `safeGetSession()`-gated, author/wall-owner from the
+   session / route param and never client input; `+page.svelte` wall render + post box
+   + delete affordance shown only to the author or wall owner) — the **existing mustard
+   spray UI is preserved**. **Security posture (L2), verified at review:** the INSERT
+   author pin is un-forgeable (forge → `42501`, pinned by a live E2E); DELETE is scoped
+   to the stored row (no client-widenable path); the body is stored verbatim and
+   rendered through Svelte auto-escaping (no `{@html}` → no XSS). **Zero new
+   dependencies and no new discovered work** surfaced by the reviewer. Coverage:
+   `walls.test.ts`, `wall-action.test.ts`, live-DB `@security` `tests/walls.e2e.ts`
+   (7 RLS specs), plus a stale-test fix to `profile-load.test.ts`. Metrics at merge:
+   `pnpm test` 514 pass, `pnpm check` 0 errors, lint clean (modulo a pre-existing,
+   director-owned `TASKS.md` Prettier warning), `@smoke` 4, `@security` 47. Reviewer
+   APPROVE, 0 fix cycles. **M5 stays open — TASK-051 (direct messages) remains;** this
+   migration must be `supabase db push`ed to hosted per the 2026-06-16 hosted-drift
+   lesson.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 

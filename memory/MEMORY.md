@@ -76,6 +76,35 @@ let "the unit tests cover the orchestration" defer the cross-member E2E
 indefinitely (DW-011 was deferred from M2 to M3 — it paid for itself the moment it
 ran).
 
+## Deploy / Ops Patterns
+
+### A red keep-alive workflow whose `ping` passes but a later RPC step 404s means HOSTED SCHEMA DRIFT, not a secrets or auto-pause emergency
+
+Diagnose a red daily keep-alive run by **which step fails**, not by reflexively
+re-checking secrets. Two distinct failure modes:
+
+- The **`ping` step itself fails** → reachability/secrets. Re-check the
+  `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets first (the older
+  [[CLAUDE]] "re-check secrets first" guidance applies HERE only).
+- **`ping` passes but a later RPC step** (`tally`, the future M4 `prune`) **returns
+  a PostgREST 404** → **hosted schema drift**: that RPC's migration was never
+  `supabase db push`ed to hosted. It is **NOT** a secrets problem (a green `ping`
+  proves the project is reachable and the key is valid) and **NOT** necessarily an
+  auto-pause emergency (the daily `ping` read keeps the hosted DB alive even while
+  the workflow shows red, so the 7-day timer keeps resetting).
+
+Remedy: `supabase db push` the missing migration(s), then re-trigger the workflow.
+Prevention: push migrations to hosted **per-milestone** (at milestone close, or
+whenever a migration lands), not just at going-live — so a milestone's new RPCs are
+reachable on hosted before any scheduled job calls them.
+
+Worked example (handoff-010): the M2/M3 migrations had never been pushed to hosted
+since the M0/M1 going-live, so `tally_top_dog_day()` 404'd and the keep-alive ran
+red for 4 days while `ping` stayed green. `supabase db push` (three migrations) +
+re-trigger fixed it with no repo diff. This refines the standing [[CLAUDE]]
+keep-alive gotcha, which now records both failure modes. The gate recurs at M4:
+TASK-042's prune migration must be pushed to hosted before the prune step ships.
+
 ## Navigation Patterns
 
 ### `TASKS.md` is an index, not the queue body (since 2026-06-11)

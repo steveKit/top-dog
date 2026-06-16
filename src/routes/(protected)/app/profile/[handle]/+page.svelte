@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 	import { mustardOpacity } from '$lib/features/mustard/decay';
 
@@ -10,6 +11,35 @@
 	const avatarUrl = $derived(data.avatarUrl);
 	const sprays = $derived(data.sprays);
 	const canSpray = $derived(data.canSpray);
+	const wallMessages = $derived(data.wallMessages);
+	const viewerId = $derived(data.viewerId);
+	const isWallOwner = $derived(data.isWallOwner);
+
+	// Bound to the post box; cleared after a successful post.
+	let wallBody = $state('');
+
+	// Render-time friendly timestamp for a wall message.
+	function formatMessageDate(iso: string): string {
+		return new Date(iso).toLocaleString(undefined, {
+			dateStyle: 'medium',
+			timeStyle: 'short'
+		});
+	}
+
+	const submitWallPost = () => {
+		return async ({ update }: { update: () => Promise<void> }) => {
+			await update();
+			wallBody = '';
+			await invalidateAll();
+		};
+	};
+
+	const submitWallDelete = () => {
+		return async ({ update }: { update: () => Promise<void> }) => {
+			await update();
+			await invalidateAll();
+		};
+	};
 
 	// The mustard overlay container; click positions are computed relative to its
 	// bounding rect so stored x/y are layout-robust fractions in [0,1].
@@ -121,6 +151,56 @@
 			{#if isSpraying}<span aria-live="polite">Spraying…</span>{/if}
 		</form>
 	{/if}
+
+	<!--
+		Message wall (TASK-050). Any member may post a text message on this wall;
+		the post box always shows. Each message shows its author and timestamp, with
+		a delete affordance only for the message's author or the wall owner (which
+		also mirrors the authoritative RLS DELETE policy). Bodies render the ORIGINAL
+		text; the M6 emoji library will add a render-time filter here.
+	-->
+	<section class="wall" aria-label="Message wall">
+		<h2>Wall</h2>
+
+		<form method="POST" action="?/post" use:enhance={submitWallPost} class="wall-post">
+			<label for="wall-body">Leave a message on {profile.display_name}'s wall</label>
+			<textarea
+				id="wall-body"
+				name="body"
+				rows="3"
+				maxlength="1000"
+				bind:value={wallBody}
+				placeholder="Say something nice…"
+			></textarea>
+			<button type="submit" disabled={wallBody.trim().length === 0}>Post</button>
+		</form>
+
+		{#if wallMessages.length === 0}
+			<p class="wall-empty">No messages yet. Be the first to post.</p>
+		{:else}
+			<ul class="wall-messages">
+				{#each wallMessages as message (message.id)}
+					<li class="wall-message">
+						<p class="wall-message-body">{message.body}</p>
+						<p class="wall-message-meta">
+							<a
+								href={resolve('/(protected)/app/profile/[handle]', {
+									handle: message.author_handle
+								})}>@{message.author_handle}</a
+							>
+							<span class="wall-message-date">{formatMessageDate(message.created_at)}</span>
+						</p>
+						{#if message.author_id === viewerId || isWallOwner}
+							<form method="POST" action="?/deleteMessage" use:enhance={submitWallDelete}>
+								<input type="hidden" name="messageId" value={message.id} />
+								<button type="submit" class="wall-message-delete">Delete</button>
+							</form>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
 </article>
 
 <style>

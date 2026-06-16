@@ -229,6 +229,25 @@ display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`
   inert because there is no denormalized column to forge. Make these writes
   idempotent (UNIQUE → 23505 maps to a benign add; a missing-row delete is a
   no-op). Reuse this shape for future flair/cosmetic surfaces (e.g. M6 emoji).
+- **Privileged-but-cosmetic write = plain RLS write + an authorization `WITH CHECK`
+  conjunct that reads a server-maintained, non-client-writable column.** When a
+  cosmetic/many-allowed surface (no denormalized counter, see the gotcha above) is
+  additionally restricted to a privileged actor (e.g. only the current Top Dog may
+  spray mustard — `mustard_sprays`, TASK-041), DO NOT reach for a SECURITY DEFINER
+  RPC. Keep the plain owner-scoped RLS write and add the authorization as a second
+  INSERT `WITH CHECK` conjunct: pin the actor (`sprayer_id = (select auth.uid())`,
+  so it can't be forged) AND gate on a privilege column via an EXISTS
+  (`exists (select 1 from profiles p where p.id = (select auth.uid()) and
+p.is_current_top_dog)`). **This is trustworthy ONLY because the gate column is
+  itself non-client-writable** (the crown columns, decision #25) — a member cannot
+  set their own crown to self-satisfy the check. If the gate column WERE
+  client-writable, the predicate would be self-forgeable and the gate worthless, so
+  this pattern presupposes the decision #24/#25 column-grant lockdown on whatever
+  column the gate reads. Pair with NO UPDATE/DELETE policy when the rows are meant to
+  be immutable/persistent (mustard sprays persist across crown changes per decision
+  #15; removal is reserved for a separate prune job). This is decisions #12/#15/#25
+  composed, not a new architecture decision — reuse the shape for any future
+  privileged-flair surface (e.g. an M5 "only the Top Dog may …" write).
 - **`revoke execute ... from public` is NOT sufficient to lock down a function on
   Supabase.** Supabase explicitly grants EXECUTE on new `public.*` functions to
   `anon` and `authenticated`; `revoke ... from public` only strips the PUBLIC

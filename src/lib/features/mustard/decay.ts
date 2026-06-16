@@ -3,9 +3,10 @@
 // Strategy: mustard decay/opacity math is TDD-first; PROJECT.md decision #15:
 // opacity is computed at RENDER time from the stored timestamp — no cron).
 //
-// TDD STUB (RED phase, TASK-040): signatures + JSDoc only. The real decay math
-// is the implementer's job in the GREEN phase — these bodies intentionally do
-// NOT satisfy the behavior.
+// Live wiring: this is the pure render-time decay math, consumed by the TASK-041
+// spray + render path. That consumer does not exist yet, so this module
+// currently has no non-test caller by design — same pattern as
+// src/lib/features/voting/ranking.ts.
 
 /** A mustard spray fully fades 24h after it lands. */
 export const MUSTARD_LIFESPAN_MS = 24 * 60 * 60 * 1000;

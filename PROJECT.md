@@ -819,6 +819,11 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   migrations. As of this writing the push has **not** been done; the director will
   surface it to the user as a post-merge ops step. This is the per-milestone
   hosted-push discipline from the entry above, applied at M4 close.
+- **Session continuity — M4 built + closed in one session
+  ([[Handoffs/handoff-011]], 2026-06-16).** M4 (pre-exploded) was activated,
+  built end to end, and tagged in a single session; all three tasks landed
+  reviewer APPROVE / 0 fix cycles. See the handoff for the full session record
+  and the pending hosted-push gate. Next: M5 — Walls & DMs.
 
 ## Milestones
 

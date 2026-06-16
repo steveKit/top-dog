@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
 
 // Test-after coverage for the profile-by-handle load (TASK-011 + TASK-041 mustard
-// spray/render contract change). The load now:
+// spray/render contract change + TASK-050 wall load). The load now:
 //   - reads the session via safeGetSession() and redirects unauth -> /sign-in;
-//   - returns { profile, avatarUrl, sprays, canSpray };
+//   - returns { profile, avatarUrl, sprays, canSpray, wallMessages, viewerId,
+//     isWallOwner };
 //   - 404s an unknown handle, 500s a profile read error (never swallowed);
 //   - resolves a public avatar URL when avatar_path is set;
 //   - computes canSpray from the VIEWER's OWN profile.is_current_top_dog
@@ -14,11 +15,14 @@ import { isHttpError, isRedirect } from '@sveltejs/kit';
 //     (NOT a page failure) when the spray read fails;
 //   - degrades canSpray to false (no spray affordance) when the viewer read fails.
 //
-// The profiles + sprays feature modules are dependency-injected via their import
-// surface, so we mock the network-touching wrappers (getProfileByHandle /
-// getProfileById / listSpraysForProfile) and the storage getPublicUrl, and assert
-// the load's orchestration directly. The RLS Top-Dog INSERT gate is live-DB
-// coverage (tests/mustard.e2e.ts), out of this unit test's reach.
+// The profiles + sprays + walls feature modules are dependency-injected via their
+// import surface, so we mock the network-touching wrappers (getProfileByHandle /
+// getProfileById / listSpraysForProfile / listWallMessages) and the storage
+// getPublicUrl, and assert the load's orchestration directly. The RLS Top-Dog
+// INSERT gate is live-DB coverage (tests/mustard.e2e.ts); the wall author-pin /
+// delete RLS is live-DB coverage (tests/walls.e2e.ts), both out of this unit
+// test's reach. (Dedicated wall-load assertions live alongside the wall actions
+// in wall-action.test.ts.)
 
 vi.mock('$lib/features/profiles/profiles', () => ({
 	getProfileByHandle: vi.fn(),
@@ -32,6 +36,12 @@ vi.mock('$lib/features/mustard/sprays', () => ({
 	addSpray: vi.fn()
 }));
 
+vi.mock('$lib/features/walls/walls', () => ({
+	listWallMessages: vi.fn(),
+	postWallMessage: vi.fn(),
+	deleteWallMessage: vi.fn()
+}));
+
 vi.mock('$lib/storage', () => ({
 	getPublicUrl: vi.fn()
 }));
@@ -39,6 +49,7 @@ vi.mock('$lib/storage', () => ({
 import { load } from './+page.server';
 import { getProfileByHandle, getProfileById } from '$lib/features/profiles/profiles';
 import { listSpraysForProfile } from '$lib/features/mustard/sprays';
+import { listWallMessages } from '$lib/features/walls/walls';
 import { getPublicUrl } from '$lib/storage';
 
 const VIEWER_ID = '11111111-1111-4111-8111-111111111111';
@@ -96,6 +107,9 @@ type LoadData = {
 	avatarUrl: string | null;
 	sprays: { id: string; x: number; y: number; sprayed_at: string }[];
 	canSpray: boolean;
+	wallMessages: unknown[];
+	viewerId: string;
+	isWallOwner: boolean;
 };
 
 async function callLoad(event: unknown): Promise<LoadData> {
@@ -111,6 +125,7 @@ beforeEach(() => {
 	vi.mocked(getProfileByHandle).mockResolvedValue({ ok: true, data: TARGET_PROFILE });
 	vi.mocked(getProfileById).mockResolvedValue({ ok: true, data: aViewerProfile() });
 	vi.mocked(listSpraysForProfile).mockResolvedValue({ ok: true, data: [] });
+	vi.mocked(listWallMessages).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(getPublicUrl).mockReturnValue('https://cdn/avatar.webp');
 });
 
@@ -149,7 +164,11 @@ describe('profile [handle] load', () => {
 			profile: TARGET_PROFILE,
 			avatarUrl: null,
 			sprays: [],
-			canSpray: false
+			canSpray: false,
+			wallMessages: [],
+			// The viewer is not the target profile, so they do not own this wall.
+			viewerId: VIEWER_ID,
+			isWallOwner: false
 		});
 		// No avatar_path => no public-URL resolution.
 		expect(getPublicUrl).not.toHaveBeenCalled();

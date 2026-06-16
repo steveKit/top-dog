@@ -1,12 +1,12 @@
 # Milestone M5: Walls & DMs
 
-> **Status:** `pending`
+> **Status:** `active`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** message walls + direct messages.
 
 ## Active Tasks
 
-### TASK-050: Message walls [`pending`] [`P2`] [`M`]
+### TASK-050: Message walls [`in_progress`] [`P2`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-011

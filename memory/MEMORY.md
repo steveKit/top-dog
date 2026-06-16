@@ -105,6 +105,23 @@ re-trigger fixed it with no repo diff. This refines the standing [[CLAUDE]]
 keep-alive gotcha, which now records both failure modes. The gate recurs at M4:
 TASK-042's prune migration must be pushed to hosted before the prune step ships.
 
+## Security / RLS Patterns
+
+### Gate a privileged-but-cosmetic write with a `WITH CHECK` on a server-maintained, non-client-writable column — not an RPC
+
+When a flair surface needs a "only the current Top Dog (or other privileged
+role) may do X" gate but maintains **no denormalized counter**, the right shape
+is a **plain owner-scoped RLS write** (the inverse of consuming-writes-via-RPC)
+whose INSERT policy adds an authorization conjunct reading a server-maintained,
+**non-client-writable** column (e.g. `profiles.is_current_top_dog`, locked down
+by decision #25). The gate is trustworthy precisely because the caller cannot
+forge the column it reads — so no SECURITY DEFINER RPC is needed just to enforce
+the authorization. Worked example: `mustard_sprays_insert_top_dog` (M4 /
+TASK-041). This recurs whenever a future surface is "only Top Dog can …" (a
+candidate at M5+). Full mechanics live in the [[CLAUDE]] "Cosmetic / many-allowed
+tables" gotcha — this is the cross-session pointer that it is a **reusable design
+choice**, layered on decisions #12/#15/#25, not a one-off.
+
 ## Navigation Patterns
 
 ### `TASKS.md` is an index, not the queue body (since 2026-06-11)

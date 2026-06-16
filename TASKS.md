@@ -20,10 +20,11 @@
 
 ## Active Milestones
 
-_None active. **Milestone M3 — Reactions & Per-Dog Stats is complete** (TASK-030
-reactions, TASK-031 per-dog stats, TASK-032 E2E hardening, TASK-033 P0 signed-URL
-fix — see § Completed Milestones below). The next milestone — **M4 — Mustard
-Mechanic** — is pre-exploded under § Planned Milestones; select it to continue._
+**Milestone M4 — Mustard Mechanic** is `active` (activated 2026-06-16). Goal:
+the current Top Dog sprays mustard on profiles; render-time decay over 24h; a
+daily >24h prune job. Tasks: TASK-040 (decay math, TDD) → TASK-041 (spray +
+render) → TASK-042 (prune job). See [[tasks/milestone-04-mustard-mechanic]]. M3
+and earlier are complete (see § Completed Milestones).
 
 ## Planned Milestones
 
@@ -32,12 +33,11 @@ carry **full task files now** rather than header-only stubs. (The new-model
 default is a one-line stub the planner explodes on activation; here the detail
 was already written, so it is preserved.) Depends-on is kept coarse.
 
-| #   | Milestone        | Scope (one line)                                               | Depends on           | File                                    |
-| --- | ---------------- | -------------------------------------------------------------- | -------------------- | --------------------------------------- |
-| 04  | Mustard Mechanic | Top Dog sprays mustard; render-time decay over 24h; >24h prune | M2 (TASK-021)        | [[tasks/milestone-04-mustard-mechanic]] |
-| 05  | Walls & DMs      | profile message walls + direct messages (store original body)  | TASK-011             | [[tasks/milestone-05-walls-dms]]        |
-| 06  | Emoji Library    | hot-dog emoji set + render-time filter + random sprinkle       | M5 (TASK-050/051)    | [[tasks/milestone-06-emoji-library]]    |
-| 07  | Safety & Polish  | server-side upload limits, report button, final polish pass    | all prior milestones | [[tasks/milestone-07-safety-polish]]    |
+| #   | Milestone       | Scope (one line)                                              | Depends on           | File                                 |
+| --- | --------------- | ------------------------------------------------------------- | -------------------- | ------------------------------------ |
+| 05  | Walls & DMs     | profile message walls + direct messages (store original body) | TASK-011             | [[tasks/milestone-05-walls-dms]]     |
+| 06  | Emoji Library   | hot-dog emoji set + render-time filter + random sprinkle      | M5 (TASK-050/051)    | [[tasks/milestone-06-emoji-library]] |
+| 07  | Safety & Polish | server-side upload limits, report button, final polish pass   | all prior milestones | [[tasks/milestone-07-safety-polish]] |
 
 ## Deferred Milestones
 

@@ -28,7 +28,7 @@ Canonical [[wikilink]] targets for this project:
 - [[TASKS-ARCHIVE]] — completed-milestone archive (pre-migration M0/M1)
 - [[README]] — setup, usage, contributing
 - [[memory/MEMORY]] — stable cross-session agent patterns
-- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-011]])
+- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-012]])
 
 ## Commands
 

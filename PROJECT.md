@@ -732,19 +732,19 @@ architecture-decision row** needed.
    (`(protected)/app/profile/[handle]/+page.server.ts` wall load + `post` /
    `deleteMessage` actions, `safeGetSession()`-gated, author/wall-owner from the
    session / route param and never client input; `+page.svelte` wall render + post box
-   + delete affordance shown only to the author or wall owner) — the **existing mustard
-   spray UI is preserved**. **Security posture (L2), verified at review:** the INSERT
-   author pin is un-forgeable (forge → `42501`, pinned by a live E2E); DELETE is scoped
-   to the stored row (no client-widenable path); the body is stored verbatim and
-   rendered through Svelte auto-escaping (no `{@html}` → no XSS). **Zero new
-   dependencies and no new discovered work** surfaced by the reviewer. Coverage:
-   `walls.test.ts`, `wall-action.test.ts`, live-DB `@security` `tests/walls.e2e.ts`
-   (7 RLS specs), plus a stale-test fix to `profile-load.test.ts`. Metrics at merge:
-   `pnpm test` 514 pass, `pnpm check` 0 errors, lint clean (modulo a pre-existing,
-   director-owned `TASKS.md` Prettier warning), `@smoke` 4, `@security` 47. Reviewer
-   APPROVE, 0 fix cycles. **M5 stays open — TASK-051 (direct messages) remains;** this
-   migration must be `supabase db push`ed to hosted per the 2026-06-16 hosted-drift
-   lesson.
+   - delete affordance shown only to the author or wall owner) — the **existing mustard
+     spray UI is preserved**. **Security posture (L2), verified at review:** the INSERT
+     author pin is un-forgeable (forge → `42501`, pinned by a live E2E); DELETE is scoped
+     to the stored row (no client-widenable path); the body is stored verbatim and
+     rendered through Svelte auto-escaping (no `{@html}` → no XSS). **Zero new
+     dependencies and no new discovered work** surfaced by the reviewer. Coverage:
+     `walls.test.ts`, `wall-action.test.ts`, live-DB `@security` `tests/walls.e2e.ts`
+     (7 RLS specs), plus a stale-test fix to `profile-load.test.ts`. Metrics at merge:
+     `pnpm test` 514 pass, `pnpm check` 0 errors, lint clean (modulo a pre-existing,
+     director-owned `TASKS.md` Prettier warning), `@smoke` 4, `@security` 47. Reviewer
+     APPROVE, 0 fix cycles. **M5 stays open — TASK-051 (direct messages) remains;** this
+     migration must be `supabase db push`ed to hosted per the 2026-06-16 hosted-drift
+     lesson.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 

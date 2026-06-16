@@ -1,20 +1,12 @@
 # Milestone M4: Mustard Mechanic
 
-> **Status:** `active`
+> **Status:** `complete`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** spray + render-time decay + >24h prune.
 
 ## Active Tasks
 
-### TASK-042: Mustard prune job [`pending`] [`P1`] [`S`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-041
-**Description:** Bound table growth (adversarial finding C).
-**Acceptance Criteria:**
-
-- [ ] Daily job deletes sprays older than 24h
-- [ ] Wired into the keep-alive workflow alongside the tally
+_None — all M4 tasks complete; milestone closed (see below)._
 
 ## Completed Tasks (this milestone)
 
@@ -182,6 +174,98 @@ per the handoff-010 / 2026-06-16 hosted-drift lesson, the `mustard_sprays`
 migration and TASK-042's prune RPC must be `supabase db push`ed to hosted
 before the prune step ships, or the keep-alive workflow will 404 exactly as the
 M2/M3 migrations did.
+
+### TASK-042: Mustard prune job [`complete`] [`P1`] [`S`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-041
+**Description:** Bound table growth (adversarial finding C).
+**PR:** #57 (`6452407`, squash-merged) · **Reviewer:** APPROVE · **Fix cycles:** 0
+**Acceptance Criteria:**
+
+- [x] Daily job deletes sprays older than 24h
+- [x] Wired into the keep-alive workflow alongside the tally
+
+**Notes:**
+
+**The sole DELETE path for an immutable table — the prune mirror of
+`tally_top_dog_day()`.** Migration
+`supabase/migrations/20260616170706_mustard_prune.sql` adds
+`public.prune_mustard_sprays()` (`security definer`, `set search_path = ''`,
+fully schema-qualified per the M0 hosted-parity lesson), which deletes
+`mustard_sprays where sprayed_at < now() - interval '24 hours'` and returns
+the pruned count. **It is the only DELETE path that exists for the table.** Per
+TASK-041 (decision #15), `mustard_sprays` has **no client UPDATE/DELETE
+policy** — sprays are immutable + persistent across crown changes, and
+default-deny blocks every client write except the gated INSERT. This
+SECURITY DEFINER function runs as the table owner and bypasses RLS to reap
+the faded tail, **exactly as `tally_top_dog_day()` is the sole writer of
+`top_dog_days`**: in both cases a privileged scheduled RPC owns the one write
+the client cannot perform. A btree index on `sprayed_at` lets the daily DELETE
+range-scan only the expired tail rather than seq-scanning the table (cheap
+insurance — the table is bounded by this very job, but sprays accumulate
+between daily runs since a Top Dog can spray many profiles a day).
+
+**Decision #26 auth model — anon-callable because the DELETE is provably
+safe, not because deletes are inherently safe.** The function is
+EXECUTE-granted to `anon` + `authenticated` (after `revoke execute … from
+public`, which on Supabase is necessary because new `public.*` functions get
+an explicit anon/authenticated grant a PUBLIC-only revoke does not strip — the
+same gotcha applied to the tally and vote RPCs), so the keep-alive workflow
+calls it via PostgREST with the **existing publishable (anon) key — no new repo
+secret**, identical to the TASK-022 tally. The reason an **anon DELETE** is
+defensible here, where an arbitrary client DELETE would not be, is the
+decision #26 shape applied to a destructive op: the RPC takes **no caller input**
+(`pronargs = 0`) and the predicate is fixed to rows that are **provably >24h
+old** — already opacity-0 and invisible per `mustardOpacity` (the TASK-040 /
+decision #15 render seam). So it is:
+
+- **idempotent** — a second call the same minute deletes 0 more rows;
+- **not forgeable** — a caller cannot point it at a specific or a fresh spray;
+  it deletes exactly the expired set the cron targets, nothing else;
+- **self-limiting** — the worst case (an early or extra call) deletes only
+  already-expired, invisible rows, which is precisely what the daily cron does.
+
+It deletes nothing a user can see and nothing a caller can choose, so granting
+`anon` EXECUTE widens no real capability — the deletion set is server-defined
+and inert to the UI. This is decision #26 (A1) extended from a recording job
+(`tally_top_dog_day`) to a destructive cleanup job; the pattern was already set
+up for reuse at the TASK-022 bookkeeping, so **no new architecture-decision row**.
+
+**Workflow wiring — a third step mirroring the tally, fail-on-non-2xx.**
+`.github/workflows/keepalive.yml` gains a "Prune mustard sprays (>24h,
+idempotent)" step after the existing tally step, structurally identical to it:
+a PostgREST `POST /rest/v1/rpc/prune_mustard_sprays` with the publishable key,
+capturing the HTTP code and `exit 1` on any non-2xx (`::error::` annotation) so
+a broken prune turns the workflow **red**. This preserves the TASK-022
+invariant that a failing scheduled job is visible, and it sits alongside the
+`ping` (auto-pause guard) and `tally` (reign count) steps — one daily workflow,
+three idempotent jobs.
+
+**Coverage.** Standard implementer-first, test-after (the prune is a DB job +
+workflow wiring, not pure logic). New live-DB spec `tests/mustard-prune.e2e.ts`
+(`@security`, 4 cases): deletes >24h sprays while keeping fresh ones,
+anon-callable (publishable key), idempotent (a re-run prunes 0), and
+no-input / not-forgeable. The `@security` suite stays serialized under
+`workers: 1` (it mutates the shared local crown to set up a Top Dog who can
+spray) — the established M2/M3 constraint.
+
+**No new Discovered Work.** The reviewer found none; the prior DW-017 (missing
+`x`/`y` coerces to `(0,0)`, from TASK-041) is unrelated to the prune and
+remains the only open M4 follow-up.
+
+**Metrics:** `pnpm test` 481/481, `pnpm check` 0 errors, `pnpm lint` clean,
+`@security` 40 (incl. the 4 new prune cases), `@smoke` 4. Reviewer APPROVE,
+0 fix cycles.
+
+**Closes Milestone M4 — Mustard Mechanic.** With the prune job landed, the
+mustard mechanic is complete end to end (decay seam → Top-Dog-gated spray +
+render → daily >24h prune). **Hosted-push gate (pending):** the
+`mustard_sprays` (TASK-041) and `mustard_prune` (this task) migrations must be
+`supabase db push`ed to hosted **before the next scheduled keep-alive run**, or
+the new prune step 404s exactly as the M2/M3 migrations did (the 2026-06-16
+hosted-drift class). The director surfaces this to the user as a post-merge ops
+step.
 
 ---
 

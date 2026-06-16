@@ -20,12 +20,11 @@
 
 ## Active Milestones
 
-**Milestone M4 — Mustard Mechanic** is `active` (activated 2026-06-16) — **2/3
-complete**. Goal: the current Top Dog sprays mustard on profiles; render-time
-decay over 24h; a daily >24h prune job. Tasks: ✅ TASK-040 (decay math, TDD,
-PR #53) → ✅ TASK-041 (spray + render, PR #55) → TASK-042 (prune job). See
-[[tasks/milestone-04-mustard-mechanic]]. M3 and earlier are complete (see §
-Completed Milestones).
+_None active._ **Milestone M4 — Mustard Mechanic is complete** (2026-06-16):
+TASK-040 (decay math, PR #53), TASK-041 (spray + render, PR #55), TASK-042
+(prune job, PR #57) — see § Completed Milestones. The next milestone — **M5 —
+Walls & DMs** — is pre-exploded under § Planned Milestones; select it to
+continue.
 
 ## Planned Milestones
 
@@ -52,6 +51,7 @@ None.
 | Milestone 01: Vertical Slice            | 2026-06-09 | `milestone-01-vertical-slice`          | [[TASKS-ARCHIVE]] (§ Milestone M1)             |
 | Milestone 02: Voting & Top Dog Engine   | 2026-06-12 | `milestone-02-voting-top-dog-engine`   | [[tasks/milestone-02-voting-top-dog-engine]]   |
 | Milestone 03: Reactions & Per-Dog Stats | 2026-06-12 | `milestone-03-reactions-per-dog-stats` | [[tasks/milestone-03-reactions-per-dog-stats]] |
+| Milestone 04: Mustard Mechanic          | 2026-06-16 | `milestone-04-mustard-mechanic`        | [[tasks/milestone-04-mustard-mechanic]]        |
 
 ## Logs
 

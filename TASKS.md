@@ -20,17 +20,15 @@
 
 ## Active Milestones
 
-**Milestone M5 — Walls & DMs** is `active` (3/5 tasks complete). **TASK-050
-(message walls)** (PR #60), **TASK-051 (direct messages)** (PR #62), and **TASK-052
-(restore Data API grants)** (PR #66, `18f9baa`) are complete. TASK-052 fixed a
-**project-wide grants regression** found at the M5 integration checkpoint (Supabase
-CLI `auto_expose_new_tables` flipped to `false` on 2026-05-30 → a fresh `supabase db
-reset` strips implicit base table grants; the architect-scoped fix restored explicit
-grants and pinned the config — `@smoke` + `@security` are GREEN again). Remaining:
-**TASK-053 (grant-invariant regression guard — next)** and **TASK-054 (hosted push,
-user-gated ops)**. **The M5 close stays gated until TASK-053 lands.** See
-[[tasks/milestone-05-walls-dms]]. **Milestone M4 — Mustard Mechanic completed**
-2026-06-16 (TASK-040/041/042) — see § Completed Milestones.
+**No milestone is currently `active`.** **Milestone M5 — Walls & DMs completed**
+2026-06-17 (TASK-050/051/052/053; tag `milestone-05-walls-dms`) — message walls +
+direct messages, plus a mid-milestone **grants hotfix** (TASK-052/053) that restored
+the explicit Data API grants after the Supabase CLI `auto_expose_new_tables` default
+flip (2026-05-30) and pinned the config so local matches cloud. **TASK-054 (push the
+M5 migrations + grant fix to hosted)** was deferred to [[tasks/deferred]] as a
+user-gated ops follow-up. The next planned milestone is **M6 — Emoji Library**
+(pre-exploded, ready to activate — see § Planned Milestones). See § Completed
+Milestones for M5 and the prior milestones.
 
 ## Planned Milestones
 
@@ -57,6 +55,7 @@ None.
 | Milestone 02: Voting & Top Dog Engine   | 2026-06-12 | `milestone-02-voting-top-dog-engine`   | [[tasks/milestone-02-voting-top-dog-engine]]   |
 | Milestone 03: Reactions & Per-Dog Stats | 2026-06-12 | `milestone-03-reactions-per-dog-stats` | [[tasks/milestone-03-reactions-per-dog-stats]] |
 | Milestone 04: Mustard Mechanic          | 2026-06-16 | `milestone-04-mustard-mechanic`        | [[tasks/milestone-04-mustard-mechanic]]        |
+| Milestone 05: Walls & DMs               | 2026-06-17 | `milestone-05-walls-dms`               | [[tasks/milestone-05-walls-dms]]               |
 
 ## Logs
 

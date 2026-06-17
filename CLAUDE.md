@@ -357,4 +357,25 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   against the **one shared local Postgres**, so default multi-worker parallelism races
   across spec files. Keep it serialized; if the suite outgrows a single worker,
   isolated per-file DB fixtures are the scaling path (not relaxing `workers`).
+- **Data API (PostgREST) authz is TWO-layer — a passing RLS policy is NOT enough; the
+  role also needs the base table `GRANT`.** `auto_expose_new_tables` is pinned `false` in
+  `supabase/config.toml`, so **every new `public` table migration MUST declare its own base
+  grants** — never rely on auto-expose to issue them. Declare: `authenticated` SELECT +
+  only the writes the table's RLS actually allows (INSERT/DELETE on counter-free cosmetic
+  tables like `hotdog_reactions`/`mustard_sprays`/`wall_messages`/`dms`; nothing on
+  RPC-only surfaces like `votes`/`top_dog_days`); `service_role` full DML; **`anon`
+  nothing**. **Never re-grant a locked column table-wide** — preserve the decision #24/#25
+  column-level lockdowns on `profiles`/`hot_dogs`/`dms` (re-granting table-wide INSERT/UPDATE
+  would re-open the forge path the lockdown closed). **Symptom if a table forgets its
+  grants:** a fresh `supabase db reset` (or a hosted DB whose table was pushed after
+  2026-05-30) returns PostgREST `permission denied` / `42501` on a path whose RLS is intact
+  — i.e. the path "mysteriously" breaks with no app-code or RLS change. **Why this exists:**
+  the Supabase CLI's `auto_expose_new_tables` default flipped `true`→`false` on 2026-05-30,
+  so a fresh reset stopped issuing the implicit base grants the schema had silently relied on
+  since M0 — `@smoke`/`@security` went red and the real invite path broke (TASK-052/053).
+  The platform removes auto-expose entirely after 2026-10-30, so explicit grants are also the
+  permanent forward path. The baseline restore lives in
+  `supabase/migrations/20260617000000_restore_data_api_grants.sql`; the `@security` guard
+  `tests/grants.e2e.ts` asserts the required AND forbidden grant matrix so a future reset
+  can't silently re-drift. This is decision #28 — apply it to every future `public` table.
   Use [[wikilinks]] when cross-referencing project docs.

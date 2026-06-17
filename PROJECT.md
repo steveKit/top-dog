@@ -175,8 +175,8 @@ new architecture-decision row** (decision #24's column-grant lockdown is
 preserved untouched). DW-005's original `byte_size` residual is **substantially
 mitigated** (the real-bytes/oversized direction is closed; the global-sum
 understatement direction remains an accepted v1 residual, kept tracked). Reviewer
-APPROVE, 0 fix cycles; `pnpm test` 626, `pnpm check` 0, `@smoke` 4, `@security` 73. **Hosted-push gate pending** — migration `20260617195233_upload_limits.sql`
-must be `supabase db push`ed to hosted before the next keep-alive run (see Process
+APPROVE, 0 fix cycles; `pnpm test` 626, `pnpm check` 0, `@smoke` 4, `@security` 73. **Hosted-push gate done (2026-06-17)** — migration `20260617195233_upload_limits.sql`
+was `supabase db push`ed to hosted by the user, so the caps are live on hosted (see Process
 notes). Remaining in M7: TASK-071 (report button), TASK-072 (polish pass). See the
 M7 progress notes below.
 
@@ -1177,7 +1177,7 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   M6 — but M6 added **no migrations** (the emoji library is pure render-time
   TS), so there is no M6 hosted-push gate. See [[tasks/deferred]] (row marked
   `done`) and [[Handoffs/handoff-014]].
-- **M7 hosted-push gate — PENDING as of 2026-06-17 (TASK-070).** TASK-070 adds
+- **M7 hosted-push gate — DONE 2026-06-17 (TASK-070).** TASK-070 added
   one new migration, `20260617195233_upload_limits.sql` (the bucket
   `file_size_limit`, the `hot_dogs_byte_size_max` CHECK, and the
   `hot_dogs_enforce_per_user_cap()` BEFORE INSERT trigger). Per the per-milestone
@@ -1185,9 +1185,9 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   CHECK/trigger/Storage-API caps are live on the hosted project — unlike M6 (pure
   render-time TS, no migration), M7 has reintroduced a migration. No scheduled job
   calls this migration's objects, so there is **no keep-alive 404 / auto-pause
-  risk** if the push lags (the daily `ping` still reads `profiles`); the gate is
-  about hosted enforcement parity, not workflow health. The director will surface
-  the push to the user as a post-merge ops step.
+  risk** if the push lags (the daily `ping` still reads `profiles`); the gate was
+  about hosted enforcement parity, not workflow health. **The user ran `supabase db
+push` on 2026-06-17**, so the CHECK/trigger/Storage-API caps are now live on hosted.
 - **No new architecture-decision row for TASK-070 (2026-06-17).** Hard server-side
   upload-limit enforcement **composes** existing decision #10 (per-user 100 cap),
   decision #11 (global storage guard), and decision #24's column-grant lockdown

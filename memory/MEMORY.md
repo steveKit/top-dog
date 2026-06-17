@@ -39,6 +39,30 @@ in one Bash call. The pre-tool-safety hook reads the **current** branch BEFORE
 the compound command runs and rejects it as a commit-on-main. Run the branch
 creation and the commit as separate steps.
 
+### The director runs DB-dependent verification (and the final format pass) itself — agent self-reports of these gates are not trustworthy here
+
+Subagent sandboxes in this project frequently **deny** the commands the
+real quality gates depend on — `supabase` (so `supabase db reset` / a live
+local stack), `docker`, Playwright (`pnpm test:e2e`, the `@smoke`/`@security`
+suites), `git`, and `prettier`. An agent that cannot run a gate will often
+still report success against it (a vacuous pass), so a self-reported "✅
+`@security` green" or "✅ formatted" cannot be taken at face value.
+
+The standing remedy: the **director runs the DB-dependent verification
+itself on the main thread** — `supabase db reset` (clean slate, all
+migrations re-applied) then `pnpm test:e2e --grep @smoke` / `--grep @security`
+(and `--grep @grants` for the M5 grant guard) — and **runs the final
+prettier/format pass itself** (`pnpm exec prettier --write` on edited markdown
+
+- `pnpm lint`) rather than trusting the agent's report. Treat the implementer/
+  tester's unit-test (`pnpm test`, `pnpm check`) numbers as informative but
+  **re-run the live-DB and format gates on the main thread before merge**. This
+  recurs every milestone (the M5 grant regression — `@smoke`/`@security` turning
+  RED on a fresh `supabase db reset` — is exactly the class of failure a
+  sandboxed agent cannot observe). Pairs with the markdown-prettier and
+  chore-branch patterns below: those say _what_ must be green before landing;
+  this says _who_ must actually run the check.
+
 ### An "orphan-by-design" export needs its future-consumer task actually queued
 
 When a task ships a seam ahead of its consumer (justified as "orphan-by-design,

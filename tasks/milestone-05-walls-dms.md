@@ -8,40 +8,12 @@
 
 > **Grants hotfix (TASK-052/053/054).** A project-wide regression surfaced during
 > the M5 integration checkpoint: the Supabase CLI's `auto_expose_new_tables` default
-> flipped to `false` (2026-05-30), so a fresh `supabase db reset` no longer issues the
-> implicit base table grants the schema relied on (RLS policies alone are insufficient
-> for PostgREST). `@smoke`/`@security` are RED and the real app invite path is broken.
-> Root-caused + scoped by an architect dispatch (read-only). **M5 cannot close until
-> TASK-052/053 land and `@smoke` + `@security` are green again.** Not caused by
-> TASK-051.
-
-### TASK-052: Restore Data API base grants (auto-expose remediation) [`pending`] [`P0`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** none (unblocks `@smoke` / `@security`)
-**Acceptance Criteria:**
-
-- [ ] New idempotent, schema-qualified migration `supabase/migrations/<ts>_restore_data_api_grants.sql`
-      (`supabase migration new restore_data_api_grants`) restoring exactly what
-      auto-expose used to issue:
-  - [ ] `authenticated`: `SELECT` on all 9 public tables (`invites`, `profiles`,
-        `hot_dogs`, `votes`, `top_dog_days`, `hotdog_reactions`, `mustard_sprays`,
-        `wall_messages`, `dms`)
-  - [ ] `authenticated`: `INSERT` on `invites`; `INSERT, DELETE` on `hotdog_reactions`;
-        `INSERT` on `mustard_sprays`; `INSERT, DELETE` on `wall_messages`; `DELETE` on
-        `hot_dogs`
-  - [ ] `authenticated`: **NO** table-wide INSERT/UPDATE on `profiles`/`hot_dogs`/`dms`
-        (preserve the decision #24/#25 column-grant lockdown); **NO** write on
-        `votes`/`top_dog_days` (decision #12 — RPC-only write path)
-  - [ ] `service_role`: explicit per-table `SELECT, INSERT, UPDATE, DELETE` on all 9
-        tables (mirrors pre-flip auto-expose; backs the E2E harness + privileged ops)
-  - [ ] `anon`: **NO** table grants (its only paths are RPC EXECUTE — already granted —
-        and the keep-alive ping, which reads zero rows under the authenticated-only policy)
-- [ ] Uncomment `auto_expose_new_tables = false` in `supabase/config.toml` (line 24) so
-      local matches cloud and the permanent post-2026-10-30 behavior
-- [ ] After `supabase db reset`: `pnpm test:e2e --grep @smoke` green AND
-      `pnpm test:e2e --grep @security` green
-- [ ] `pnpm test`, `pnpm check`, `pnpm lint` all clean
+> flipped to `false` (2026-05-30), so a fresh `supabase db reset` no longer issued the
+> implicit base table grants the schema relied on. Root-caused + scoped by an architect
+> dispatch (read-only). **TASK-052 has landed (PR #66, `18f9baa`) — `@smoke` (4) +
+> `@security` (57) are GREEN again.** TASK-053 (regression guard) and TASK-054 (hosted
+> push, user-gated ops) remain. **The M5 close stays gated until TASK-053 lands and the
+> green gates are re-confirmed.** Not caused by TASK-051.
 
 ### TASK-053: Grant-invariant verification [`pending`] [`P1`] [`M`]
 
@@ -74,6 +46,24 @@
       regardless of hosted's current grant state
 
 ## Completed Tasks (this milestone)
+
+### TASK-052: Restore Data API base grants (auto-expose remediation) [`complete`] [`P0`] [`M`]
+
+**Owner:** implementer + tester
+**Dependencies:** none
+**PR:** #66 (squash `18f9baa`) · **Reviewer:** APPROVE · **Fix cycles:** 0 production (2 stale `@security` assertions updated to the stronger grant-layer `42501` behavior)
+**Acceptance Criteria:**
+
+- [x] New idempotent, schema-qualified migration `supabase/migrations/20260617000000_restore_data_api_grants.sql` restoring exactly what auto-expose used to issue (`authenticated` SELECT on all 9 tables; INSERT/DELETE only on the counter-free cosmetic tables; DELETE on `hot_dogs`; `service_role` full DML; `anon` nothing)
+- [x] `authenticated`: NO table-wide INSERT/UPDATE on `profiles`/`hot_dogs`/`dms` (decision #24/#25 lockdown preserved); NO write on `votes`/`top_dog_days` (decision #12) — empirically confirmed via the live grant matrix
+- [x] `auto_expose_new_tables = false` pinned in `supabase/config.toml`
+- [x] After `supabase db reset`: `@smoke` (4) + `@security` (57) green
+- [x] `pnpm test` (573), `pnpm check` (0 errors), `pnpm lint` clean
+
+**Notes:** _(pending — written at M5 close by the documenter, together with the TASK-051
+notes and the M5 close notes.)_
+
+---
 
 ### TASK-051: Direct messages [`complete`] [`P2`] [`M`]
 

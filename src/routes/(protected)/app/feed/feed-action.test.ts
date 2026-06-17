@@ -68,6 +68,25 @@ vi.mock('$lib/features/reactions/reactions', () => ({
 	listReactionsForDogs: vi.fn()
 }));
 
+// Burger-alarm report wrappers (TASK-071). The report/unreport ACTIONS call
+// reportBurger/unreportBurger, so we mock those two to assert the action's
+// orchestration (auth gate, dog-id boundary, no client-supplied reporter id,
+// friendly fail() mapping). The LOAD path depends on the REAL aggregate wrappers
+// (getBurgerAlarmCounts / getMyReportedDogIds) — which run against the faked
+// `.from('burger_alarms')` chain — and on the REAL CANNOT_REPORT_OWN sentinel so
+// the action's own-dog mapping is exercised faithfully. So we partial-mock: keep
+// everything real except the two network-touching action wrappers.
+vi.mock('$lib/features/reports/reports', async () => {
+	const actual = await vi.importActual<typeof import('$lib/features/reports/reports')>(
+		'$lib/features/reports/reports'
+	);
+	return {
+		...actual,
+		reportBurger: vi.fn(),
+		unreportBurger: vi.fn()
+	};
+});
+
 import { actions, load } from './+page.server';
 import { listVotableDogs, getCurrentVote } from '$lib/features/voting/feed';
 import {
@@ -84,6 +103,7 @@ import {
 	removeReaction,
 	listReactionsForDogs
 } from '$lib/features/reactions/reactions';
+import { reportBurger, unreportBurger, CANNOT_REPORT_OWN } from '$lib/features/reports/reports';
 
 // The feed load now reads the anonymous per-dog burger-alarm aggregate with the
 // SERVICE client (getBurgerAlarmCounts: `.from('burger_alarms').select('hot_dog_id,
@@ -128,6 +148,8 @@ const vote_ = actions.vote;
 const remove_ = actions.remove;
 const react_ = actions.react;
 const unreact_ = actions.unreact;
+const report_ = actions.report;
+const unreport_ = actions.unreport;
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const VALID_USER = { id: USER_ID, email: 'chef@topdog.test' };
@@ -237,6 +259,9 @@ beforeEach(() => {
 	vi.mocked(listReactionsForDogs).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(addReaction).mockResolvedValue({ ok: true, data: null });
 	vi.mocked(removeReaction).mockResolvedValue({ ok: true, data: null });
+	// Report action wrappers default to success; individual tests override.
+	vi.mocked(reportBurger).mockResolvedValue({ ok: true, data: null });
+	vi.mocked(unreportBurger).mockResolvedValue({ ok: true, data: null });
 });
 
 describe('feed load', () => {
@@ -883,5 +908,238 @@ describe('feed unreact action', () => {
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(401);
 		expect(removeReaction).not.toHaveBeenCalled();
+	});
+});
+
+// Burger-alarm report actions (TASK-071 — decision #12/#15: cosmetic flair, never
+// touches vote_count / ranking / the crown). The reporter is ANONYMOUS and derived
+// from safeGetSession(); the client supplies ONLY the dog id. A hostile client-
+// supplied reporter_id in the form MUST be ignored — the trust anchor is the
+// session uid, never the payload (this is the anonymity / no-forge anchor). The
+// wrappers run on the RLS-scoped event.locals.supabase; the own-dog RLS denial
+// surfaces as the CANNOT_REPORT_OWN sentinel, which the action passes through as
+// friendly copy. Raw Supabase errors are mapped to a friendly message by the
+// wrapper, so the action never leaks SDK text.
+describe('feed report action', () => {
+	it('reads the session via safeGetSession(), never raw getSession()', async () => {
+		const { event, safeGetSession, rawGetSession } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		await report_(event);
+
+		expect(safeGetSession).toHaveBeenCalledOnce();
+		expect(rawGetSession).not.toHaveBeenCalled();
+	});
+
+	it('success: calls reportBurger with the SESSION user id + form dog id on event.locals.supabase, returns { reported: true }', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await report_(event);
+
+		expect(reportBurger).toHaveBeenCalledWith(event.locals.supabase, USER_ID, 'dog-target');
+		expect(result).toEqual({ reported: true });
+	});
+
+	it('IGNORES a hostile client-supplied reporter_id: the reporter comes from the session, not the form', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', reporter_id: 'attacker-uuid' }
+		});
+
+		await report_(event);
+
+		// reportBurger(client, reporterId, dogId) — the reporterId is the trusted
+		// session uid, NEVER the forged form value, and the forged value reaches no arg.
+		const callArgs = vi.mocked(reportBurger).mock.calls[0];
+		expect(callArgs[1]).toBe(USER_ID);
+		expect(callArgs[1]).not.toBe('attacker-uuid');
+		expect(callArgs[2]).toBe('dog-target');
+		expect(callArgs).not.toContain('attacker-uuid');
+	});
+
+	it('rejects a missing dog id with a boundary 400; never calls reportBurger', async () => {
+		const { event } = makeEvent({ session: VALID_SESSION, user: VALID_USER, formFields: {} });
+
+		const result = await report_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(reportBurger).not.toHaveBeenCalled();
+	});
+
+	it('rejects an empty dog id with a boundary 400; never calls reportBurger', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: '' }
+		});
+
+		const result = await report_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(reportBurger).not.toHaveBeenCalled();
+	});
+
+	it('fails closed with 401 when unauthenticated; never calls reportBurger', async () => {
+		const { event } = makeEvent({
+			session: null,
+			user: null,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await report_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(401);
+		expect(reportBurger).not.toHaveBeenCalled();
+	});
+
+	it('fails closed when a user is present but the session is null; never calls reportBurger', async () => {
+		const { event } = makeEvent({
+			session: null,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await report_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(401);
+		expect(reportBurger).not.toHaveBeenCalled();
+	});
+
+	it('own-dog denial -> friendly CANNOT_REPORT_OWN fail() (not raw SDK text)', async () => {
+		vi.mocked(reportBurger).mockResolvedValue({ ok: false, error: CANNOT_REPORT_OWN });
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'my-own-dog' }
+		});
+
+		const result = await report_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		const failure = result as { status: number; data: { error: string } };
+		expect(failure.status).toBe(400);
+		expect(failure.data.error).toBe(CANNOT_REPORT_OWN);
+		expect(failure.data.error).toMatch(/your own hot dog/i);
+	});
+
+	it('a wrapper error -> friendly fail() + server-side log (never raw SDK text)', async () => {
+		vi.mocked(reportBurger).mockResolvedValue({
+			ok: false,
+			error: 'Could not report that hot dog right now.'
+		});
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await report_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		const failure = result as { status: number; data: { error: string } };
+		expect(failure.status).toBe(400);
+		// The friendly wrapper message is surfaced; no raw SQLSTATE / SDK text leaks.
+		expect(failure.data.error).not.toMatch(/42501|23505|permission denied/i);
+		expect(console.error).toHaveBeenCalled();
+	});
+});
+
+describe('feed unreport action', () => {
+	it('reads the session via safeGetSession(), never raw getSession()', async () => {
+		const { event, safeGetSession, rawGetSession } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		await unreport_(event);
+
+		expect(safeGetSession).toHaveBeenCalledOnce();
+		expect(rawGetSession).not.toHaveBeenCalled();
+	});
+
+	it('success: calls unreportBurger with the SESSION user id + form dog id on event.locals.supabase, returns { unreported: true }', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await unreport_(event);
+
+		expect(unreportBurger).toHaveBeenCalledWith(event.locals.supabase, USER_ID, 'dog-target');
+		expect(result).toEqual({ unreported: true });
+	});
+
+	it('IGNORES a hostile client-supplied reporter_id: the reporter comes from the session, not the form', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target', reporter_id: 'attacker-uuid' }
+		});
+
+		await unreport_(event);
+
+		const callArgs = vi.mocked(unreportBurger).mock.calls[0];
+		expect(callArgs[1]).toBe(USER_ID);
+		expect(callArgs[1]).not.toBe('attacker-uuid');
+		expect(callArgs[2]).toBe('dog-target');
+		expect(callArgs).not.toContain('attacker-uuid');
+	});
+
+	it('rejects a missing dog id with a boundary 400; never calls unreportBurger', async () => {
+		const { event } = makeEvent({ session: VALID_SESSION, user: VALID_USER, formFields: {} });
+
+		const result = await unreport_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(unreportBurger).not.toHaveBeenCalled();
+	});
+
+	it('fails closed with 401 when unauthenticated; never calls unreportBurger', async () => {
+		const { event } = makeEvent({
+			session: null,
+			user: null,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await unreport_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(401);
+		expect(unreportBurger).not.toHaveBeenCalled();
+	});
+
+	it('a wrapper error -> friendly fail() + server-side log (never raw SDK text)', async () => {
+		vi.mocked(unreportBurger).mockResolvedValue({
+			ok: false,
+			error: 'Could not retract your report right now.'
+		});
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { id: 'dog-target' }
+		});
+
+		const result = await unreport_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		const failure = result as { status: number; data: { error: string } };
+		expect(failure.status).toBe(400);
+		expect(failure.data.error).not.toMatch(/42501|23505|permission denied/i);
+		expect(console.error).toHaveBeenCalled();
 	});
 });

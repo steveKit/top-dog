@@ -20,10 +20,17 @@
 
 ## Active Milestones
 
-**Milestone M5 — Walls & DMs** is `active` (1/2 tasks complete). **TASK-050
-(message walls)** is complete (PR #60, `d3c7a4d`); **TASK-051 (direct messages)**
-remains. See [[tasks/milestone-05-walls-dms]]. **Milestone M4 — Mustard Mechanic
-completed** 2026-06-16 (TASK-040/041/042) — see § Completed Milestones.
+**Milestone M5 — Walls & DMs** is `active` (2/5 tasks complete). **TASK-050
+(message walls)** (PR #60, `d3c7a4d`) and **TASK-051 (direct messages)** (PR #62,
+`4ac8ff8`) are both complete. A **project-wide grants regression** surfaced at the
+M5 integration checkpoint (Supabase CLI `auto_expose_new_tables` flipped to `false`
+on 2026-05-30 → fresh `supabase db reset` strips implicit base table grants;
+`@smoke`/`@security` RED, invite path broken). Architect-scoped fix added as
+**TASK-052 (`P0`, restore grants — active)**, **TASK-053 (grant-invariant
+verification)**, and **TASK-054 (hosted push, user-gated ops)**. **M5 cannot close
+until TASK-052/053 land and `@smoke` + `@security` are green.** See
+[[tasks/milestone-05-walls-dms]]. **Milestone M4 — Mustard Mechanic completed**
+2026-06-16 (TASK-040/041/042) — see § Completed Milestones.
 
 ## Planned Milestones
 

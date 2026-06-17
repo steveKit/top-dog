@@ -6,16 +6,89 @@
 
 ## Active Tasks
 
-### TASK-051: Direct messages [`in_progress`] [`P2`] [`M`]
+> **Grants hotfix (TASK-052/053/054).** A project-wide regression surfaced during
+> the M5 integration checkpoint: the Supabase CLI's `auto_expose_new_tables` default
+> flipped to `false` (2026-05-30), so a fresh `supabase db reset` no longer issues the
+> implicit base table grants the schema relied on (RLS policies alone are insufficient
+> for PostgREST). `@smoke`/`@security` are RED and the real app invite path is broken.
+> Root-caused + scoped by an architect dispatch (read-only). **M5 cannot close until
+> TASK-052/053 land and `@smoke` + `@security` are green again.** Not caused by
+> TASK-051.
+
+### TASK-052: Restore Data API base grants (auto-expose remediation) [`pending`] [`P0`] [`M`]
 
 **Owner:** unassigned
-**Dependencies:** TASK-011
+**Dependencies:** none (unblocks `@smoke` / `@security`)
 **Acceptance Criteria:**
 
-- [ ] `dms` migration + RLS (only sender/recipient read; sender inserts)
-- [ ] Send/receive DMs; mark read_at
+- [ ] New idempotent, schema-qualified migration `supabase/migrations/<ts>_restore_data_api_grants.sql`
+      (`supabase migration new restore_data_api_grants`) restoring exactly what
+      auto-expose used to issue:
+  - [ ] `authenticated`: `SELECT` on all 9 public tables (`invites`, `profiles`,
+        `hot_dogs`, `votes`, `top_dog_days`, `hotdog_reactions`, `mustard_sprays`,
+        `wall_messages`, `dms`)
+  - [ ] `authenticated`: `INSERT` on `invites`; `INSERT, DELETE` on `hotdog_reactions`;
+        `INSERT` on `mustard_sprays`; `INSERT, DELETE` on `wall_messages`; `DELETE` on
+        `hot_dogs`
+  - [ ] `authenticated`: **NO** table-wide INSERT/UPDATE on `profiles`/`hot_dogs`/`dms`
+        (preserve the decision #24/#25 column-grant lockdown); **NO** write on
+        `votes`/`top_dog_days` (decision #12 — RPC-only write path)
+  - [ ] `service_role`: explicit per-table `SELECT, INSERT, UPDATE, DELETE` on all 9
+        tables (mirrors pre-flip auto-expose; backs the E2E harness + privileged ops)
+  - [ ] `anon`: **NO** table grants (its only paths are RPC EXECUTE — already granted —
+        and the keep-alive ping, which reads zero rows under the authenticated-only policy)
+- [ ] Uncomment `auto_expose_new_tables = false` in `supabase/config.toml` (line 24) so
+      local matches cloud and the permanent post-2026-10-30 behavior
+- [ ] After `supabase db reset`: `pnpm test:e2e --grep @smoke` green AND
+      `pnpm test:e2e --grep @security` green
+- [ ] `pnpm test`, `pnpm check`, `pnpm lint` all clean
+
+### TASK-053: Grant-invariant verification [`pending`] [`P1`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-052
+**Acceptance Criteria:**
+
+- [ ] Checked-in verification (a `@security` Playwright spec `tests/grants.e2e.ts` or a
+      documented `psql` script) asserting the full required **AND forbidden** grant
+      matrix from the architect audit, including the negatives: `anon` has no table DML;
+      `authenticated` has no INSERT/UPDATE on `profiles`/`hot_dogs`/`dms` beyond the
+      locked columns; `authenticated` has no write on `votes`/`top_dog_days`; the column
+      lockdowns survive
+- [ ] Fails before TASK-052's migration, passes after (regression guard so the next
+      `supabase db reset` can't silently re-drift)
+
+### TASK-054: Push grant migration to hosted + verify keep-alive [`pending`] [`P1`] [`L`]
+
+**Owner:** user (hosted creds — ops task)
+**Dependencies:** TASK-052 (ideally TASK-053)
+**Acceptance Criteria:**
+
+- [ ] Confirm hosted prerequisites: which migrations are already pushed; whether tables
+      pushed before vs after 2026-05-30 retained their auto-exposed grants on hosted
+- [ ] Include the grant migration in the **same** `supabase db push` as the still-unpushed
+      M5 migrations (`wall_messages`, `dms`) so they don't land grant-less on hosted
+- [ ] `supabase db push` (user-run / user-approved)
+- [ ] Manually trigger the keep-alive workflow; confirm ping + tally + prune all return
+      2xx (protects the 7-day auto-pause guarantee). Idempotent migration → safe to push
+      regardless of hosted's current grant state
 
 ## Completed Tasks (this milestone)
+
+### TASK-051: Direct messages [`complete`] [`P2`] [`M`]
+
+**Owner:** implementer + tester
+**Dependencies:** TASK-011 (complete)
+**PR:** #62 (squash `4ac8ff8`) · **Reviewer:** APPROVE · **Fix cycles:** 0
+**Acceptance Criteria:**
+
+- [x] `dms` migration + RLS (only sender/recipient read; sender inserts)
+- [x] Send/receive DMs; mark read_at
+
+**Notes:** _(pending — written at M5 close by the documenter, together with the M5 close
+notes; held because the milestone close is blocked on the TASK-052/053 grants hotfix.)_
+
+---
 
 ### TASK-050: Message walls [`complete`] [`P2`] [`M`]
 

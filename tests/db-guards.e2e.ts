@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { getLocalStackCreds } from './helpers/local-stack';
+import { HOTDOGS_BUCKET } from '../src/lib/storage';
 
 // DB-guard assertions deferred from the TASK-013 review (recorded in
 // dogs-action.test.ts header). These verify the DB-AUTHORITATIVE backstops that
@@ -310,5 +311,217 @@ test.describe('@security DB-authoritative profiles crown-column guards (direct P
 			.eq('id', userId)
 			.single();
 		expect(data?.display_name, 'the display_name edit persisted').toBe(newName);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// TASK-070 — Upload limits enforcement (M7). The three DB/Storage-authoritative
+// layers from the upload_limits migration, proven by going DIRECTLY to PostgREST
+// / the Storage API as an `authenticated`-role client (the browser's publishable
+// key + a signed-in JWT) — bypassing the SvelteKit upload action entirely:
+//
+//   1. A direct insert with byte_size > 2 MiB is rejected by the
+//      hot_dogs_byte_size_max DB CHECK (the declared-size backstop, SQLSTATE
+//      23514 check_violation).
+//   2. After an owner has 100 rows, the 101st insert is rejected by the
+//      hot_dogs_per_user_cap BEFORE INSERT trigger (rows 1-100 must succeed;
+//      byte_size kept valid so we isolate the count cap, not the size CHECK).
+//   3. A > 2 MiB object upload to the `hotdogs` bucket is rejected by the
+//      Storage API file_size_limit; a <= 2 MiB object still succeeds.
+//
+// MAX_UPLOAD_BYTES = 2 MiB = 2097152 (mirrors src/lib/features/hotdogs/hotdogs.ts;
+// SQL can't import the TS constant). Tagged @security (NOT @smoke). Runs against
+// the LOCAL stack; pure PostgREST + Storage API, no app server. Fixture ids are
+// fresh UUIDs (DW-014 — never pinned) to avoid hot_dogs_pkey collisions across
+// runs/specs.
+test.describe('@security DB-authoritative upload limits (direct PostgREST + Storage API)', () => {
+	const creds = getLocalStackCreds();
+	const MAX_UPLOAD_BYTES = 2097152;
+
+	const userEmail = `upload-limits-${Date.now().toString(36)}@topdog.test`;
+	const userPassword = 'upload-limits-password-123';
+
+	let userId: string;
+	let authedToken: string;
+
+	function serviceClient() {
+		return createClient(creds.apiUrl, creds.secretKey, {
+			auth: { autoRefreshToken: false, persistSession: false }
+		});
+	}
+
+	function authedClient() {
+		// `authenticated`-role client: publishable key + the user's JWT, exactly
+		// what a browser holds. No service key — these run under RLS + the
+		// column-level grants + the new CHECK/trigger, which is the point.
+		return createClient(creds.apiUrl, creds.publishableKey, {
+			auth: { autoRefreshToken: false, persistSession: false },
+			global: { headers: { Authorization: `Bearer ${authedToken}` } }
+		});
+	}
+
+	test.beforeAll(async () => {
+		const service = serviceClient();
+		const { data: created, error: createError } = await service.auth.admin.createUser({
+			email: userEmail,
+			password: userPassword,
+			email_confirm: true
+		});
+		if (createError || !created.user) {
+			throw new Error(`Could not create the upload-limits test user: ${createError?.message}`);
+		}
+		userId = created.user.id;
+
+		// hot_dogs.owner_id has an FK to profiles, so the owner needs a profile row
+		// before any hot dog insert can land. Seed it with the service client.
+		const handle = `ul${Date.now().toString(36).slice(-6)}`.slice(0, 32);
+		const { error: profileError } = await service
+			.from('profiles')
+			.insert({ id: userId, handle, display_name: 'Upload Limits' });
+		if (profileError) {
+			throw new Error(`Could not seed the upload-limits profile: ${profileError.message}`);
+		}
+
+		const anon = createClient(creds.apiUrl, creds.publishableKey, {
+			auth: { autoRefreshToken: false, persistSession: false }
+		});
+		const { data: signIn, error: signInError } = await anon.auth.signInWithPassword({
+			email: userEmail,
+			password: userPassword
+		});
+		if (signInError || !signIn.session) {
+			throw new Error(`Could not sign in the upload-limits test user: ${signInError?.message}`);
+		}
+		authedToken = signIn.session.access_token;
+	});
+
+	test('rejects a direct insert with byte_size over 2 MiB (hot_dogs_byte_size_max CHECK)', async () => {
+		const supabase = authedClient();
+		const { error } = await supabase.from('hot_dogs').insert({
+			id: crypto.randomUUID(),
+			owner_id: userId,
+			image_path: `${userId}/oversized.webp`,
+			byte_size: MAX_UPLOAD_BYTES + 1,
+			caption: 'too many bytes'
+		});
+
+		expect(error, 'byte_size > 2 MiB must be rejected by the DB CHECK').not.toBeNull();
+		expect(error?.code, 'an oversized byte_size raises check_violation 23514').toBe('23514');
+	});
+
+	test('accepts a direct insert with byte_size at exactly 2 MiB (boundary, allowed)', async () => {
+		const supabase = authedClient();
+		const dogId = crypto.randomUUID();
+		const { error } = await supabase.from('hot_dogs').insert({
+			id: dogId,
+			owner_id: userId,
+			image_path: `${userId}/${dogId}.webp`,
+			byte_size: MAX_UPLOAD_BYTES,
+			caption: 'exactly at the cap'
+		});
+
+		expect(error, 'byte_size exactly at 2 MiB must be allowed by the CHECK').toBeNull();
+
+		// Clean up so this row doesn't count toward the per-user cap test below.
+		const service = serviceClient();
+		await service.from('hot_dogs').delete().eq('id', dogId);
+	});
+
+	test('rejects the 101st insert for an owner (hot_dogs_per_user_cap BEFORE INSERT trigger)', async () => {
+		// A SEPARATE owner so the 100-row seed is independent of `userId` (which the
+		// byte_size tests above wrote/deleted against). Seed exactly 100 valid rows
+		// with the service client, then the 101st insert (via either client) must
+		// fail on the count-cap trigger, not the size CHECK (byte_size kept valid).
+		const service = serviceClient();
+		const capEmail = `cap-${Date.now().toString(36)}@topdog.test`;
+		const { data: created, error: createError } = await service.auth.admin.createUser({
+			email: capEmail,
+			password: userPassword,
+			email_confirm: true
+		});
+		if (createError || !created.user) {
+			throw new Error(`Could not create the cap test user: ${createError?.message}`);
+		}
+		const capOwnerId = created.user.id;
+
+		// The owner needs a profile row first (hot_dogs.owner_id FK -> profiles).
+		const capHandle = `cap${Date.now().toString(36).slice(-6)}`.slice(0, 32);
+		const { error: capProfileError } = await service
+			.from('profiles')
+			.insert({ id: capOwnerId, handle: capHandle, display_name: 'Cap Owner' });
+		if (capProfileError) {
+			throw new Error(`Could not seed the cap-test profile: ${capProfileError.message}`);
+		}
+
+		// Seed 100 valid rows; every one must succeed (we are AT the cap, not over).
+		for (let i = 0; i < 100; i++) {
+			const dogId = crypto.randomUUID();
+			const { error } = await service.from('hot_dogs').insert({
+				id: dogId,
+				owner_id: capOwnerId,
+				image_path: `${capOwnerId}/${dogId}.webp`,
+				byte_size: 1000,
+				caption: `dog ${i}`
+			});
+			expect(error, `seeding row ${i + 1}/100 must succeed (still under the cap)`).toBeNull();
+		}
+
+		// The 101st insert must be rejected by the BEFORE INSERT trigger. The trigger
+		// raises with errcode 'check_violation' (23514), distinct from a size CHECK
+		// because byte_size here is well within bounds.
+		const overId = crypto.randomUUID();
+		const { error: overError } = await service.from('hot_dogs').insert({
+			id: overId,
+			owner_id: capOwnerId,
+			image_path: `${capOwnerId}/${overId}.webp`,
+			byte_size: 1000,
+			caption: 'one too many'
+		});
+
+		expect(
+			overError,
+			'the 101st insert must be rejected by the per-user cap trigger'
+		).not.toBeNull();
+		expect(overError?.code, 'the cap trigger raises check_violation 23514').toBe('23514');
+
+		// Authoritative read-back: still exactly 100 rows (the 101st did not land).
+		const { count } = await service
+			.from('hot_dogs')
+			.select('id', { count: 'exact', head: true })
+			.eq('owner_id', capOwnerId);
+		expect(count, 'the owner still has exactly 100 dogs').toBe(100);
+	});
+
+	test('rejects a > 2 MiB object upload to the hotdogs bucket (Storage API file_size_limit)', async () => {
+		// The Storage API enforces the bucket file_size_limit on the ACTUAL object
+		// bytes (what neither the DB CHECK nor the trigger can observe). Upload under
+		// a valid `{uid}/...` prefix so storage RLS allows the write — the rejection
+		// we assert is the size limit, not the prefix policy. Use the user's own
+		// authed client so this is the real browser-equivalent write path.
+		const supabase = authedClient();
+		const oversized = new Uint8Array(MAX_UPLOAD_BYTES + 1);
+		const { error } = await supabase.storage
+			.from(HOTDOGS_BUCKET)
+			.upload(`${userId}/${crypto.randomUUID()}.webp`, oversized, {
+				contentType: 'image/webp',
+				upsert: false
+			});
+
+		expect(error, 'a > 2 MiB object upload must be rejected by the Storage API').not.toBeNull();
+	});
+
+	test('accepts a <= 2 MiB object upload to the hotdogs bucket (boundary, allowed)', async () => {
+		const supabase = authedClient();
+		const atLimit = new Uint8Array(MAX_UPLOAD_BYTES);
+		const objectPath = `${userId}/${crypto.randomUUID()}.webp`;
+		const { error } = await supabase.storage
+			.from(HOTDOGS_BUCKET)
+			.upload(objectPath, atLimit, { contentType: 'image/webp', upsert: false });
+
+		expect(error, 'an object exactly at the 2 MiB limit must be accepted').toBeNull();
+
+		// Clean up the object we just uploaded (owner-scoped storage RLS allows it).
+		const service = serviceClient();
+		await service.storage.from(HOTDOGS_BUCKET).remove([objectPath]);
 	});
 });

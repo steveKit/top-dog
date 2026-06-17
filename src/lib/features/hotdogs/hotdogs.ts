@@ -35,10 +35,22 @@ const HOT_DOG_COLUMNS =
 	'id, owner_id, image_path, caption, created_at, vote_count, peak_votes, byte_size';
 
 /**
- * Per-user soft cap on hot dogs (decision #10): 100 dogs, "delete one to add
- * another". Enforced server-side in the upload action via countByOwner.
+ * Per-user cap on hot dogs (decision #10): 100 dogs, "delete one to add
+ * another". Enforced in the upload action via countByOwner AND, as the
+ * authoritative backstop, by the `hot_dogs_per_user_cap` BEFORE INSERT trigger
+ * (TASK-070) — keep this in sync with the literal 100 in the trigger function.
  */
 export const PER_USER_CAP = 100;
+
+/**
+ * Per-file upload hard cap (TASK-070): 2 MiB. Single source of truth on the TS
+ * side; the upload action rejects oversized files early for friendly UX. The
+ * authoritative server-side enforcement is the Storage API `file_size_limit` on
+ * the buckets (real object bytes) plus the `hot_dogs_byte_size_max` DB CHECK on
+ * the declared `byte_size` — see the upload_limits migration. Keep this in sync
+ * with the 2097152 literal there.
+ */
+export const MAX_UPLOAD_BYTES = 2097152;
 
 /**
  * PURE cap predicate (unit-testable without a client): is the user already at

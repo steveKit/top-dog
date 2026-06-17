@@ -9,7 +9,8 @@ import {
 	deleteHotDog,
 	appStorageBytes,
 	isAtCap,
-	PER_USER_CAP
+	PER_USER_CAP,
+	MAX_UPLOAD_BYTES
 } from './hotdogs';
 
 // Unit tests for the server-side hot dog wrappers with a fully mocked
@@ -102,6 +103,16 @@ describe('isAtCap', () => {
 
 	it('is true over the cap', () => {
 		expect(isAtCap(PER_USER_CAP + 5)).toBe(true);
+	});
+});
+
+describe('MAX_UPLOAD_BYTES', () => {
+	it('is pinned to 2 MiB (TASK-070; keep in sync with the Storage file_size_limit + DB CHECK)', () => {
+		// Pinned so an accidental future change is caught: the SQL migration's
+		// 2097152 literal (bucket file_size_limit + hot_dogs_byte_size_max CHECK)
+		// can't import this constant, so the two must be kept in lockstep by hand.
+		expect(MAX_UPLOAD_BYTES).toBe(2 * 1024 * 1024);
+		expect(MAX_UPLOAD_BYTES).toBe(2097152);
 	});
 });
 

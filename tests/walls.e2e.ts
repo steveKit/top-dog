@@ -229,24 +229,29 @@ test.describe('@security wall_messages: author-pin INSERT + author-or-owner DELE
 		expect(rows[0].body, 'the body is stored byte-for-byte, untransformed').toBe(original);
 	});
 
-	test('UPDATE is blocked — no UPDATE policy means default-deny (message is immutable)', async () => {
+	test('UPDATE is blocked — no UPDATE grant means hard permission-denied (message is immutable)', async () => {
 		const author = await makeUser(uniqueHandle('au'));
 		const wallOwner = await makeUser(uniqueHandle('wo'));
 		const messageId = await seedMessage(author.id, wallOwner.id, 'original immutable body');
 
-		// Even the AUTHOR cannot edit: there is no UPDATE policy, so RLS default-denies.
-		// The update affects zero rows (not an error in PostgREST), so the body must be
-		// unchanged.
+		// Even the AUTHOR cannot edit: authenticated has NO base UPDATE grant on
+		// wall_messages, so the attempt is rejected at the GRANT layer (Postgres
+		// 42501 permission denied) BEFORE RLS is ever consulted. This is stronger
+		// than an RLS-filtered zero-row no-op — the write never reaches a policy.
 		const { error } = await author.client
 			.from('wall_messages')
 			.update({ body: 'edited!' })
 			.eq('id', messageId);
 
-		expect(error, 'a blocked update is a zero-row no-op, not an error').toBeNull();
+		// Match on the SQLSTATE code, not the human-readable message (which can change).
+		expect(error, 'a blocked update is rejected, not silently ignored').not.toBeNull();
+		expect(error?.code, 'UPDATE is denied at the grant layer (42501 permission denied)').toBe(
+			'42501'
+		);
 
 		const rows = await messagesFor(wallOwner.id);
 		expect(rows, 'the message still exists').toHaveLength(1);
-		expect(rows[0].body, 'the body was NOT mutated — UPDATE is default-denied').toBe(
+		expect(rows[0].body, 'the body was NOT mutated — UPDATE is permission-denied').toBe(
 			'original immutable body'
 		);
 	});

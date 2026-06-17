@@ -157,6 +157,29 @@ architecture-decision row** (decision #16 already exists). DW-019 (VS16-decorate
 library-emoji handling) is **resolved/accepted** in TASK-061; DW-020 (a render-DOM E2E gap)
 is an accepted tracked gap. See the M6 progress notes and close notes below.
 
+**Milestone M7 — Safety & Polish is in progress (1 of 3 tasks done).** TASK-070
+(upload limits enforcement, PR #74 `864b8e2`) landed: upload limits are now
+**DB + Storage-API enforced**, not only checked in the SvelteKit form action, so
+a direct PostgREST insert (browser publishable key, bypassing the form action)
+cannot bypass them. Three hard server-side layers: a Storage API
+`file_size_limit = 2 MiB` on both the `hotdogs` and `avatars` buckets (the only
+layer that bounds **actual uploaded bytes**), a DB CHECK
+(`hot_dogs_byte_size_max`, `byte_size <= 2097152`) bounding the **declared** size
+that feeds the decision #11 global storage-sum guard, and a
+`hot_dogs_enforce_per_user_cap()` BEFORE INSERT trigger enforcing the
+100-per-user cap (decision #10) at the DB — with the existing form-action
+size/count checks kept as the friendly UX layer (`MAX_UPLOAD_BYTES = 2097152` is
+the TS-side single source of truth, the SQL literal carrying matching
+cross-reference comments). This **composes existing decisions #10/#11/#24 with no
+new architecture-decision row** (decision #24's column-grant lockdown is
+preserved untouched). DW-005's original `byte_size` residual is **substantially
+mitigated** (the real-bytes/oversized direction is closed; the global-sum
+understatement direction remains an accepted v1 residual, kept tracked). Reviewer
+APPROVE, 0 fix cycles; `pnpm test` 626, `pnpm check` 0, `@smoke` 4, `@security` 73. **Hosted-push gate pending** — migration `20260617195233_upload_limits.sql`
+must be `supabase db push`ed to hosted before the next keep-alive run (see Process
+notes). Remaining in M7: TASK-071 (report button), TASK-072 (polish pass). See the
+M7 progress notes below.
+
 ### Milestone M1 progress notes
 
 1. **Single-use invariant keys on `consumed_at`, not `consumed_by` (TASK-010,
@@ -962,6 +985,46 @@ seam pattern (`voting/ranking.ts`, `mustard/decay.ts`) one more time.
    (`src/lib/features/emoji/emojiSet.ts`) is a zero-runtime, type-only export with no external
    consumer — kept for API symmetry, analogous to the M1 `isValidHandle` minor; not worth a DW item.
 
+### Milestone M7 progress notes
+
+1. **Upload limits hardened at the DB + Storage API (TASK-070, PR #74 `864b8e2`).**
+   The upload limits were previously enforced only in the SvelteKit form action,
+   so a direct PostgREST insert with the browser publishable key (bypassing the
+   form action) could sidestep them. TASK-070 moves enforcement to the
+   authoritative boundary in **three hard server-side layers**: (1) a Storage API
+   `file_size_limit = 2 MiB` on **both** the `hotdogs` and `avatars` buckets
+   (migration `20260617195233_upload_limits.sql`) — the **only** layer that bounds
+   the **actual uploaded bytes**, rejecting an oversized object regardless of what
+   the client declares; (2) a DB CHECK `hot_dogs_byte_size_max`
+   (`byte_size <= 2097152`) bounding the **declared** size column that feeds the
+   decision #11 global storage-sum guard; and (3) a
+   `hot_dogs_enforce_per_user_cap()` **BEFORE INSERT trigger** enforcing the
+   100-per-user cap (decision #10) at the DB. The form action keeps a friendly
+   early `fail(400)` on `photo.size > MAX_UPLOAD_BYTES` and the existing count
+   check as the **UX layer**, with the DB as the authoritative backstop.
+   **Trigger over RPC for the count cap:** the cap is a per-row admission
+   invariant on the plain owner-scoped INSERT path (hot-dog upload writes through
+   RLS, not a consuming-writes RPC — no denormalized counter to maintain), so a
+   BEFORE INSERT trigger enforces it in place rather than rerouting the upload
+   write path through an RPC. The trigger function is SECURITY DEFINER,
+   `search_path=''`, schema-qualified, locked down with
+   `revoke execute … from public, anon, authenticated`.
+   **Single source of truth across the SQL/TS boundary:** `MAX_UPLOAD_BYTES =
+2097152` (2 MiB) is the TS-side constant in
+   `src/lib/features/hotdogs/hotdogs.ts`; SQL can't import it, so the migration
+   carries the literal with cross-reference comments in **both** directions and a
+   unit test pins the value to catch drift. **No new architecture-decision row** —
+   this **composes** decisions #10, #11, and #24 (whose column-grant lockdown it
+   **preserves and does not touch**) under the L2 defense-at-the-DB posture.
+   DW-005's `byte_size` residual is **substantially mitigated** (the
+   real-bytes/oversized direction closed; the global-sum understatement direction
+   remains an accepted v1 residual, kept tracked in [[tasks/discovered]]). An
+   avatar-symmetry follow-up (no friendly form-action size pre-check on the avatar
+   path; within AC, unreachable in practice) is logged as DW-021. Metrics:
+   `pnpm test` 626, `pnpm check` 0, lint clean, `@smoke` 4, `@security` 73 (5 new
+   live-DB cases in `tests/db-guards.e2e.ts`). Reviewer **APPROVE, 0 fix cycles**.
+   **Hosted-push gate pending** (see Process notes).
+
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 
 ## Architecture Decisions
@@ -1114,6 +1177,23 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   M6 — but M6 added **no migrations** (the emoji library is pure render-time
   TS), so there is no M6 hosted-push gate. See [[tasks/deferred]] (row marked
   `done`) and [[Handoffs/handoff-014]].
+- **M7 hosted-push gate — PENDING as of 2026-06-17 (TASK-070).** TASK-070 adds
+  one new migration, `20260617195233_upload_limits.sql` (the bucket
+  `file_size_limit`, the `hot_dogs_byte_size_max` CHECK, and the
+  `hot_dogs_enforce_per_user_cap()` BEFORE INSERT trigger). Per the per-milestone
+  hosted-push discipline it **must be `supabase db push`ed to hosted** so the new
+  CHECK/trigger/Storage-API caps are live on the hosted project — unlike M6 (pure
+  render-time TS, no migration), M7 has reintroduced a migration. No scheduled job
+  calls this migration's objects, so there is **no keep-alive 404 / auto-pause
+  risk** if the push lags (the daily `ping` still reads `profiles`); the gate is
+  about hosted enforcement parity, not workflow health. The director will surface
+  the push to the user as a post-merge ops step.
+- **No new architecture-decision row for TASK-070 (2026-06-17).** Hard server-side
+  upload-limit enforcement **composes** existing decision #10 (per-user 100 cap),
+  decision #11 (global storage guard), and decision #24's column-grant lockdown
+  (preserved untouched) under the L2 defense-at-the-DB posture — it is a hardening
+  of those, recorded in the M7 progress note rather than as a new row in the
+  Architecture Decisions table.
 
 ## Milestones
 
@@ -1126,4 +1206,4 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | complete | All 3 tasks done. TASK-040 (mustard decay math, PR #53 `5afd0da`) — pure render-time `src/lib/features/mustard/decay.ts` (`MUSTARD_LIFESPAN_MS` + `mustardOpacity`, full→0 over 24h, clock-skew clamp), TDD-first (19 unit cases), realizing decision #15; orphan-by-design with TASK-041 as the named consumer, no schema/RLS/RPC change. TASK-041 (mustard spray + render, PR #55 `e1eafb9`) — `mustard_sprays` table + plain owner-scoped RLS write with a **Top-Dog `WITH CHECK` INSERT gate** (only the current Top Dog may spray; gate trustworthy because `is_current_top_dog` is non-client-writable per decision #25), immutable/persistent (no UPDATE/DELETE), profile-page overlay rendered at render-time decay via `mustardOpacity` (consumes the TASK-040 seam); cosmetic flair like reactions but with the extra authz conjunct — captured as a reusable [[CLAUDE]] gotcha, not a new decision row. TASK-042 (mustard prune job, PR #57 `6452407`) — `prune_mustard_sprays()` SECURITY DEFINER RPC (the table's **sole DELETE path**, mirroring `tally_top_dog_day()`) deletes >24h sprays + `sprayed_at` index; anon-callable / idempotent / not-forgeable (decision #26 applied to a destructive job — no input, deletes only provably-invisible rows), wired into keep-alive as a third fail-on-non-2xx step. Tag `milestone-04-mustard-mechanic`. **Hosted-push gate pending** — the `mustard_sprays` + `mustard_prune` migrations must be `supabase db push`ed to hosted before the next keep-alive run (see Process notes). See M4 close notes above                                                                                                          |
 | M5 — Walls & DMs               | message walls + direct messages                                                     | complete | All 4 tasks done. TASK-050 (message walls, PR #60 `d3c7a4d`) — `wall_messages` table, plain owner-scoped RLS (decision #12, no counter), stores original body verbatim, SELECT any member / un-forgeable author pin / two-principal DELETE (author OR wall owner) / no UPDATE, wired into the profile route. TASK-051 (direct messages, PR #62 `4ac8ff8`) — `dms` table with a privacy boundary (participant-scoped SELECT, sender-pinned INSERT, no DELETE) + a `read_at`-only UPDATE column grant (decision #24's mechanism applied to a privacy column), pure `summarizeConversations` inbox collapse, `/app/messages` inbox + `/app/messages/[handle]` thread routes. TASK-052 (restore Data API grants, PR #66 `18f9baa`) — **P0 hotfix** for the 2026-05-30 `auto_expose_new_tables` default flip that stopped a fresh `supabase db reset` issuing the implicit base GRANTs PostgREST needs alongside RLS; new `restore_data_api_grants` migration makes grants explicit (authenticated SELECT all 9 tables; INSERT/DELETE only on counter-free cosmetic tables; DELETE on `hot_dogs`; service_role full DML; anon nothing) preserving the decision #24/#25 lockdowns + decision #12 RPC-only paths, `auto_expose_new_tables = false` pinned in config — recorded as **decision #28**. TASK-053 (grant-invariant verification, PR #68 `7603438`) — `tests/grants.e2e.ts` (`@security`, 11 cases) locks the required AND forbidden grant matrix in against drift. Tag `milestone-05-walls-dms`. **Hosted-push gate deferred to TASK-054** (three migrations in one `supabase db push`; user-gated ops, no auto-pause risk — see [[tasks/deferred]]). See M5 close notes above |
 | M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | complete | All 2 tasks done. TASK-060 (emoji filter + sprinkle, PR #71 `a2e309d`) — new dependency-free `src/lib/features/emoji/` (`emojiSet.ts` curated `HOTDOG_EMOJIS` + `isHotdogEmoji`; `filter.ts` `filterToHotdog` grapheme-cluster-safe via `Intl.Segmenter` + `sprinkleHotdog` deterministic via a hand-written `mulberry32` PRNG, zero deps), realizing **decision #16** (hot-dog-only library, filter at RENDER, store original); **TDD-first**, orphan-by-design, no schema/RLS/RPC change, no new decision row. TASK-061 (apply filter in walls/DM render, PR #72 `3d85087`) — new pure composition layer `src/lib/features/emoji/render.ts` (`renderWallBody` = filter + seeded sprinkle for walls via an FNV-1a per-message-uuid seed; `renderMessageBody` = filter only for DMs), wired into the profile wall + DM thread + DM inbox preview, all through Svelte auto-escaped text (no `{@html}` → XSS-safe); decision #16's store-original guarantee holds structurally (no persist path). DW-019 (VS16-decorated library emoji → `🌭`) **resolved/accepted**; DW-020 (render-DOM E2E gap) accepted tracked gap. No new decision row. Reviewer APPROVE, 0 fix cycles each; `pnpm test` 622/622, `@smoke` 4/4. Tag `milestone-06-emoji-library`. See M6 progress + close notes above                                                                                                                                                                                                                                                                                                                                                                                           |
-| M7 — Safety & polish           | upload limits, report button, polish                                                | pending  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| M7 — Safety & polish           | upload limits, report button, polish                                                | active   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |

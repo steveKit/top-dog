@@ -55,9 +55,9 @@ soft-guard residual). `MAX_UPLOAD_BYTES = 2 MiB`.
 - [x] All gates green: `pnpm test` 626, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4,
       `@security` 73
 
-> **Post-merge ops gate — OUTSTANDING:** this task adds a migration
-> (`20260617195233_upload_limits.sql`) → the per-milestone hosted-push gate applies.
-> Run `supabase db push` to hosted before the next keep-alive run.
+> **Post-merge ops gate — DONE (2026-06-17):** the migration
+> (`20260617195233_upload_limits.sql`) was `supabase db push`ed to hosted by the user,
+> so the DB CHECK/trigger + Storage-API caps are live on the hosted project.
 
 **Notes:**
 
@@ -120,9 +120,9 @@ authenticated` (the standard private-helper lockdown — a trigger function is
   `byte_size`, trigger rejects the 101st row, Storage API rejects a >2 MiB
   object, boundary cases at exactly 2 MiB accepted — plus unit cases for the
   action size check and the constant).
-- **Outstanding hosted-push gate:** this task adds migration
-  `20260617195233_upload_limits.sql`, so the per-milestone hosted-push discipline
-  applies — run `supabase db push` to hosted before the next keep-alive run (see
+- **Hosted-push gate — DONE (2026-06-17):** migration
+  `20260617195233_upload_limits.sql` was `supabase db push`ed to hosted by the user,
+  so the DB CHECK/trigger + Storage-API caps are now live on the hosted project (see
   the Post-merge ops gate callout above and [[PROJECT]] Process notes).
 
 ---

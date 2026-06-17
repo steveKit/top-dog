@@ -24,8 +24,8 @@
 upload limits, a report button, and a final polish pass. Pre-exploded with full task
 detail: see [[tasks/milestone-07-safety-polish]]. **Progress: 1/3** — TASK-070
 (server-side upload limits enforcement, P1) `complete` (PR #74, `864b8e2`); TASK-071
-(report button, P2) and TASK-072 (polish pass, P3) `pending`. **Outstanding ops:**
-TASK-070's migration needs `supabase db push` to hosted (per-milestone gate).
+(report button, P2) and TASK-072 (polish pass, P3) `pending`. TASK-070's hosted-push
+gate is **done** (user ran `supabase db push` 2026-06-17 — DB/Storage caps live on hosted).
 
 Prior: **Milestone M6 — Emoji Library completed** 2026-06-17 (TASK-060/061; tag
 `milestone-06-emoji-library`). The deferred M5 hosted-push follow-up (TASK-054) is

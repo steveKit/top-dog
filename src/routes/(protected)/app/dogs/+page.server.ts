@@ -21,6 +21,9 @@ import {
 } from '$lib/storage';
 import { getProfileById } from '$lib/features/profiles/profiles';
 import { selectTopDog, type RankableDog } from '$lib/features/voting/ranking';
+import { getServiceClient } from '$lib/server/supabase';
+import { getBurgerAlarmCounts } from '$lib/features/reports/reports';
+import { summarizeBurgerAlarm } from '$lib/features/reports/alarm';
 
 // Hot dog upload + display (TASK-013) — the M1 vertical slice. This page shows
 // the signed-in user's hot dogs in a grid (each rendered via a short-lived
@@ -59,10 +62,31 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		return { dogs: [], cap: PER_USER_CAP, isCurrentTopDog: false, topDogId: null };
 	}
 
+	// Burger-alarm aggregate for the owner's OWN dogs (decision #12/#15 — cosmetic,
+	// render-time, ranking-inert). The banner shows if YOUR dog has been flagged a
+	// hamburger; there is NO report control here (you can't report your own dog).
+	// Reporter is ANONYMOUS: read with the SERVICE client (the owner-scoped SELECT
+	// policy on burger_alarms is about the REPORTER, not the dog owner, so even on
+	// your own dog the RLS client can't see who reported), returning only
+	// timestamps. A read error here shouldn't blank the grid; degrade to no alarm.
+	const ownDogIds = dogsResult.data.map((dog) => dog.id);
+	const now = new Date();
+	const alarmCountsResult = await getBurgerAlarmCounts(getServiceClient(), ownDogIds);
+	let alarmTimestampsByDog = new Map<string, string[]>();
+	if (!alarmCountsResult.ok) {
+		console.error('[hotdogs] failed to load burger alarms', {
+			userId: user.id,
+			error: alarmCountsResult.error
+		});
+	} else {
+		alarmTimestampsByDog = alarmCountsResult.data;
+	}
+
 	// Mint a signed URL per dog (private bucket). A single failed URL shouldn't
 	// blank the whole grid, so we surface null for that one and log it.
 	const dogs = await Promise.all(
 		dogsResult.data.map(async (dog) => {
+			const alarm = summarizeBurgerAlarm(alarmTimestampsByDog.get(dog.id) ?? [], now);
 			const signed = await getSignedUrl(supabase, dog.image_path);
 			if (!signed.ok) {
 				console.error('[hotdogs] failed to sign url', {
@@ -70,9 +94,9 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 					path: dog.image_path,
 					error: signed.error.message
 				});
-				return { ...dog, signedUrl: null };
+				return { ...dog, signedUrl: null, alarm };
 			}
-			return { ...dog, signedUrl: signed.data.signedUrl };
+			return { ...dog, signedUrl: signed.data.signedUrl, alarm };
 		})
 	);
 

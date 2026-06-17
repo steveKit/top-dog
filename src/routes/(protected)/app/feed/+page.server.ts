@@ -17,6 +17,13 @@ import {
 } from '$lib/features/reactions/reactions';
 import { summarizeReactions } from '$lib/features/reactions/summarize';
 import { isAllowedReactionEmoji } from '$lib/features/reactions/emojiSet';
+import {
+	reportBurger,
+	unreportBurger,
+	getMyReportedDogIds,
+	getBurgerAlarmCounts
+} from '$lib/features/reports/reports';
+import { summarizeBurgerAlarm } from '$lib/features/reports/alarm';
 
 // Global vote feed (TASK-024) — the surface that closes DW-009. It lists every
 // OTHER member's hot dog (sorted by vote_count desc, so it doubles as the live
@@ -107,11 +114,43 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 	// The dog/owner/reaction QUERIES above stay correctly RLS-scoped on `supabase`.
 	const serviceClient = getServiceClient();
 
+	// Burger-alarm aggregate (decision #12/#15 — cosmetic, render-time, ranking-
+	// inert). The reporter is ANONYMOUS: the per-dog count is read with the SERVICE
+	// client (the owner-scoped SELECT policy hides others' reports from the RLS
+	// client), and only timestamps come back — never reporter ids. The viewer's own
+	// reported-dog set (for the toggle state) is read on the RLS-scoped client. A
+	// read error here shouldn't blank the feed; we degrade to "no alarm" and log it.
+	const now = new Date();
+	const alarmCountsResult = await getBurgerAlarmCounts(serviceClient, dogIds);
+	let alarmTimestampsByDog = new Map<string, string[]>();
+	if (!alarmCountsResult.ok) {
+		console.error('[feed] failed to load burger alarms', {
+			userId: user.id,
+			error: alarmCountsResult.error
+		});
+	} else {
+		alarmTimestampsByDog = alarmCountsResult.data;
+	}
+
+	const myReportsResult = await getMyReportedDogIds(supabase, dogIds);
+	let myReportedDogIds = new Set<string>();
+	if (!myReportsResult.ok) {
+		console.error('[feed] failed to load my burger reports', {
+			userId: user.id,
+			error: myReportsResult.error
+		});
+	} else {
+		myReportedDogIds = myReportsResult.data;
+	}
+
 	// A single failed URL shouldn't blank the whole grid, so we surface null for
-	// that one and log it. Attach the per-dog reaction summary (viewer-relative).
+	// that one and log it. Attach the per-dog reaction summary (viewer-relative),
+	// the render-time burger alarm, and the viewer's own report toggle state.
 	const dogs = await Promise.all(
 		dogsResult.data.map(async (dog) => {
 			const reactions = summarizeReactions(reactionRowsByDog.get(dog.id) ?? [], user.id);
+			const alarm = summarizeBurgerAlarm(alarmTimestampsByDog.get(dog.id) ?? [], now);
+			const iReported = myReportedDogIds.has(dog.id);
 			const signed = await getSignedUrl(serviceClient, dog.image_path);
 			if (!signed.ok) {
 				console.error('[feed] failed to sign url', {
@@ -119,9 +158,9 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 					path: dog.image_path,
 					error: signed.error.message
 				});
-				return { ...dog, signedUrl: null, reactions };
+				return { ...dog, signedUrl: null, reactions, alarm, iReported };
 			}
-			return { ...dog, signedUrl: signed.data.signedUrl, reactions };
+			return { ...dog, signedUrl: signed.data.signedUrl, reactions, alarm, iReported };
 		})
 	);
 
@@ -235,5 +274,54 @@ export const actions: Actions = {
 		}
 
 		return { unreacted: true };
+	},
+
+	// Report a dog as a hamburger (decision #12 — cosmetic flair, never touches the
+	// vote count or crown). The reporter is ANONYMOUS and derived from
+	// safeGetSession(); the client supplies only the dog id. RLS blocks reporting
+	// your own dog. Idempotent: a repeat report is a benign no-op.
+	report: async ({ request, locals: { supabase, safeGetSession } }) => {
+		const { session, user } = await safeGetSession();
+		if (!session || !user) {
+			return fail(401, { error: 'You must be signed in to report a hot dog.' });
+		}
+
+		const formData = await request.formData();
+		const dogId = String(formData.get('id') ?? '');
+		if (!dogId) {
+			return fail(400, { error: 'Which hot dog?' });
+		}
+
+		const result = await reportBurger(supabase, user.id, dogId);
+		if (!result.ok) {
+			console.error('[feed] reportBurger failed', { userId: user.id, dogId });
+			return fail(400, { error: result.error });
+		}
+
+		return { reported: true };
+	},
+
+	// Retract a burger report (the un-report half of the toggle). Same trust model
+	// as `report`: reporter from safeGetSession(), dog id from the form. Idempotent:
+	// retracting a missing report is a no-op.
+	unreport: async ({ request, locals: { supabase, safeGetSession } }) => {
+		const { session, user } = await safeGetSession();
+		if (!session || !user) {
+			return fail(401, { error: 'You must be signed in to report a hot dog.' });
+		}
+
+		const formData = await request.formData();
+		const dogId = String(formData.get('id') ?? '');
+		if (!dogId) {
+			return fail(400, { error: 'Which hot dog?' });
+		}
+
+		const result = await unreportBurger(supabase, user.id, dogId);
+		if (!result.ok) {
+			console.error('[feed] unreportBurger failed', { userId: user.id, dogId });
+			return fail(400, { error: result.error });
+		}
+
+		return { unreported: true };
 	}
 };

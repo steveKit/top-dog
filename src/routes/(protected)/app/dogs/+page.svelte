@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import { compressToWebp } from '$lib/image/compress';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
+	import HamburgerAlarmBanner from '$lib/components/HamburgerAlarmBanner.svelte';
 
 	let { data, form } = $props();
 
@@ -94,7 +95,16 @@
 					<TopDogBadge label="Top Dog" />
 				{/if}
 				{#if dog.signedUrl}
-					<img src={dog.signedUrl} alt={dog.caption ?? 'A hot dog'} width="240" />
+					<div class="dog-image">
+						<img src={dog.signedUrl} alt={dog.caption ?? 'A hot dog'} width="240" />
+						{#if dog.alarm.active}
+							<HamburgerAlarmBanner
+								dogId={dog.id}
+								intensity={dog.alarm.intensity}
+								reporterCount={dog.alarm.reporterCount}
+							/>
+						{/if}
+					</div>
 				{:else}
 					<span>Image unavailable</span>
 				{/if}
@@ -113,3 +123,13 @@
 		{/each}
 	</ul>
 {/if}
+
+<style>
+	/* Positioned wrapper so the absolutely-positioned alarm overlay covers the
+	   dog image exactly (the banner component is inset:0 within this box). */
+	.dog-image {
+		position: relative;
+		display: inline-block;
+		line-height: 0;
+	}
+</style>

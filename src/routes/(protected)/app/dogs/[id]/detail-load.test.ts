@@ -69,8 +69,38 @@ import { getSignedUrl, isUuid } from '$lib/storage';
 import { getServiceClient } from '$lib/server/supabase';
 import { listReactionsForDogs } from '$lib/features/reactions/reactions';
 
-/** Sentinel service-client instance — distinct from event.locals.supabase. */
-const SERVICE_CLIENT = { __brand: 'service-client' } as unknown;
+// The detail load now reads the anonymous per-dog burger-alarm aggregate with the
+// SERVICE client (getBurgerAlarmCounts: `.from('burger_alarms').select('hot_dog_id,
+// created_at').in('hot_dog_id', …)`) and the viewer's own report toggle with the RLS
+// client (getMyReportedDogIds: `.from('burger_alarms').select('hot_dog_id').in(…)`).
+// These are the REAL reports wrappers — only the underlying query builder is faked —
+// so the anonymity-preserving aggregate (timestamps only, NEVER reporter ids) and
+// the render-time alarm summary are exercised through the load.
+
+/**
+ * A fake `.from('burger_alarms').select(cols).in(col, ids)` chain resolving rows.
+ */
+function burgerAlarmsFrom(rows: Record<string, unknown>[]) {
+	const inFn = vi.fn().mockResolvedValue({ data: rows, error: null });
+	const select = vi.fn().mockReturnValue({ in: inFn });
+	return { select };
+}
+
+// Mutable per-test report fixtures, reset in beforeEach.
+let serviceAlarmRows: { hot_dog_id: string; created_at: string }[] = [];
+let myReportRows: { hot_dog_id: string }[] = [];
+
+/**
+ * Sentinel service-client instance — distinct from event.locals.supabase. Its only
+ * method is `.from('burger_alarms')`; getSignedUrl is mocked, so it needs no storage.
+ */
+const SERVICE_CLIENT = {
+	__brand: 'service-client',
+	from: vi.fn((table: string) => {
+		if (table === 'burger_alarms') return burgerAlarmsFrom(serviceAlarmRows);
+		throw new Error(`unexpected service-client table: ${table}`);
+	})
+} as unknown;
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const VALID_USER = { id: USER_ID, email: 'chef@topdog.test' };
@@ -101,7 +131,16 @@ const DOG_DETAIL = {
 function makeLoadEvent(opts: { session: unknown; user: unknown; id?: string }) {
 	const safeGetSession = vi.fn(async () => ({ session: opts.session, user: opts.user }));
 	const rawGetSession = vi.fn(async () => ({ data: { session: null }, error: null }));
-	const supabase = { auth: { getSession: rawGetSession } };
+	// The RLS-scoped client carries a `burger_alarms` branch for getMyReportedDogIds
+	// (the viewer's own report toggle runs on THIS client; owner-scoped SELECT means
+	// it returns only the viewer's own rows).
+	const supabase = {
+		auth: { getSession: rawGetSession },
+		from: vi.fn((table: string) => {
+			if (table === 'burger_alarms') return burgerAlarmsFrom(myReportRows);
+			throw new Error(`unexpected rls-client table: ${table}`);
+		})
+	};
 	const event = {
 		params: { id: opts.id ?? DOG_ID },
 		locals: { supabase, safeGetSession }
@@ -114,6 +153,9 @@ type LoadData = {
 	dog: typeof DOG_DETAIL;
 	signedUrl: string | null;
 	reactions: { emoji: string; count: number; reactedByMe: boolean }[];
+	alarm: { active: boolean; reporterCount: number; intensity: string };
+	iReported: boolean;
+	isOwnDog: boolean;
 };
 async function loadData(event: unknown): Promise<LoadData> {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,6 +167,9 @@ async function loadData(event: unknown): Promise<LoadData> {
 beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	// Default: no burger reports on this dog, viewer hasn't reported it.
+	serviceAlarmRows = [];
+	myReportRows = [];
 	// Default happy-path stubs; individual tests override as needed.
 	// Valid-uuid fixtures pass the route-param guard by default.
 	vi.mocked(isUuid).mockReturnValue(true);
@@ -337,6 +382,103 @@ describe('dog detail load', () => {
 		// The dog + signed URL are unaffected by a reactions read failure.
 		expect(result.dog).toEqual(DOG_DETAIL);
 		expect(result.signedUrl).toBe('https://signed/owner-1/dog.webp');
+		expect(console.error).toHaveBeenCalled();
+	});
+
+	// Burger-alarm wiring (TASK-071, decision #12/#15). The detail load reads the
+	// anonymous per-dog aggregate with the SERVICE client (timestamps only — no
+	// reporter id), derives the render-time alarm via the REAL summarizeBurgerAlarm,
+	// reads the viewer's own report toggle with the RLS client, and flags whether the
+	// viewer owns the dog (the report control is hidden on your own dog).
+	it('attaches a render-time burger alarm from the SERVICE-client aggregate', async () => {
+		const fresh = new Date().toISOString();
+		// One fresh anonymous report -> active, low intensity.
+		serviceAlarmRows = [{ hot_dog_id: DOG_ID, created_at: fresh }];
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(getServiceClient).toHaveBeenCalled();
+		expect(result.alarm).toEqual({ active: true, reporterCount: 1, intensity: 'low' });
+	});
+
+	it('returns an inactive alarm when there are no in-window reports', async () => {
+		serviceAlarmRows = [];
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.alarm).toEqual({ active: false, reporterCount: 0, intensity: 'none' });
+	});
+
+	it('the alarm aggregate exposes NO reporter ids on the page payload (anonymity)', async () => {
+		const REPORTER_ID = '99999999-9999-4999-8999-999999999999';
+		serviceAlarmRows = [
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			{ hot_dog_id: DOG_ID, created_at: new Date().toISOString(), reporter_id: REPORTER_ID } as any
+		];
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		const serialized = JSON.stringify(result);
+		expect(serialized).not.toContain(REPORTER_ID);
+		expect(serialized).not.toMatch(/reporter_?id/i);
+		expect(Object.keys(result.alarm).sort()).toEqual(['active', 'intensity', 'reporterCount']);
+	});
+
+	it("surfaces the viewer's own report toggle (iReported) from the RLS client", async () => {
+		myReportRows = [{ hot_dog_id: DOG_ID }];
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.iReported).toBe(true);
+	});
+
+	it('iReported is false when the viewer has not reported this dog', async () => {
+		myReportRows = [];
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.iReported).toBe(false);
+	});
+
+	it('flags isOwnDog true when the viewer owns the dog (report control hidden)', async () => {
+		vi.mocked(getDogDetail).mockResolvedValue({
+			ok: true,
+			data: { ...DOG_DETAIL, owner_id: USER_ID }
+		});
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.isOwnDog).toBe(true);
+	});
+
+	it("flags isOwnDog false for another member's dog", async () => {
+		// Default DOG_DETAIL.owner_id is 'owner-1', not the viewer.
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.isOwnDog).toBe(false);
+	});
+
+	it('degrades to no alarm (page not blanked) when the alarm aggregate read fails', async () => {
+		(SERVICE_CLIENT as { from: ReturnType<typeof vi.fn> }).from.mockReturnValueOnce({
+			select: vi.fn().mockReturnValue({
+				in: vi.fn().mockResolvedValue({ data: null, error: { message: 'alarm boom' } })
+			})
+		});
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.alarm).toEqual({ active: false, reporterCount: 0, intensity: 'none' });
+		// The dog + signed URL are unaffected.
+		expect(result.dog).toEqual(DOG_DETAIL);
 		expect(console.error).toHaveBeenCalled();
 	});
 });

@@ -20,15 +20,16 @@
 
 ## Active Milestones
 
-**No milestone is currently `active`.** **Milestone M5 — Walls & DMs completed**
-2026-06-17 (TASK-050/051/052/053; tag `milestone-05-walls-dms`) — message walls +
-direct messages, plus a mid-milestone **grants hotfix** (TASK-052/053) that restored
-the explicit Data API grants after the Supabase CLI `auto_expose_new_tables` default
-flip (2026-05-30) and pinned the config so local matches cloud. **TASK-054 (push the
-M5 migrations + grant fix to hosted)** was deferred to [[tasks/deferred]] as a
-user-gated ops follow-up. The next planned milestone is **M6 — Emoji Library**
-(pre-exploded, ready to activate — see § Planned Milestones). See § Completed
-Milestones for M5 and the prior milestones.
+**Milestone M6 — Emoji Library is `active`** (activated 2026-06-17 —
+[[tasks/milestone-06-emoji-library]]). Hot-dog emoji set + render-time filter +
+random sprinkle (decision #16: filter at RENDER, store original). Tasks: TASK-060
+(filter + sprinkle logic, `in_progress`), TASK-061 (apply filter in walls/DMs
+render). Its render-time filter consumes the store-original wall/DM bodies M5
+persists verbatim.
+
+**TASK-054 (push the M5 migrations + grant fix to hosted)** remains deferred to
+[[tasks/deferred]] as a user-gated ops follow-up — walls & DMs do not work on
+hosted until it runs. See § Completed Milestones for M5 and the prior milestones.
 
 ## Planned Milestones
 
@@ -39,7 +40,6 @@ was already written, so it is preserved.) Depends-on is kept coarse.
 
 | #   | Milestone       | Scope (one line)                                            | Depends on           | File                                 |
 | --- | --------------- | ----------------------------------------------------------- | -------------------- | ------------------------------------ |
-| 06  | Emoji Library   | hot-dog emoji set + render-time filter + random sprinkle    | M5 (TASK-050/051)    | [[tasks/milestone-06-emoji-library]] |
 | 07  | Safety & Polish | server-side upload limits, report button, final polish pass | all prior milestones | [[tasks/milestone-07-safety-polish]] |
 
 ## Deferred Milestones

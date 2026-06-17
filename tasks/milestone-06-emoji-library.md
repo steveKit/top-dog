@@ -1,12 +1,12 @@
 # Milestone M6: Emoji Library
 
-> **Status:** `pending`
+> **Status:** `active`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** hot-dog emoji set + render-time filter + random sprinkle. TDD-first.
 
 ## Active Tasks
 
-### TASK-060: Emoji filter + sprinkle logic [`pending`] [`P2`] [`M`]
+### TASK-060: Emoji filter + sprinkle logic [`in_progress`] [`P2`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** none

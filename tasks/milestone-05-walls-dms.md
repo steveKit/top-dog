@@ -6,7 +6,7 @@
 
 ## Active Tasks
 
-### TASK-051: Direct messages [`pending`] [`P2`] [`M`]
+### TASK-051: Direct messages [`in_progress`] [`P2`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-011

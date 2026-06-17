@@ -10,4 +10,5 @@
 <nav>
 	<a href={resolve('/(protected)/app/dogs')}>Your hot dogs</a>
 	<a href={resolve('/(protected)/app/feed')}>The feed</a>
+	<a href={resolve('/(protected)/app/messages')}>Messages</a>
 </nav>

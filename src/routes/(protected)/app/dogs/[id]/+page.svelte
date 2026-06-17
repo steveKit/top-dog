@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
+	import HamburgerAlarmBanner from '$lib/components/HamburgerAlarmBanner.svelte';
+	import BurgerReportControl from '$lib/components/BurgerReportControl.svelte';
 
 	let { data } = $props();
 
@@ -15,9 +17,22 @@
 {/if}
 
 {#if data.signedUrl}
-	<img src={data.signedUrl} alt={dog.caption ?? 'A hot dog'} width="480" />
+	<div class="dog-image">
+		<img src={data.signedUrl} alt={dog.caption ?? 'A hot dog'} width="480" />
+		{#if data.alarm.active}
+			<HamburgerAlarmBanner
+				dogId={dog.id}
+				intensity={data.alarm.intensity}
+				reporterCount={data.alarm.reporterCount}
+			/>
+		{/if}
+	</div>
 {:else}
 	<p>Image unavailable</p>
+{/if}
+
+{#if !data.isOwnDog}
+	<BurgerReportControl dogId={dog.id} iReported={data.iReported} />
 {/if}
 
 {#if dog.caption}
@@ -46,3 +61,13 @@
 		</ul>
 	</section>
 {/if}
+
+<style>
+	/* Positioned wrapper so the absolutely-positioned alarm overlay covers the
+	   dog image exactly (the banner component is inset:0 within this box). */
+	.dog-image {
+		position: relative;
+		display: inline-block;
+		line-height: 0;
+	}
+</style>

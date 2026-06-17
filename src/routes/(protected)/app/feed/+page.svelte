@@ -3,6 +3,8 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import ReactionBar from '$lib/components/ReactionBar.svelte';
+	import HamburgerAlarmBanner from '$lib/components/HamburgerAlarmBanner.svelte';
+	import BurgerReportControl from '$lib/components/BurgerReportControl.svelte';
 
 	let { data, form } = $props();
 
@@ -50,10 +52,20 @@
 			<li>
 				<p>@{dog.owner_handle || dog.owner_display_name}</p>
 				{#if dog.signedUrl}
-					<img src={dog.signedUrl} alt={dog.caption ?? 'A hot dog'} width="240" />
+					<div class="dog-image">
+						<img src={dog.signedUrl} alt={dog.caption ?? 'A hot dog'} width="240" />
+						{#if dog.alarm.active}
+							<HamburgerAlarmBanner
+								dogId={dog.id}
+								intensity={dog.alarm.intensity}
+								reporterCount={dog.alarm.reporterCount}
+							/>
+						{/if}
+					</div>
 				{:else}
 					<span>Image unavailable</span>
 				{/if}
+				<BurgerReportControl dogId={dog.id} iReported={dog.iReported} />
 				{#if dog.caption}
 					<p>{dog.caption}</p>
 				{/if}
@@ -88,3 +100,13 @@
 		{/each}
 	</ul>
 {/if}
+
+<style>
+	/* Positioned wrapper so the absolutely-positioned alarm overlay covers the
+	   dog image exactly (the banner component is inset:0 within this box). */
+	.dog-image {
+		position: relative;
+		display: inline-block;
+		line-height: 0;
+	}
+</style>

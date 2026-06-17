@@ -61,6 +61,31 @@ vi.mock('$lib/features/profiles/profiles', () => ({
 	getProfileById: vi.fn()
 }));
 
+// The gallery load now reads the anonymous burger-alarm aggregate for the owner's
+// OWN dogs with the SERVICE client (getBurgerAlarmCounts: `.from('burger_alarms')
+// .select('hot_dog_id, created_at').in('hot_dog_id', …)`) — the banner shows when
+// YOUR dog has been flagged a hamburger. There is no report control here (you can't
+// report your own dog). summarizeBurgerAlarm is the REAL pure module, so the
+// render-time alarm summary is exercised through the load. getSignedUrl on this page
+// stays on the RLS client (the owner-gallery signs its OWN dogs), so the service
+// client backs only the alarm aggregate read.
+let serviceAlarmRows: { hot_dog_id: string; created_at: string }[] = [];
+
+function burgerAlarmsFrom(rows: Record<string, unknown>[]) {
+	const inFn = vi.fn().mockResolvedValue({ data: rows, error: null });
+	const select = vi.fn().mockReturnValue({ in: inFn });
+	return { select };
+}
+
+vi.mock('$lib/server/supabase', () => ({
+	getServiceClient: vi.fn(() => ({
+		from: vi.fn((table: string) => {
+			if (table === 'burger_alarms') return burgerAlarmsFrom(serviceAlarmRows);
+			throw new Error(`unexpected service-client table: ${table}`);
+		})
+	}))
+}));
+
 import { actions, load } from './+page.server';
 import {
 	createHotDog,
@@ -73,6 +98,7 @@ import {
 } from '$lib/features/hotdogs/hotdogs';
 import { upload, remove, getSignedUrl, evaluateUpload } from '$lib/storage';
 import { getProfileById } from '$lib/features/profiles/profiles';
+import { getServiceClient } from '$lib/server/supabase';
 
 const upload_ = actions.upload;
 const delete_ = actions.delete;
@@ -126,6 +152,8 @@ function makeEvent(opts: {
 beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(console, 'error').mockImplementation(() => {});
+	// Default: the owner's dogs carry no burger reports (inactive alarm).
+	serviceAlarmRows = [];
 	// Default happy-path stubs; individual tests override as needed.
 	vi.mocked(countByOwner).mockResolvedValue({ ok: true, data: 0 });
 	vi.mocked(appStorageBytes).mockResolvedValue({ ok: true, data: 1000 });
@@ -667,11 +695,15 @@ describe('dogs load', () => {
 	// redirect (typed as a return path). On the authenticated paths the redirect
 	// is never reached, so narrow away `void` for ergonomic, type-safe assertions.
 	type LoadData = {
-		dogs: { signedUrl: string | null }[];
+		dogs: {
+			signedUrl: string | null;
+			alarm: { active: boolean; reporterCount: number; intensity: string };
+		}[];
 		cap: number;
 		isCurrentTopDog: boolean;
 		topDogId: string | null;
 	};
+	const INACTIVE_ALARM = { active: false, reporterCount: 0, intensity: 'none' };
 	async function loadData(event: unknown): Promise<LoadData> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const result = await load(event as any);
@@ -718,8 +750,8 @@ describe('dogs load', () => {
 		expect(getSignedUrl).toHaveBeenCalledTimes(2);
 		expect(result.cap).toBe(100);
 		expect(result.dogs).toEqual([
-			{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}` },
-			{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}` }
+			{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}`, alarm: INACTIVE_ALARM },
+			{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}`, alarm: INACTIVE_ALARM }
 		]);
 		// Default profile is non-crown, so no badge data accompanies the grid.
 		expect(result.isCurrentTopDog).toBe(false);
@@ -750,6 +782,53 @@ describe('dogs load', () => {
 		expect(result.dogs).toEqual([]);
 		expect(result.cap).toBe(100);
 		expect(getSignedUrl).not.toHaveBeenCalled();
+	});
+
+	// Burger-alarm wiring on the owner gallery (TASK-071, decision #12/#15). The
+	// banner shows when YOUR own dog has been flagged a hamburger; the anonymous
+	// per-dog aggregate is read with the SERVICE client and the render-time alarm is
+	// derived by the REAL summarizeBurgerAlarm. There is no report control here.
+	it('attaches an active render-time burger alarm to a flagged own dog', async () => {
+		vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A, DOG_B] });
+		vi.mocked(getSignedUrl).mockImplementation(async (_c, path) => ({
+			ok: true,
+			data: { signedUrl: `https://signed/${path}` }
+		}));
+		const fresh = new Date().toISOString();
+		// DOG_A flagged by two fresh anonymous reporters (medium); DOG_B not flagged.
+		serviceAlarmRows = [
+			{ hot_dog_id: DOG_A.id, created_at: fresh },
+			{ hot_dog_id: DOG_A.id, created_at: fresh }
+		];
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(getServiceClient).toHaveBeenCalled();
+		expect(result.dogs[0].alarm).toEqual({ active: true, reporterCount: 2, intensity: 'medium' });
+		expect(result.dogs[1].alarm).toEqual(INACTIVE_ALARM);
+	});
+
+	it('degrades to no alarm (grid not blanked) when the alarm aggregate read fails', async () => {
+		vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A] });
+		vi.mocked(getSignedUrl).mockImplementation(async (_c, path) => ({
+			ok: true,
+			data: { signedUrl: `https://signed/${path}` }
+		}));
+		vi.mocked(getServiceClient).mockReturnValueOnce({
+			from: vi.fn(() => ({
+				select: vi.fn().mockReturnValue({
+					in: vi.fn().mockResolvedValue({ data: null, error: { message: 'alarm boom' } })
+				})
+			}))
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any);
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(result.dogs).toHaveLength(1);
+		expect(result.dogs[0].alarm).toEqual(INACTIVE_ALARM);
+		expect(result.dogs[0].signedUrl).toBe(`https://signed/${DOG_A.image_path}`);
+		expect(console.error).toHaveBeenCalled();
 	});
 
 	// TASK-023 — Top Dog badge wiring on the kennel load. The badge derives from
@@ -885,8 +964,8 @@ describe('dogs load', () => {
 			expect(result.isCurrentTopDog).toBe(false);
 			expect(result.topDogId).toBeNull();
 			expect(result.dogs).toEqual([
-				{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}` },
-				{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}` }
+				{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}`, alarm: INACTIVE_ALARM },
+				{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}`, alarm: INACTIVE_ALARM }
 			]);
 		});
 

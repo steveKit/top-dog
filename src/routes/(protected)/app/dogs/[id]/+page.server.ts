@@ -1,8 +1,15 @@
-import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 import { getDogDetail, DOG_NOT_FOUND } from '$lib/features/hotdogs/detail';
 import { listReactionsForDogs } from '$lib/features/reactions/reactions';
 import { summarizeReactions } from '$lib/features/reactions/summarize';
+import {
+	reportBurger,
+	unreportBurger,
+	getMyReportedDogIds,
+	getBurgerAlarmCounts
+} from '$lib/features/reports/reports';
+import { summarizeBurgerAlarm } from '$lib/features/reports/alarm';
 import { getSignedUrl, isUuid } from '$lib/storage';
 import { getServiceClient } from '$lib/server/supabase';
 
@@ -88,5 +95,89 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		);
 	}
 
-	return { dog, signedUrl, reactions };
+	// Burger-alarm aggregate (decision #12/#15 — cosmetic, render-time, ranking-
+	// inert). Reporter is ANONYMOUS: the per-dog count is read with the SERVICE
+	// client (the owner-scoped SELECT policy hides others' reports from the RLS
+	// client) and only timestamps come back — never reporter ids. The viewer's own
+	// report toggle state is read on the RLS-scoped client. A read error here
+	// shouldn't blank the page; degrade to "no alarm" and log it.
+	const alarmCountsResult = await getBurgerAlarmCounts(getServiceClient(), [dog.id]);
+	let alarm = summarizeBurgerAlarm([], new Date());
+	if (!alarmCountsResult.ok) {
+		console.error('[dog-detail] failed to load burger alarm', {
+			userId: user.id,
+			dogId: dog.id,
+			error: alarmCountsResult.error
+		});
+	} else {
+		alarm = summarizeBurgerAlarm(alarmCountsResult.data.get(dog.id) ?? [], new Date());
+	}
+
+	// Whether the viewer is the dog's owner: you can't report your own dog, so the
+	// report control is hidden for the owner.
+	const isOwnDog = dog.owner_id === user.id;
+
+	const myReportsResult = await getMyReportedDogIds(supabase, [dog.id]);
+	let iReported = false;
+	if (!myReportsResult.ok) {
+		console.error('[dog-detail] failed to load my burger report', {
+			userId: user.id,
+			dogId: dog.id,
+			error: myReportsResult.error
+		});
+	} else {
+		iReported = myReportsResult.data.has(dog.id);
+	}
+
+	return { dog, signedUrl, reactions, alarm, iReported, isOwnDog };
+};
+
+export const actions: Actions = {
+	// Report this dog as a hamburger (decision #12 — cosmetic flair, never touches
+	// the vote count or crown). The reporter is ANONYMOUS and derived from
+	// safeGetSession(); the client supplies only the dog id (the route param).
+	// RLS blocks reporting your own dog. Idempotent: a repeat report is a no-op.
+	report: async ({ request, locals: { supabase, safeGetSession } }) => {
+		const { session, user } = await safeGetSession();
+		if (!session || !user) {
+			return fail(401, { error: 'You must be signed in to report a hot dog.' });
+		}
+
+		const formData = await request.formData();
+		const dogId = String(formData.get('id') ?? '');
+		if (!dogId) {
+			return fail(400, { error: 'Which hot dog?' });
+		}
+
+		const result = await reportBurger(supabase, user.id, dogId);
+		if (!result.ok) {
+			console.error('[dog-detail] reportBurger failed', { userId: user.id, dogId });
+			return fail(400, { error: result.error });
+		}
+
+		return { reported: true };
+	},
+
+	// Retract a burger report (the un-report half of the toggle). Same trust model
+	// as `report`. Idempotent: retracting a missing report is a no-op.
+	unreport: async ({ request, locals: { supabase, safeGetSession } }) => {
+		const { session, user } = await safeGetSession();
+		if (!session || !user) {
+			return fail(401, { error: 'You must be signed in to report a hot dog.' });
+		}
+
+		const formData = await request.formData();
+		const dogId = String(formData.get('id') ?? '');
+		if (!dogId) {
+			return fail(400, { error: 'Which hot dog?' });
+		}
+
+		const result = await unreportBurger(supabase, user.id, dogId);
+		if (!result.ok) {
+			console.error('[dog-detail] unreportBurger failed', { userId: user.id, dogId });
+			return fail(400, { error: result.error });
+		}
+
+		return { unreported: true };
+	}
 };

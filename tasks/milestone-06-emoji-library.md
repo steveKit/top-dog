@@ -6,7 +6,7 @@
 
 ## Active Tasks
 
-### TASK-061: Apply emoji filter in walls/DMs render [`pending`] [`P2`] [`S`]
+### TASK-061: Apply emoji filter in walls/DMs render [`in_progress`] [`P2`] [`S`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-060, TASK-050, TASK-051

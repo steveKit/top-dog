@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { renderMessageBody } from '$lib/features/emoji/render';
 
 	let { data, form } = $props();
 
@@ -53,7 +54,9 @@
 		<ul class="messages">
 			{#each messages as message (message.id)}
 				<li class="message" class:sent={message.sender_id === viewerId}>
-					<p class="message-body">{message.body}</p>
+					<!-- Decision #16: stored body never mutated; M6 emoji filter applied at
+					     render (DM = filter only, no wall sprinkle). -->
+					<p class="message-body">{renderMessageBody(message.body)}</p>
 					<p class="message-meta">
 						<span class="message-direction"
 							>{message.sender_id === viewerId ? 'You' : counterparty.display_name}</span

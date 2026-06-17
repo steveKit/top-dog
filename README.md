@@ -9,8 +9,8 @@ architecture decisions, and [TASKS.md](./TASKS.md) for the work queue.
 
 ## Features
 
-The end-to-end slice, the full voting engine, and the mustard mechanic are in
-place and demoable:
+The end-to-end slice, the full voting engine, the mustard mechanic, and the
+social surfaces (walls + DMs) are in place and demoable:
 
 - **Invite-only sign-up** — an existing member mints a single-use invite link;
   the public sign-up flow redeems it (used/invalid tokens are rejected).
@@ -34,9 +34,14 @@ place and demoable:
   drip opacity is computed at render time from the stored timestamp — and a daily
   job prunes fully-faded sprays. Spraying is cosmetic only: it never affects votes
   or the Top Dog ranking.
+- **Message walls** — post a message to any member's profile wall; the wall owner
+  or the message author can delete it. Walls are cosmetic only — they never affect
+  votes or ranking.
+- **Direct messages** — send a private DM to another member at `/app/messages`; the
+  inbox shows your conversations (with unread counts) and each thread lets you read
+  and reply. Only the two participants can read a conversation.
 
-Walls/DMs and the emoji library are later milestones
-(see [PROJECT.md](./PROJECT.md)).
+The emoji library is a later milestone (see [PROJECT.md](./PROJECT.md)).
 
 ## Stack
 

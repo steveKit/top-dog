@@ -335,22 +335,36 @@ test.describe('@security dms: privacy SELECT RLS + sender-pin INSERT + read_at c
 		expect(row?.body, 'the body is stored byte-for-byte, untransformed').toBe(original);
 	});
 
-	test('DELETE is blocked — no DELETE policy means default-deny (DM persists)', async () => {
+	test('DELETE is blocked — no DELETE grant means hard permission-denied (DM persists)', async () => {
 		const sender = await makeUser(uniqueHandle('sn'));
 		const recipient = await makeUser(uniqueHandle('rc'));
 		const id = await seedDm(sender.id, recipient.id, 'DMs persist, never deleted');
 
-		// Neither the sender nor the recipient may delete — there is NO DELETE policy,
-		// so RLS default-denies. The delete affects zero rows (not an error in
-		// PostgREST), so the row must remain for BOTH parties.
+		// Neither the sender nor the recipient may delete — authenticated has NO base
+		// DELETE grant on dms, so each attempt is rejected at the GRANT layer (Postgres
+		// 42501 permission denied) BEFORE RLS is consulted. This is stronger than an
+		// RLS-filtered zero-row no-op — the delete never reaches a policy. The row must
+		// remain for BOTH parties.
+		// Match on the SQLSTATE code, not the human-readable message (which can change).
 		const senderDel = await sender.client.from('dms').delete().eq('id', id);
-		expect(senderDel.error, 'a blocked delete is a zero-row no-op, not an error').toBeNull();
+		expect(senderDel.error, 'the sender delete is rejected, not silently ignored').not.toBeNull();
+		expect(
+			senderDel.error?.code,
+			'DELETE is denied at the grant layer (42501 permission denied)'
+		).toBe('42501');
 
 		const recipientDel = await recipient.client.from('dms').delete().eq('id', id);
-		expect(recipientDel.error, 'a blocked delete is a zero-row no-op, not an error').toBeNull();
+		expect(
+			recipientDel.error,
+			'the recipient delete is rejected, not silently ignored'
+		).not.toBeNull();
+		expect(
+			recipientDel.error?.code,
+			'DELETE is denied at the grant layer (42501 permission denied)'
+		).toBe('42501');
 
 		const row = await dmById(id);
-		expect(row, 'the DM survives — DELETE is default-denied').not.toBeNull();
+		expect(row, 'the DM survives — DELETE is permission-denied').not.toBeNull();
 		expect(row?.body).toBe('DMs persist, never deleted');
 	});
 });

@@ -20,16 +20,16 @@
 
 ## Active Milestones
 
-**Milestone M6 — Emoji Library is `active`** (activated 2026-06-17 —
-[[tasks/milestone-06-emoji-library]]). Hot-dog emoji set + render-time filter +
-random sprinkle (decision #16: filter at RENDER, store original). Tasks: TASK-060
-(filter + sprinkle logic, `complete` — PR #71 `a2e309d`), TASK-061 (apply filter in
-walls/DMs render, `pending`). Its render-time filter consumes the store-original
-wall/DM bodies M5 persists verbatim.
+**No milestone is currently `active`.** **Milestone M6 — Emoji Library completed**
+2026-06-17 (TASK-060/061; tag `milestone-06-emoji-library`) — the hot-dog emoji
+library shipped as a pure, dependency-free render-time seam (decision #16: filter at
+RENDER, store original) and wired into the wall + DM render surfaces (walls get
+filter + seeded sprinkle; DMs get filter only). The next planned milestone is
+**M7 — Safety & Polish** (pre-exploded — see § Planned Milestones).
 
 **TASK-054 (push the M5 migrations + grant fix to hosted)** remains deferred to
 [[tasks/deferred]] as a user-gated ops follow-up — walls & DMs do not work on
-hosted until it runs. See § Completed Milestones for M5 and the prior milestones.
+hosted until it runs. See § Completed Milestones for M6 and the prior milestones.
 
 ## Planned Milestones
 
@@ -56,6 +56,7 @@ None.
 | Milestone 03: Reactions & Per-Dog Stats | 2026-06-12 | `milestone-03-reactions-per-dog-stats` | [[tasks/milestone-03-reactions-per-dog-stats]] |
 | Milestone 04: Mustard Mechanic          | 2026-06-16 | `milestone-04-mustard-mechanic`        | [[tasks/milestone-04-mustard-mechanic]]        |
 | Milestone 05: Walls & DMs               | 2026-06-17 | `milestone-05-walls-dms`               | [[tasks/milestone-05-walls-dms]]               |
+| Milestone 06: Emoji Library             | 2026-06-17 | `milestone-06-emoji-library`           | [[tasks/milestone-06-emoji-library]]           |
 
 ## Logs
 

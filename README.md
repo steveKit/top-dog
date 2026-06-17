@@ -9,8 +9,8 @@ architecture decisions, and [TASKS.md](./TASKS.md) for the work queue.
 
 ## Features
 
-The end-to-end slice, the full voting engine, the mustard mechanic, and the
-social surfaces (walls + DMs) are in place and demoable:
+The end-to-end slice, the full voting engine, the mustard mechanic, the social
+surfaces (walls + DMs), and hot-dog emoji rendering are in place and demoable:
 
 - **Invite-only sign-up** — an existing member mints a single-use invite link;
   the public sign-up flow redeems it (used/invalid tokens are rejected).
@@ -40,8 +40,10 @@ social surfaces (walls + DMs) are in place and demoable:
 - **Direct messages** — send a private DM to another member at `/app/messages`; the
   inbox shows your conversations (with unread counts) and each thread lets you read
   and reply. Only the two participants can read a conversation.
-
-The emoji library is a later milestone (see [PROJECT.md](./PROJECT.md)).
+- **Hot-dog emoji rendering** — wall messages and DMs are filtered at render time so
+  every emoji becomes a hot-dog-themed one, and wall messages get a deterministic
+  random hot-dog sprinkle. The original message text is always stored unchanged — the
+  transform is purely cosmetic and applied only when rendering.
 
 ## Stack
 

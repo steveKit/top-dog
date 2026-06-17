@@ -141,17 +141,21 @@ future drift. **Hosted-push gate deferred:** three unpushed migrations
 follow-up with no auto-pause risk (no keep-alive step depends on them). See the M5
 close notes below. Next: M6 — Emoji library.
 
-**Milestone M6 — Emoji library is active** (1 of 2 tasks complete). TASK-060 landed
-the **pure render-time emoji seam** — a new dependency-free feature folder
+**Milestone M6 — Emoji library is complete** (2 tasks; tag `milestone-06-emoji-library`).
+TASK-060 landed the **pure render-time emoji seam** — a new dependency-free feature folder
 `src/lib/features/emoji/` (`emojiSet.ts` curated `HOTDOG_EMOJIS` + `isHotdogEmoji`;
-`filter.ts` `filterToHotdog` + `sprinkleHotdog`) realizing **decision #16** (hot-dog-only
-library, filter at RENDER time, store the original body). `filterToHotdog` iterates by
-grapheme **CLUSTER** via `Intl.Segmenter` (ZWJ / skin-tone / flag sequences are never
-split), and `sprinkleHotdog` is deterministic via a hand-written `mulberry32` PRNG (zero
-dependencies). Built **TDD-first** and, like `voting/ranking.ts` / `mustard/decay.ts`,
-**orphan-by-design** — there is **no production consumer yet**; the filter is wired into
-walls/DM render by the remaining **TASK-061**. No new architecture-decision row (decision
-#16 already exists). See the M6 progress notes below.
+`filter.ts` `filterToHotdog` grapheme-cluster-safe via `Intl.Segmenter` + `sprinkleHotdog`
+deterministic via a hand-written `mulberry32` PRNG, zero deps) — and TASK-061 wired it into
+the live render surfaces via a new pure composition layer
+`src/lib/features/emoji/render.ts` (`renderWallBody` = filter + seeded sprinkle for walls;
+`renderMessageBody` = filter only for DMs), realizing **decision #16** (hot-dog-only library;
+filter at RENDER time; the ORIGINAL stored body is NEVER mutated). The filter is now live on
+the profile wall, the DM thread, and the DM inbox preview, all through Svelte auto-escaped
+text (no `{@html}` → XSS-safe), so decision #16's "store original" guarantee holds
+**structurally** — there is no persist path that could mutate the stored body. **No new
+architecture-decision row** (decision #16 already exists). DW-019 (VS16-decorated
+library-emoji handling) is **resolved/accepted** in TASK-061; DW-020 (a render-DOM E2E gap)
+is an accepted tracked gap. See the M6 progress notes and close notes below.
 
 ### Milestone M1 progress notes
 
@@ -895,6 +899,68 @@ implicit-platform-behavior dependency into an explicit, committed, tested invari
    flows through the filter. Metrics: `pnpm test` 603/603, `pnpm check` 0 errors,
    `pnpm lint` clean. Reviewer APPROVE, 0 fix cycles. **M6 stays open — TASK-061 (apply the
    filter in walls/DM render) remains.**
+2. **Apply the emoji filter in walls/DM render — the consumer, closing M6 (TASK-061, PR #72
+   `3d85087`).** New pure composition layer `src/lib/features/emoji/render.ts` (no
+   SvelteKit/Supabase imports, unit-testable in isolation) wires the previously
+   orphan-by-design TASK-060 seam into the live render surfaces, realizing the consumer half
+   of **decision #16** (filter at RENDER time; the ORIGINAL stored body is NEVER mutated) —
+   **no new architecture-decision row**. It exposes two render functions encoding a deliberate
+   **wall-vs-DM split**: `renderWallBody(body, id)` = `sprinkleHotdog(filterToHotdog(body),
+stringToSeed(id))` (walls get **filter + seeded sprinkle**) and `renderMessageBody(body)` =
+   `filterToHotdog(body)` (DM thread + inbox preview get **filter only** — the random hot-dog
+   sprinkle is scoped to WALL messages by TASK-060's AC). The sprinkle seed is a hand-written
+   **FNV-1a `stringToSeed`** (zero dependencies) over the message's **immutable uuid `id`**, so
+   a given wall message sprinkles the **same** way on every re-render (no per-render jitter) —
+   the stable counterpart to TASK-060's deterministic `mulberry32`. Wired into **three
+   components**: the wall (`profile/[handle]/+page.svelte`), the DM thread
+   (`messages/[handle]/+page.svelte`), and the DM inbox preview (`messages/+page.svelte`), all
+   keeping the body inside Svelte **auto-escaped text** (no `{@html}` → rendering hot-dog emoji
+   is **XSS-safe**). Because the filter/sprinkle output is only ever a render-time return value
+   (never written back), decision #16's "store original" guarantee holds **structurally** —
+   there is no persist path that could mutate the stored body. **Zero server / DB / RLS / RPC /
+   migration / dependency change.** **DW-019 resolved (accepted):** the `render.ts` header
+   comment documents the accepted decision that a VS16-decorated library emoji (e.g. `🔥` +
+   U+FE0F) is replaced with `🌭` rather than preserved — benign, output is still a hot-dog
+   emoji, so no grapheme-normalization pass is warranted. **One accepted tracked test gap
+   logged as DW-020:** no E2E asserts the browser-rendered wall/DM DOM shows the FILTERED body
+   (the store-original half is covered by `tests/walls.e2e.ts`'s verbatim-body test and the
+   render wiring by `render.test.ts`), a sibling of DW-011/DW-013. Standard implementer-first,
+   test-after: `render.test.ts` adds 19 unit cases. Metrics: `pnpm test` 622/622, `pnpm check`
+   0 errors, `pnpm lint` clean, `@smoke` 4/4. Reviewer **APPROVE, 0 production fix cycles** (2
+   minor non-blocking test-strength notes only). **This closes M6.**
+
+### Milestone M6 close notes
+
+M6 — Emoji library delivered the **hot-dog emoji rendering mechanic end to end**: a pure,
+dependency-free render-time filter + deterministic sprinkle (TASK-060), then its wiring into
+every user-text surface (TASK-061). Both tasks shipped **entirely on existing decision #16**
+— **no new architecture-decision row** — extending the project's established pure-logic-first
+seam pattern (`voting/ranking.ts`, `mustard/decay.ts`) one more time.
+
+1. **A pure transform seam, then its render-time consumer (decisions #16 + #2).** TASK-060
+   landed the curated hot-dog `HOTDOG_EMOJIS` library plus `filterToHotdog` (grapheme-cluster
+   safe via `Intl.Segmenter`, so ZWJ / skin-tone / flag sequences are never split mid-codepoint)
+   and `sprinkleHotdog` (deterministic via a hand-written `mulberry32` PRNG, zero deps) as a
+   TDD-first **orphan-by-design** module. TASK-061's `render.ts` is the consumer: `renderWallBody`
+   composes filter + a **seeded** sprinkle (FNV-1a over the message's immutable uuid, so renders
+   are stable), `renderMessageBody` applies filter only — the **wall-vs-DM split** that scopes the
+   random sprinkle to walls per TASK-060's AC. The filter now runs on the profile wall, the DM
+   thread, and the DM inbox preview.
+2. **Decision #16's "store original" holds structurally, and the render is XSS-safe.** Because the
+   M5 social surfaces store the body **verbatim** (`wall_messages` / `dms`) and the emoji transform
+   is a pure render-time return value that is never written back, there is **no persist path that
+   could corrupt the stored text** — the "store original, filter at render" guarantee is structural,
+   not a code-discipline promise. All three components render through Svelte **auto-escaped text**
+   (no `{@html}`), so emitting hot-dog emoji introduces **no XSS surface**. Zero server / DB / RLS /
+   RPC / migration / dependency change across the whole milestone.
+3. **Two accepted, documented dispositions.** **DW-019** (VS16-decorated library emoji replaced with
+   `🌭` rather than preserved) is **resolved/accepted** in TASK-061 — the output is still a hot-dog
+   emoji, benign against decision #16, recorded in the `render.ts` header comment. **DW-020** (no E2E
+   asserts the browser-rendered wall/DM DOM shows the filtered body) is an **accepted tracked gap**, a
+   sibling of DW-011/DW-013 covered at the unit/store-original layers, a candidate for a future M6/M7
+   E2E hardening task. Minor accepted observation: the `HotdogEmoji` type alias
+   (`src/lib/features/emoji/emojiSet.ts`) is a zero-runtime, type-only export with no external
+   consumer — kept for API symmetry, analogous to the M1 `isValidHandle` minor; not worth a DW item.
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 
@@ -1046,5 +1112,5 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
 | M3 — Reactions & per-dog stats | cosmetic reactions, peak votes                                                      | complete | All 4 tasks done. TASK-030 (cosmetic reactions, PR #43 `b27dc63`) — `hotdog_reactions` table + owner-scoped RLS insert/delete (deliberately not an RPC; no denormalized counter, render-time counts, so it structurally cannot affect ranking), `ReactionBar` wired into `/app/feed`. TASK-031 (per-dog stats, PR #45 `e1ffa0e`) — display/wiring only (no schema change): new `src/lib/features/hotdogs/detail.ts` query + `/app/dogs/[id]` detail route (404/500 mapping, read-only reaction summary, Stats block, `<TopDogBadge>`), `peak_votes` surfaced on the feed/tiles. TASK-032 (E2E hardening, PR #47 `5cf5879`) — live-stack `feed-detail.e2e.ts` covering feed cast/move/remove + react toggle + detail render + 404s, which surfaced a P0. TASK-033 (P0 fix, PR #47 `5cf5879`) — non-owner `hotdogs` signed URLs now minted server-side via the service client after the auth gate (decision #6 model preserved, no storage RLS change) + malformed-id `isUuid()` 404 guard. Tag `milestone-03-reactions-per-dog-stats`. See M3 close notes above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | complete | All 3 tasks done. TASK-040 (mustard decay math, PR #53 `5afd0da`) — pure render-time `src/lib/features/mustard/decay.ts` (`MUSTARD_LIFESPAN_MS` + `mustardOpacity`, full→0 over 24h, clock-skew clamp), TDD-first (19 unit cases), realizing decision #15; orphan-by-design with TASK-041 as the named consumer, no schema/RLS/RPC change. TASK-041 (mustard spray + render, PR #55 `e1eafb9`) — `mustard_sprays` table + plain owner-scoped RLS write with a **Top-Dog `WITH CHECK` INSERT gate** (only the current Top Dog may spray; gate trustworthy because `is_current_top_dog` is non-client-writable per decision #25), immutable/persistent (no UPDATE/DELETE), profile-page overlay rendered at render-time decay via `mustardOpacity` (consumes the TASK-040 seam); cosmetic flair like reactions but with the extra authz conjunct — captured as a reusable [[CLAUDE]] gotcha, not a new decision row. TASK-042 (mustard prune job, PR #57 `6452407`) — `prune_mustard_sprays()` SECURITY DEFINER RPC (the table's **sole DELETE path**, mirroring `tally_top_dog_day()`) deletes >24h sprays + `sprayed_at` index; anon-callable / idempotent / not-forgeable (decision #26 applied to a destructive job — no input, deletes only provably-invisible rows), wired into keep-alive as a third fail-on-non-2xx step. Tag `milestone-04-mustard-mechanic`. **Hosted-push gate pending** — the `mustard_sprays` + `mustard_prune` migrations must be `supabase db push`ed to hosted before the next keep-alive run (see Process notes). See M4 close notes above                                                                                                          |
 | M5 — Walls & DMs               | message walls + direct messages                                                     | complete | All 4 tasks done. TASK-050 (message walls, PR #60 `d3c7a4d`) — `wall_messages` table, plain owner-scoped RLS (decision #12, no counter), stores original body verbatim, SELECT any member / un-forgeable author pin / two-principal DELETE (author OR wall owner) / no UPDATE, wired into the profile route. TASK-051 (direct messages, PR #62 `4ac8ff8`) — `dms` table with a privacy boundary (participant-scoped SELECT, sender-pinned INSERT, no DELETE) + a `read_at`-only UPDATE column grant (decision #24's mechanism applied to a privacy column), pure `summarizeConversations` inbox collapse, `/app/messages` inbox + `/app/messages/[handle]` thread routes. TASK-052 (restore Data API grants, PR #66 `18f9baa`) — **P0 hotfix** for the 2026-05-30 `auto_expose_new_tables` default flip that stopped a fresh `supabase db reset` issuing the implicit base GRANTs PostgREST needs alongside RLS; new `restore_data_api_grants` migration makes grants explicit (authenticated SELECT all 9 tables; INSERT/DELETE only on counter-free cosmetic tables; DELETE on `hot_dogs`; service_role full DML; anon nothing) preserving the decision #24/#25 lockdowns + decision #12 RPC-only paths, `auto_expose_new_tables = false` pinned in config — recorded as **decision #28**. TASK-053 (grant-invariant verification, PR #68 `7603438`) — `tests/grants.e2e.ts` (`@security`, 11 cases) locks the required AND forbidden grant matrix in against drift. Tag `milestone-05-walls-dms`. **Hosted-push gate deferred to TASK-054** (three migrations in one `supabase db push`; user-gated ops, no auto-pause risk — see [[tasks/deferred]]). See M5 close notes above |
-| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | active   | 1 of 2 tasks done. TASK-060 (emoji filter + sprinkle, PR #71 `a2e309d`) — new dependency-free `src/lib/features/emoji/` (`emojiSet.ts` curated `HOTDOG_EMOJIS` + `isHotdogEmoji`; `filter.ts` `filterToHotdog` grapheme-cluster-safe via `Intl.Segmenter` + `sprinkleHotdog` deterministic via a hand-written `mulberry32` PRNG, zero deps), realizing **decision #16** (hot-dog-only library, filter at RENDER, store original); **TDD-first**, **orphan-by-design** (no production consumer yet — wired by TASK-061), no schema/RLS/RPC change, no new decision row. Reviewer APPROVE, 0 fix cycles; `pnpm test` 603/603. **TASK-061 (apply the filter in walls/DM render) remains** — DW-019 (VS16-decorated library-emoji handling) is the place to decide intended behavior there. See M6 progress notes above                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | complete | All 2 tasks done. TASK-060 (emoji filter + sprinkle, PR #71 `a2e309d`) — new dependency-free `src/lib/features/emoji/` (`emojiSet.ts` curated `HOTDOG_EMOJIS` + `isHotdogEmoji`; `filter.ts` `filterToHotdog` grapheme-cluster-safe via `Intl.Segmenter` + `sprinkleHotdog` deterministic via a hand-written `mulberry32` PRNG, zero deps), realizing **decision #16** (hot-dog-only library, filter at RENDER, store original); **TDD-first**, orphan-by-design, no schema/RLS/RPC change, no new decision row. TASK-061 (apply filter in walls/DM render, PR #72 `3d85087`) — new pure composition layer `src/lib/features/emoji/render.ts` (`renderWallBody` = filter + seeded sprinkle for walls via an FNV-1a per-message-uuid seed; `renderMessageBody` = filter only for DMs), wired into the profile wall + DM thread + DM inbox preview, all through Svelte auto-escaped text (no `{@html}` → XSS-safe); decision #16's store-original guarantee holds structurally (no persist path). DW-019 (VS16-decorated library emoji → `🌭`) **resolved/accepted**; DW-020 (render-DOM E2E gap) accepted tracked gap. No new decision row. Reviewer APPROVE, 0 fix cycles each; `pnpm test` 622/622, `@smoke` 4/4. Tag `milestone-06-emoji-library`. See M6 progress + close notes above                                                                                                                                                                                                                                                                                                                                                                                           |
 | M7 — Safety & polish           | upload limits, report button, polish                                                | pending  |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |

@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 	import { mustardOpacity } from '$lib/features/mustard/decay';
+	import { renderWallBody } from '$lib/features/emoji/render';
 
 	let { data, form } = $props();
 
@@ -170,8 +171,9 @@
 		Message wall (TASK-050). Any member may post a text message on this wall;
 		the post box always shows. Each message shows its author and timestamp, with
 		a delete affordance only for the message's author or the wall owner (which
-		also mirrors the authoritative RLS DELETE policy). Bodies render the ORIGINAL
-		text; the M6 emoji library will add a render-time filter here.
+		also mirrors the authoritative RLS DELETE policy). The stored body is never
+		mutated (decision #16); the M6 emoji library is applied at RENDER time via
+		renderWallBody (filter + seeded sprinkle keyed on the immutable message id).
 	-->
 	<section class="wall" aria-label="Message wall">
 		<h2>Wall</h2>
@@ -195,7 +197,7 @@
 			<ul class="wall-messages">
 				{#each wallMessages as message (message.id)}
 					<li class="wall-message">
-						<p class="wall-message-body">{message.body}</p>
+						<p class="wall-message-body">{renderWallBody(message.body, message.id)}</p>
 						<p class="wall-message-meta">
 							<a
 								href={resolve('/(protected)/app/profile/[handle]', {

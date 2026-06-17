@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { renderMessageBody } from '$lib/features/emoji/render';
 
 	let { data } = $props();
 
@@ -37,7 +38,8 @@
 								>{conversation.unreadCount}</span
 							>
 						{/if}
-						<span class="preview">{conversation.lastBody}</span>
+						<!-- Decision #16: filter at render only (no sprinkle), matching the thread. -->
+						<span class="preview">{renderMessageBody(conversation.lastBody)}</span>
 						<span class="date">{formatDate(conversation.lastAt)}</span>
 					</a>
 				</li>

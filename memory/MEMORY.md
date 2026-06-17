@@ -30,9 +30,18 @@ through the same `chore/*`-branch-then-squash-merge flow.
 
 `pnpm lint` runs `prettier --check .`, so unformatted PROJECT.md / handoff /
 TASKS markdown breaks the lint gate. This has **recurred** — PR #6, PR #15, and
-again PR #26 each had to fix pre-existing markdown drift to get the gate green.
-Run `pnpm exec prettier --write` on edited markdown (documenter output and/or
-director pre-commit) so bookkeeping never red-flags the gate.
+again PR #26 each had to fix pre-existing markdown drift to get the gate green;
+the **M6 session repeated it twice** (the TASK-060 close and the M6 close), where
+unformatted documenter bookkeeping turned `main` lint-RED and the director caught
+
+- fixed each via the Verification Reflex (`prettier --write`). Run
+  `pnpm exec prettier --write` on edited markdown so bookkeeping never red-flags the
+  gate. **The reliable owner of this is whoever has a working `prettier` in-sandbox:**
+  the documenter's sandbox often DENIES `prettier`, so when it cannot self-format it
+  must format-by-construction (wrap prose, align tables) and say so explicitly in its
+  report — and the director must then run the format pass on the main thread before
+  landing (this is the format half of the director-runs-verification pattern below),
+  never trusting an unverified "formatted" self-report.
 
 Related Bash-hook gotcha: don't chain `git checkout -b <branch> && git commit`
 in one Bash call. The pre-tool-safety hook reads the **current** branch BEFORE

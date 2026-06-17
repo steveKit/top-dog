@@ -135,11 +135,11 @@ breaking the real invite path. TASK-052 restored the grants explicitly
 lockdowns and decision #12 RPC-only write paths, pinned `auto_expose_new_tables =
 false` in config so local matches cloud, and the model is now recorded as **decision
 #28**; TASK-053 added the `tests/grants.e2e.ts` guard locking the matrix in against
-future drift. **Hosted-push gate deferred:** three unpushed migrations
-(`wall_messages`, `dms`, `restore_data_api_grants`) must reach hosted in one
-`supabase db push` — tracked as **TASK-054** in [[tasks/deferred]], a user-gated ops
-follow-up with no auto-pause risk (no keep-alive step depends on them). See the M5
-close notes below. Next: M6 — Emoji library.
+future drift. **Hosted-push gate (TASK-054) — DONE 2026-06-17:** the three unpushed
+migrations (`wall_messages`, `dms`, `restore_data_api_grants`) all reached hosted in one
+`supabase db push`, and the post-push keep-alive run verified **green** (ping + tally +
+prune all 2xx), so **walls & DMs are now functional on hosted**. See the M5 close notes
+below. Next: M6 — Emoji library.
 
 **Milestone M6 — Emoji library is complete** (2 tasks; tag `milestone-06-emoji-library`).
 TASK-060 landed the **pure render-time emoji seam** — a new dependency-free feature folder
@@ -1101,6 +1101,19 @@ Wall post -> wall_messages(original) -> emoji filter at render + random hot-dog 
   built end to end, and tagged in a single session; all three tasks landed
   reviewer APPROVE / 0 fix cycles. See the handoff for the full session record
   and the pending hosted-push gate. Next: M5 — Walls & DMs.
+- **M5 hosted-push gate — DONE 2026-06-17 (TASK-054).** The user ran a single
+  `supabase db push` carrying all three deferred migrations together
+  (`20260616184139_wall_messages.sql`, `20260616191804_dms.sql`,
+  `20260617000000_restore_data_api_grants.sql`), so hosted now has the M5
+  walls/DMs surfaces **and** the explicit-grant restore — **walls & DMs are
+  functional on hosted.** Post-push keep-alive verified **green**
+  (`workflow_dispatch` run 27714086568 — ping + tally + prune all 2xx). This
+  discharges the deferred ops follow-up that M5 close carried (it had no
+  auto-pause risk, so it was deferred out of the milestone rather than gating
+  its close). The per-milestone hosted-push discipline now applies forward to
+  M6 — but M6 added **no migrations** (the emoji library is pure render-time
+  TS), so there is no M6 hosted-push gate. See [[tasks/deferred]] (row marked
+  `done`) and [[Handoffs/handoff-014]].
 
 ## Milestones
 

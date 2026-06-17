@@ -39,8 +39,14 @@ mise install
 # Install dependencies
 pnpm install
 
-# Start local Supabase stack (Docker: Postgres + Auth + Storage + Studio)
-supabase start
+# Start local Supabase stack (Docker: Postgres + Auth + Storage + Studio).
+# Use the wrapper, not raw `supabase start`: it runs `supabase start` then
+# clears the CLI's hardcoded `restart: unless-stopped` policy (docker update
+# --restart=no, scoped by label com.supabase.cli.project=top-dog) so the stack
+# won't auto-start on a Docker/host reboot. The CLI re-applies unless-stopped on
+# every start and has no config.toml knob for it, so the wrapper re-applies the
+# override each run — a raw `supabase start` leaves auto-restart ON.
+pnpm db:start                # canonical: wraps `supabase start` + disables auto-restart
 # Stop it
 supabase stop
 # Apply / create migrations

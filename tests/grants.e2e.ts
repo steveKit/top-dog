@@ -29,15 +29,23 @@ import { getLocalStackCreds } from './helpers/local-stack';
 //     on all 9 tables, and service_role read/write works on all 9 — the base
 //     grants TASK-052 restored. If any base SELECT grant were dropped, the
 //     authenticated SELECT would flip from a 200-with-rows to a 42501.
-//   * One representative locked-column forge denial (dms.read_at on INSERT) to
-//     prove a column-lockdown still blocks a table-wide forge of a
-//     server-maintained column. (The hot_dogs counter and profiles crown forge
-//     denials are already covered by db-guards.e2e.ts — NOT duplicated here.)
+//
+// This spec deliberately does NOT re-assert the per-column forge lockdowns
+// (decision #24/#25 insert+update column grants). Those are matrix-complete
+// already, each owned by a sibling @security spec — re-testing them here would
+// duplicate coverage (AC #5). For matrix-completeness traceability, the column
+// lockdowns ARE asserted at:
+//   * hot_dogs server-maintained counters (vote_count/peak_votes/created_at)
+//       forge-on-INSERT denial                       -> db-guards.e2e.ts
+//   * profiles crown columns (is_current_top_dog/top_dog_since/days_as_top_dog)
+//       forge-on-INSERT and forge-on-UPDATE denial    -> db-guards.e2e.ts / tally.e2e.ts
+//   * dms.read_at sender-forge-on-INSERT denial (column grant omits read_at)
+//                                                      -> dms.e2e.ts
 //
 // DELIBERATELY NOT DUPLICATED (covered elsewhere — see those specs):
 //   * hot_dogs forge-counter INSERT denial          -> db-guards.e2e.ts
 //   * profiles forge-crown INSERT/UPDATE denial      -> db-guards.e2e.ts / tally.e2e.ts
-//   * dms read_at recipient-only UPDATE / body lockdown / privacy SELECT -> dms.e2e.ts
+//   * dms read_at INSERT-forge / recipient-only UPDATE / body lockdown / privacy SELECT -> dms.e2e.ts
 //   * wall / dm immutability (no UPDATE/DELETE)       -> walls.e2e.ts / dms.e2e.ts
 //   * vote RPC behaviour                              -> votes.e2e.ts
 //
@@ -179,21 +187,38 @@ test.describe('@security grant invariants: REQUIRED positives (base grants prese
 		expect(reactErr, 'authenticated INSERT on hotdog_reactions must succeed').toBeNull();
 
 		// mustard_sprays: Top-Dog-gated. Crown the sprayer (service client) so the
-		// EXISTS privilege conjunct passes, then spray.
+		// EXISTS privilege conjunct passes, then spray. The crown is a GLOBAL
+		// singleton against the one shared local Postgres, so the un-crown MUST be
+		// unconditional — if the spray assertion throws (the exact grant-drift this
+		// guard catches), a leaked `is_current_top_dog = true` would race the
+		// crown-reading sibling specs under workers:1. We therefore clear ALL crowns
+		// table-wide both before (defensive) and in a finally (guaranteed cleanup),
+		// matching tally.e2e.ts resetCrownAndTally / mustard.e2e.ts setSoleTopDog.
 		const sprayer = await makeUser(uniqueHandle('sp'));
 		const target = await makeUser(uniqueHandle('tg'));
-		const { error: crownErr } = await service
-			.from('profiles')
-			.update({ is_current_top_dog: true })
-			.eq('id', sprayer.id);
-		if (crownErr) throw new Error(`Could not crown the sprayer: ${crownErr.message}`);
-		const { error: sprayErr } = await sprayer.client
-			.from('mustard_sprays')
-			.insert({ sprayer_id: sprayer.id, target_profile_id: target.id, x: 0.5, y: 0.5 });
-		expect(sprayErr, 'authenticated INSERT on mustard_sprays (as Top Dog) must succeed').toBeNull();
-		// Reset the crown so this test leaves no global-singleton residue for the
-		// serialized suite.
-		await service.from('profiles').update({ is_current_top_dog: false }).eq('id', sprayer.id);
+		const NIL_UUID = '00000000-0000-0000-0000-000000000000';
+		const clearAllCrowns = () =>
+			service
+				.from('profiles')
+				.update({ is_current_top_dog: false, top_dog_since: null })
+				.neq('id', NIL_UUID);
+		await clearAllCrowns();
+		try {
+			const { error: crownErr } = await service
+				.from('profiles')
+				.update({ is_current_top_dog: true, top_dog_since: new Date().toISOString() })
+				.eq('id', sprayer.id);
+			if (crownErr) throw new Error(`Could not crown the sprayer: ${crownErr.message}`);
+			const { error: sprayErr } = await sprayer.client
+				.from('mustard_sprays')
+				.insert({ sprayer_id: sprayer.id, target_profile_id: target.id, x: 0.5, y: 0.5 });
+			expect(
+				sprayErr,
+				'authenticated INSERT on mustard_sprays (as Top Dog) must succeed'
+			).toBeNull();
+		} finally {
+			await clearAllCrowns();
+		}
 
 		// wall_messages: owner-scoped insert, author pinned to the caller.
 		const poster = await makeUser(uniqueHandle('po'));
@@ -247,10 +272,14 @@ test.describe('@security grant invariants: anon (pre-auth) has NOTHING', () => {
 		// load-bearing assertion: anon NEVER sees a row. We seed one real row per
 		// readable table with the service client first, then confirm anon sees none.
 		const service = serviceClient();
-		const member = await makeUser(uniqueHandle('seed'));
+		const member = await makeUser(uniqueHandle('seed')); // also seeds `profiles`
+		const other = await makeUser(uniqueHandle('seed2')); // a 2nd member for voter≠owner / sender≠recipient FKs
 
-		// Seed at least one row the service client can see, per table, so "anon sees
-		// zero" is meaningful (not vacuously true on an empty table).
+		// Seed at least one REAL row the service client can see, in EVERY one of the 9
+		// tables, so each per-table "anon sees zero" assertion is non-vacuous (the
+		// service client BYPASSRLS, so these rows exist and are visible to it; anon
+		// must still see none). Tables with cross-actor FKs (votes voter≠owner, dms
+		// sender≠recipient) use the second member.
 		const dogId = crypto.randomUUID();
 		await service
 			.from('invites')
@@ -266,6 +295,23 @@ test.describe('@security grant invariants: anon (pre-auth) has NOTHING', () => {
 		await service
 			.from('hotdog_reactions')
 			.insert({ hot_dog_id: dogId, user_id: member.id, emoji: '👀' });
+		// votes: voter must differ from the dog owner — `other` votes for `member`'s dog.
+		await service.from('votes').insert({ voter_id: other.id, hot_dog_id: dogId });
+		// mustard_sprays: sprayer + target + normalized coords.
+		await service.from('mustard_sprays').insert({
+			sprayer_id: member.id,
+			target_profile_id: other.id,
+			x: 0.5,
+			y: 0.5
+		});
+		// wall_messages: author posting on another member's wall.
+		await service
+			.from('wall_messages')
+			.insert({ author_id: member.id, profile_id: other.id, body: 'anon seed wall note' });
+		// dms: sender ≠ recipient.
+		await service
+			.from('dms')
+			.insert({ sender_id: member.id, recipient_id: other.id, body: 'anon seed dm' });
 
 		const anon = anonClient();
 		for (const table of ALL_TABLES) {
@@ -367,33 +413,5 @@ test.describe('@security grant invariants: votes / top_dog_days are RPC-write-on
 		const { error } = await member.client.from('top_dog_days').delete().eq('profile_id', member.id);
 		expect(error, 'direct top_dog_days DELETE must be rejected').not.toBeNull();
 		expect(error?.code, 'top_dog_days DELETE is grant-layer denied (42501)').toBe('42501');
-	});
-});
-
-// ---------------------------------------------------------------------------
-// (4) NEGATIVE — representative locked-column forge denial on a column that no
-//     other @security spec covers (dms.read_at on INSERT). Proves the
-//     decision #24/#25 insert-column lockdown still rejects a table-wide forge
-//     of a server/recipient-maintained column. (hot_dogs counter + profiles
-//     crown forge denials live in db-guards.e2e.ts and are NOT duplicated.)
-// ---------------------------------------------------------------------------
-test.describe('@security grant invariants: locked-column forge denial (dms.read_at on INSERT)', () => {
-	test('a sender forging read_at on a dms INSERT is column-grant denied (42501)', async () => {
-		const sender = await makeUser(uniqueHandle('ds'));
-		const recipient = await makeUser(uniqueHandle('dr'));
-
-		// The INSERT column grant is (sender_id, recipient_id, body) — read_at is NOT
-		// in it (it falls to its DEFAULT/NULL and is recipient-only on UPDATE). A
-		// sender supplying read_at to pre-mark the DM read is denied at the column
-		// grant layer (42501), independent of RLS.
-		const { error } = await sender.client.from('dms').insert({
-			sender_id: sender.id,
-			recipient_id: recipient.id,
-			body: 'forging read state',
-			read_at: '2000-01-01T00:00:00Z'
-		});
-
-		expect(error, 'forging read_at on a dms INSERT must be rejected').not.toBeNull();
-		expect(error?.code, 'dms.read_at INSERT forgery is column-grant denied (42501)').toBe('42501');
 	});
 });

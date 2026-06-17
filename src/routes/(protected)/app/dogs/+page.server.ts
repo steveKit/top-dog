@@ -8,7 +8,8 @@ import {
 	deleteHotDog,
 	appStorageBytes,
 	isAtCap,
-	PER_USER_CAP
+	PER_USER_CAP,
+	MAX_UPLOAD_BYTES
 } from '$lib/features/hotdogs/hotdogs';
 import {
 	upload,
@@ -123,6 +124,18 @@ export const actions: Actions = {
 		// Validate the upload at the boundary: a real, non-empty image file.
 		if (!(photo instanceof File) || photo.size === 0) {
 			return fail(400, { caption: rawCaption, error: 'Pick a hot dog photo to upload.' });
+		}
+
+		// Per-file size cap (TASK-070; friendly UX layer). The authoritative
+		// enforcement is server-side — the Storage API bucket file_size_limit on
+		// the real object bytes plus the hot_dogs_byte_size_max DB CHECK on the
+		// declared byte_size — so a direct API insert can't bypass it. Reject
+		// early here so an oversized photo never reaches storage.
+		if (photo.size > MAX_UPLOAD_BYTES) {
+			return fail(400, {
+				caption: rawCaption,
+				error: "That photo's too big — keep it under 2 MB."
+			});
 		}
 
 		// Caption length bound (friendly UX layer; the hot_dogs_caption_length DB

@@ -39,7 +39,8 @@ vi.mock('$lib/features/hotdogs/hotdogs', () => ({
 	deleteHotDog: vi.fn(),
 	appStorageBytes: vi.fn(),
 	isAtCap: (n: number) => n >= 100,
-	PER_USER_CAP: 100
+	PER_USER_CAP: 100,
+	MAX_UPLOAD_BYTES: 2097152
 }));
 
 vi.mock('$lib/storage', () => ({
@@ -67,7 +68,8 @@ import {
 	countByOwner,
 	getHotDogById,
 	deleteHotDog,
-	appStorageBytes
+	appStorageBytes,
+	MAX_UPLOAD_BYTES
 } from '$lib/features/hotdogs/hotdogs';
 import { upload, remove, getSignedUrl, evaluateUpload } from '$lib/storage';
 import { getProfileById } from '$lib/features/profiles/profiles';
@@ -248,6 +250,58 @@ describe('dogs upload action', () => {
 		expect(result).toEqual({ uploaded: true });
 		const insertArg = vi.mocked(createHotDog).mock.calls[0][1];
 		expect(insertArg.caption).toBeNull();
+	});
+
+	it('rejects a photo larger than MAX_UPLOAD_BYTES with a friendly "too big" 400 BEFORE any count/usage/upload/insert', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { photo: aPhoto(MAX_UPLOAD_BYTES + 1), caption: 'keep this' }
+		});
+
+		const result = await upload_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		const failure = result as { status: number; data: { error: string; caption: string } };
+		expect(failure.status).toBe(400);
+		expect(failure.data.error).toMatch(/too big/i);
+		// Entered state is preserved so the user doesn't retype.
+		expect(failure.data.caption).toBe('keep this');
+		// Hard guarantee: an oversized photo never reaches count/usage/upload/insert.
+		expect(countByOwner).not.toHaveBeenCalled();
+		expect(appStorageBytes).not.toHaveBeenCalled();
+		expect(upload).not.toHaveBeenCalled();
+		expect(createHotDog).not.toHaveBeenCalled();
+	});
+
+	it('accepts a photo of exactly MAX_UPLOAD_BYTES (boundary) and proceeds to upload/insert', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { photo: aPhoto(MAX_UPLOAD_BYTES) }
+		});
+
+		const result = await upload_(event);
+
+		expect(result).toEqual({ uploaded: true });
+		expect(upload).toHaveBeenCalledOnce();
+		const insertArg = vi.mocked(createHotDog).mock.calls[0][1];
+		expect(insertArg.byteSize).toBe(MAX_UPLOAD_BYTES);
+	});
+
+	it('rejects a photo one byte over MAX_UPLOAD_BYTES (boundary)', async () => {
+		const { event } = makeEvent({
+			session: VALID_SESSION,
+			user: VALID_USER,
+			formFields: { photo: aPhoto(MAX_UPLOAD_BYTES + 1) }
+		});
+
+		const result = await upload_(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(upload).not.toHaveBeenCalled();
+		expect(createHotDog).not.toHaveBeenCalled();
 	});
 
 	it('at the per-user cap: friendly "delete one to add another" 400, NO upload/insert', async () => {

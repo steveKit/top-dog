@@ -378,4 +378,24 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `supabase/migrations/20260617000000_restore_data_api_grants.sql`; the `@security` guard
   `tests/grants.e2e.ts` asserts the required AND forbidden grant matrix so a future reset
   can't silently re-drift. This is decision #28 — apply it to every future `public` table.
+- **Upload-limit enforcement belongs at the DB + Storage API, NOT only the form action —
+  and a "size" CHECK does NOT cap real uploaded bytes.** A SvelteKit form-action size/count
+  check is only the friendly UX layer; a direct PostgREST insert with the browser
+  publishable key bypasses it. Enforce upload limits at the authoritative boundary
+  (TASK-070, `20260617195233_upload_limits.sql`): (1) the **bucket
+  `file_size_limit`** (set on both `hotdogs` and `avatars`, 2 MiB) is the ONLY layer that
+  bounds the **actual uploaded bytes** — a DB CHECK on a client-supplied size column
+  (`hot_dogs.byte_size`) only bounds the **declared** value (which feeds the decision #11
+  global-sum guard), so it can be understated and is not a byte cap; (2) per-row admission
+  caps like the 100-per-user limit (decision #10) are enforced at the DB via a **BEFORE
+  INSERT trigger** (`hot_dogs_enforce_per_user_cap()`), NOT an RPC — the hot-dog upload
+  writes through plain owner-scoped RLS with no denormalized counter to maintain, so a
+  trigger gates admission in place rather than rerouting the write path through an RPC. The
+  trigger function gets the standard private-helper lockdown (SECURITY DEFINER,
+  `search_path=''`, schema-qualified, `revoke execute … from public, anon, authenticated`).
+  Keep the TS-side size literal as a single source of truth (`MAX_UPLOAD_BYTES = 2097152` in
+  `src/lib/features/hotdogs/hotdogs.ts`); SQL can't import it, so carry the literal in the
+  migration with cross-reference comments both directions + a unit test pinning the value.
+  This composes decisions #10/#11/#24 (the column-grant lockdown is preserved, NOT touched);
+  no new decision row. Reuse this layering for any future hard upload/quota limit.
   Use [[wikilinks]] when cross-referencing project docs.

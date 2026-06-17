@@ -20,16 +20,17 @@
 
 ## Active Milestones
 
-**No milestone is currently `active`.** **Milestone M6 — Emoji Library completed**
-2026-06-17 (TASK-060/061; tag `milestone-06-emoji-library`) — the hot-dog emoji
-library shipped as a pure, dependency-free render-time seam (decision #16: filter at
-RENDER, store original) and wired into the wall + DM render surfaces (walls get
-filter + seeded sprinkle; DMs get filter only). The next planned milestone is
-**M7 — Safety & Polish** (pre-exploded — see § Planned Milestones).
+**Milestone M7 — Safety & Polish is `active`** (activated 2026-06-17) — server-side
+upload limits, a report button, and a final polish pass. Pre-exploded with full task
+detail: see [[tasks/milestone-07-safety-polish]]. **Progress: 1/3** — TASK-070
+(server-side upload limits enforcement, P1) `complete` (PR #74, `864b8e2`); TASK-071
+(report button, P2) and TASK-072 (polish pass, P3) `pending`. **Outstanding ops:**
+TASK-070's migration needs `supabase db push` to hosted (per-milestone gate).
 
-**TASK-054 (push the M5 migrations + grant fix to hosted)** remains deferred to
-[[tasks/deferred]] as a user-gated ops follow-up — walls & DMs do not work on
-hosted until it runs. See § Completed Milestones for M6 and the prior milestones.
+Prior: **Milestone M6 — Emoji Library completed** 2026-06-17 (TASK-060/061; tag
+`milestone-06-emoji-library`). The deferred M5 hosted-push follow-up (TASK-054) is
+**done** — walls & DMs now work on hosted. See § Completed Milestones for the full
+history.
 
 ## Planned Milestones
 
@@ -38,9 +39,8 @@ carry **full task files now** rather than header-only stubs. (The new-model
 default is a one-line stub the planner explodes on activation; here the detail
 was already written, so it is preserved.) Depends-on is kept coarse.
 
-| #   | Milestone       | Scope (one line)                                            | Depends on           | File                                 |
-| --- | --------------- | ----------------------------------------------------------- | -------------------- | ------------------------------------ |
-| 07  | Safety & Polish | server-side upload limits, report button, final polish pass | all prior milestones | [[tasks/milestone-07-safety-polish]] |
+None — M7 (the last pre-specified milestone) is now `active`. Future work is tracked
+in [[tasks/discovered]] and feeds any post-M7 milestone stubs.
 
 ## Deferred Milestones
 

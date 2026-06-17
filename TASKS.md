@@ -21,11 +21,12 @@
 ## Active Milestones
 
 **Milestone M7 — Safety & Polish is `active`** (activated 2026-06-17) — server-side
-upload limits, a report button, and a final polish pass. Pre-exploded with full task
-detail: see [[tasks/milestone-07-safety-polish]]. **Progress: 1/3** — TASK-070
-(server-side upload limits enforcement, P1) `complete` (PR #74, `864b8e2`); TASK-071
-(report button, P2) and TASK-072 (polish pass, P3) `pending`. TASK-070's hosted-push
-gate is **done** (user ran `supabase db push` 2026-06-17 — DB/Storage caps live on hosted).
+upload limits, the 🍔 **Hamburger Court** (report → HAMBURGER ALARM → Top-Dog verdict →
+HAMBURGER LIES) + a Top-Dog-privileges notice, and a final polish pass. Full task
+detail: [[tasks/milestone-07-safety-polish]]. **Progress: 1/5** — TASK-070 (upload
+limits, P1) `complete` (PR #74, hosted-push done); TASK-071 (🍔 report + alarm banners,
+P2) `in_progress`; TASK-073 (Top-Dog verdict + HAMBURGER LIES, P2), TASK-074 (Top-Dog
+privileges notice, P3), and TASK-072 (polish pass, P3) `pending`.
 
 Prior: **Milestone M6 — Emoji Library completed** 2026-06-17 (TASK-060/061; tag
 `milestone-06-emoji-library`). The deferred M5 hosted-push follow-up (TASK-054) is

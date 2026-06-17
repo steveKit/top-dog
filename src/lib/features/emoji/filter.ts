@@ -95,7 +95,3 @@ export function sprinkleHotdog(text: string, seed: number, opts?: { rate?: numbe
 	}
 	return out;
 }
-
-// Re-exported so tests and consumers can assert "every added emoji is from the set"
-// without reaching across modules.
-export const _SPRINKLE_SOURCE: readonly string[] = HOTDOG_EMOJIS;

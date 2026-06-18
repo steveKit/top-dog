@@ -22,11 +22,13 @@
 
 **Milestone M7 — Safety & Polish is `active`** (activated 2026-06-17) — server-side
 upload limits, the 🍔 **Hamburger Court** (report → HAMBURGER ALARM → Top-Dog verdict →
-HAMBURGER LIES) + a Top-Dog-privileges notice, and a final polish pass. Full task
-detail: [[tasks/milestone-07-safety-polish]]. **Progress: 1/5** — TASK-070 (upload
-limits, P1) `complete` (PR #74, hosted-push done); TASK-071 (🍔 report + alarm banners,
-P2) `in_progress`; TASK-073 (Top-Dog verdict + HAMBURGER LIES, P2), TASK-074 (Top-Dog
-privileges notice, P3), and TASK-072 (polish pass, P3) `pending`.
+HAMBURGER LIAR / HERETIC) + a Top-Dog-privileges notice, an in-app help page, and a
+final polish pass. Full task detail: [[tasks/milestone-07-safety-polish]].
+**Progress: 2/6** — TASK-070 (upload limits, P1) `complete` (PR #74, hosted-push done)
+and TASK-071 (🍔 report + HAMBURGER ALARM banners, P2) `complete` (PR #78; **hosted-push
+of `20260617205453_burger_alarms.sql` still OUTSTANDING**); TASK-073 (Top-Dog verdict +
+HAMBURGER LIAR / HERETIC, P2), TASK-074 (Top-Dog privileges notice, P3), TASK-075 (in-app
+help page, P3), and TASK-072 (polish pass, P3) `pending`.
 
 Prior: **Milestone M6 — Emoji Library completed** 2026-06-17 (TASK-060/061; tag
 `milestone-06-emoji-library`). The deferred M5 hosted-push follow-up (TASK-054) is

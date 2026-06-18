@@ -6,88 +6,16 @@
 
 ## Active Tasks
 
-### TASK-071: Report-hamburger button + HAMBURGER ALARM banner [`in_progress`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-013, TASK-011
-**Scope note (2026-06-17, user-themed):** the generic "report button" is reshaped into
-a for-fun **🍔 report-hamburger** mechanic: a member flags a hot dog as "that's a
-hamburger, not a hot dog," which trips a render-time **HAMBURGER ALARM** banner —
-styled like yellow/black **police tape** stretched across the offending dog's image —
-shown **wherever that image renders across all feeds** (global feed, dog detail, owner
-gallery, profile dog tiles). Composes decision #12 (cosmetic / many-allowed, no
-denormalized counter → structurally ranking-inert) and decision #15 (render-time
-decay, like mustard). **Reporter is anonymous** (original AC preserved): the reported
-user sees the alarm, never who tripped it.
-
-**Acceptance Criteria:**
-
-- [ ] **Data:** new `burger_alarms` table (migration) — `id`, `reporter_id` →
-      `profiles`, `hot_dog_id` → `hot_dogs` (both `on delete cascade`), `created_at`;
-      `UNIQUE(reporter_id, hot_dog_id)` (one report per reporter per dog). **No
-      denormalized counter** (decision #12). Base grants per decision #28
-      (`authenticated` SELECT/INSERT/DELETE; `service_role` full; `anon` nothing).
-- [ ] **Anonymity via RLS + server-side aggregate:** RLS SELECT/INSERT/DELETE are
-      owner-scoped to the reporter (`reporter_id = (select auth.uid())`) so a member can
-      read/toggle only their OWN report rows — others' reporter ids are never readable
-      via PostgREST. The **public alarm count is aggregated server-side** (service
-      client, constructed AFTER the `safeGetSession()` gate) and only the aggregate
-      (count / active / intensity) reaches the client — reporter ids never leave the
-      server. No UPDATE policy (reports are immutable).
-- [ ] **No self-report:** INSERT `WITH CHECK` pins `reporter_id = (select auth.uid())`
-      AND blocks reporting a dog you own (an EXISTS check against `hot_dogs.owner_id`) —
-      enforced at the DB, not just the UI.
-- [ ] **Pure alarm logic (co-located, dependency-free seam, like `mustard/decay.ts`):**
-      a `summarizeBurgerAlarm(reportTimestamps, now)` (or equiv) computing alarm state
-      from report rows — **active** iff ≥1 report within the last 24h (auto-quiets after
-      24h of no new reports), `reporterCount` = unique reporters in-window, and an
-      **intensity** that scales with count (more reporters → louder banner). No
-      SvelteKit/Supabase imports.
-- [ ] **Report / retract:** typed server wrappers (`reportBurger` / `unreportBurger`)
-      idempotent (23505 → benign add; missing-row delete → no-op), reporter id derived
-      from `auth.uid()` (never client-supplied). Wired to a 🍔 report/retract control on
-      the feed (and dog detail) tile; press again to retract; an owner sees no control on
-      their own dog.
-- [ ] **Two police-tape banners (seeded-random angles):** render-time component styled
-      as yellow/black police tape overlaid across the dog image — **two** strips,
-      "HAMBURGER ALARM" (🍔) and "TOP DOG IS THE ADJUDICATOR" — shown when the dog's
-      alarm is **active**, on EVERY surface a hot-dog image renders (global feed, dog
-      detail, owner gallery, profile dog tiles). Each strip is rotated at a
-      **seeded-random angle** so it looks haphazardly slapped on but is **stable across
-      re-renders** (deterministic, seeded on dog id + banner label via a small pure
-      helper — the same seeded-PRNG approach as the emoji sprinkle's
-      `stringToSeed`/`mulberry32`, decision #16; NOT re-rolled per render → no jitter).
-      Banner prominence scales with reporter count. Render is XSS-safe (Svelte
-      text/markup, no `{@html}` of user content).
-- [ ] **Marked for review:** a dog with an active alarm is implicitly "pending review"
-      (awaiting the Top Dog's verdict — TASK-073). 071 ships the reported/alarmed state +
-      the "TOP DOG IS THE ADJUDICATOR" banner; the actual verdict + resolution is TASK-073.
-- [ ] **Ranking-inert (structural):** no write path touches `vote_count`/`peak_votes`/
-      crown — guaranteed by the no-counter table shape (decision #12), not code
-      discipline.
-- [ ] **Tests:** unit (pure alarm logic, table-driven decay + intensity; wrapper
-      sentinel mapping; the load output shape EXCLUDES reporter ids — anonymity pinned).
-      `@security` live-DB: a member cannot forge another's report (RLS), cannot report
-      their own dog (`WITH CHECK` rejects), cannot read others' report rows
-      (own-only SELECT → anonymity), and report+unreport leaves `vote_count`/`peak_votes`
-      unchanged (ranking-inert).
-- [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`, `@security`.
-
-> **Post-merge ops gate:** adds a migration → the per-milestone hosted-push gate applies
-> (`supabase db push` to hosted after merge).
-> **Likely a new architecture-decision row** (documenter/reviewer to confirm at close):
-> "anonymous cosmetic surface — RLS exposes only the actor's own rows; the public
-> aggregate is computed server-side so actor identity never reaches the client" — a new
-> shape vs. the non-anonymous reactions table.
-
-### TASK-073: Top-Dog verdict + HAMBURGER LIES banner [`pending`] [`P2`] [`L`]
+### TASK-073: Top-Dog verdict + HAMBURGER LIAR / HERETIC banners [`pending`] [`P2`] [`L`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-071, TASK-013, TASK-011, M2 crown engine (`recompute_top_dog`)
 **Scope note (2026-06-17, user-themed):** the moderation half of the Hamburger Court.
-The **current Top Dog adjudicates** flagged dogs and renders a per-dog verdict; a "not a
-hamburger" verdict brands every reporter of that dog with a render-time **HAMBURGER
-LIES** banner on their profile. Reuses the Top-Dog-gated privilege model (decisions
+The **current Top Dog adjudicates** flagged dogs and renders a per-dog verdict, with a
+consequence on each branch: a **"not a hamburger"** verdict brands every reporter of that
+dog with a render-time **HAMBURGER LIAR** banner on their profile (decays ~7 days); a
+**"confirmed hamburger"** verdict brands the **uploader** with a **HAMBURGER HERETIC**
+banner on their profile (persistent). Reuses the Top-Dog-gated privilege model (decisions
 #25/#15) and the consuming-writes-via-RPC convention.
 
 **Acceptance Criteria:**
@@ -101,21 +29,29 @@ LIES** banner on their profile. Reuses the Top-Dog-gated privilege model (decisi
 - [ ] **Verdict store:** a per-dog review state (`none`/`pending`/`confirmed`/`cleared`)
       or a `burger_verdicts` table, server-maintained (non-client-writable, decision
       #24/#25 style) — written only by the verdict RPC.
-- [ ] **HAMBURGER LIES consequence:** a `not_a_hamburger` verdict mints HAMBURGER LIES
+- [ ] **HAMBURGER LIAR consequence:** a `not_a_hamburger` verdict mints HAMBURGER LIAR
       rows for every reporter of that dog (transactionally in the RPC) — cosmetic /
       many-allowed surface (decision #12, no denormalized counter, ranking-inert).
-- [ ] **HAMBURGER LIES banner:** render-time police-tape banner on the offending
+- [ ] **HAMBURGER LIAR banner:** render-time police-tape banner on the offending
       reporter's PROFILE, **decaying over ~7 days** (render-time, like mustard decay);
       seeded-random angle (same helper as TASK-071).
+- [ ] **HAMBURGER HERETIC consequence + banner:** a `confirmed_hamburger` verdict brands
+      the dog's **owner/uploader** — their PROFILE shows a render-time **HAMBURGER HERETIC**
+      police-tape banner, **persistent** (does NOT decay; a confirmed offense is a lasting
+      brand), seeded-random angle (same helper as TASK-071). Derived from the confirmed
+      verdict (a profile is a HERETIC if any of their dogs has a `confirmed_hamburger`
+      verdict). Cosmetic / ranking-inert.
 - [ ] **Adjudication surface:** a Top-Dog-only control to view flagged dogs and rule
       (`confirmed` / `not a hamburger`). Non-Top-Dog members never see it; the gate is
       also enforced at the DB (the RPC), not just the UI.
-- [ ] **Confirmed branch:** a `confirmed_hamburger` verdict resolves the review (alarm
-      justified) — document whether the alarm then persists or clears.
-- [ ] **Tests:** unit (pure LIES-decay logic; verdict→state mapping). `@security`
-      live-DB: a non-Top-Dog cannot call the verdict RPC (gate rejects); the verdict
-      cannot be forged client-side (RPC is the sole write path); LIES rows are
-      ranking-inert; a verdict resolves the correct reports.
+- [ ] **Confirmed branch resolution:** a `confirmed_hamburger` verdict resolves the review
+      (alarm justified) and triggers the HAMBURGER HERETIC brand above; document whether the
+      dog's HAMBURGER ALARM then clears or converts to a "CONFIRMED HAMBURGER" stamp.
+- [ ] **Tests:** unit (pure LIAR/HERETIC-decay-or-persist logic; verdict→state mapping).
+      `@security` live-DB: a non-Top-Dog cannot call the verdict RPC (gate rejects); the
+      verdict cannot be forged client-side (RPC is the sole write path); LIAR and HERETIC
+      rows are ranking-inert; a verdict resolves the correct reports (LIAR for reporters on
+      a clear, HERETIC for the owner on a confirm).
 - [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`, `@security`.
 
 > **Post-merge ops gate:** adds a migration → the per-milestone hosted-push gate applies.
@@ -138,6 +74,31 @@ sender; the DM author-pin privacy model stays intact).
 - [ ] Non-Top-Dog members never see it.
 - [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`.
 
+### TASK-075: In-app help / "How Top Dog works" page [`pending`] [`P3`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** none hard (references mechanics from M2–M7); best built after TASK-071
+**Scope note (2026-06-17, user-themed):** an everyone-facing **static** in-app how-it-works
+page explaining what members can do, with emphasis on the **vote system**. Distinct from
+TASK-074 (the crown-holder-only privileges nudge). Static content only — no dynamic
+per-user status.
+
+**Acceptance Criteria:**
+
+- [ ] A static in-app route (e.g. `/app/help`) linked from the app nav.
+- [ ] **Vote system explained** (emphasis): one vote per member, **movable** anytime,
+      **cannot vote for your own** dog; most votes wins the crown; sticky tie-break; **days
+      as Top Dog** tally.
+- [ ] **What you can do** sections: voting + the Top Dog crown + Top-Dog powers (spray
+      mustard, adjudicate 🍔 hamburger reports), reactions, mustard, walls & DMs, and the 🍔
+      Hamburger Court (report → HAMBURGER ALARM → Top-Dog verdict → HAMBURGER LIAR /
+      HERETIC).
+- [ ] Static content only — no migration, no new deps, no dynamic per-user status. Svelte 5
+      runes; XSS-safe.
+- [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`.
+
+> No migration → no hosted-push gate.
+
 ### TASK-072: Polish pass [`pending`] [`P3`] [`M`]
 
 **Owner:** unassigned
@@ -148,6 +109,126 @@ sender; the DM author-pin privacy model stays intact).
 - [ ] `pnpm lint`, `pnpm check`, `pnpm test`, `@smoke` all green
 
 ## Completed Tasks (this milestone)
+
+### TASK-071: 🍔 report-hamburger + HAMBURGER ALARM banners [`complete`] [`P2`] [`L`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-013, TASK-011
+**Merged:** PR #78 (`0089eb2`, squash) · Reviewer: APPROVE · Fix cycles: 0 (one minor
+review finding — missing report/unreport route-action tests — addressed pre-merge)
+**Scope note (2026-06-17, user-themed):** the report half of the 🍔 Hamburger Court — a
+member flags another member's hot dog as a hamburger, tripping two render-time police-tape
+banners ("HAMBURGER ALARM" 🍔 + "TOP DOG IS THE ADJUDICATOR") at seeded-random angles
+across the offending image on the feed, dog detail, and owner gallery. Composes decision
+#12 (cosmetic / many-allowed, no counter → structurally ranking-inert) and decision #15
+(render-time 24h decay). Reporter is anonymous.
+**Acceptance Criteria:**
+
+- [x] `burger_alarms` table (migration `20260617205453_burger_alarms.sql`): `reporter_id` →
+      profiles, `hot_dog_id` → hot_dogs, `UNIQUE(reporter_id, hot_dog_id)`, no counter;
+      decision #28 grants.
+- [x] Anonymity via owner-scoped RLS (a reporter reads only their own rows) + a server-side
+      service-client aggregate after the auth gate — reporter ids never reach the client
+      (pinned by unit tests + the `@security` anonymity spec).
+- [x] No self-report: INSERT `WITH CHECK` pins reporter = `auth.uid()` AND blocks reporting
+      your own dog.
+- [x] Pure `summarizeBurgerAlarm` (24h decay + intensity) and `bannerAngle` (seeded ±8°,
+      stable per dog), dependency-free.
+- [x] `reportBurger`/`unreportBurger` idempotent, reporter from `auth.uid()`; 🍔
+      report/retract control on feed + detail (hidden on own dogs).
+- [x] Two seeded-angle police-tape banners on feed, detail, and owner gallery (the profile
+      route renders no dog images, so no banner there).
+- [x] Marked-for-review state shipped (an alarmed dog is implicitly pending review; the
+      verdict + resolution is TASK-073).
+- [x] Ranking-inert (structural — no counter, no write path to `vote_count`/`peak_votes`/
+      crown).
+- [x] Tests: unit (pure modules + anonymity pin + report/unreport route actions) +
+      `@security` live-DB (forge/own-dog rejected, anonymity, ranking-inert,
+      toggle/immutability/anon-read).
+- [x] All gates green: `pnpm test` 710, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4,
+      `@security` 81.
+
+> **Post-merge ops gate — OUTSTANDING:** the migration `20260617205453_burger_alarms.sql`
+> must be `supabase db push`ed to hosted before the next keep-alive run.
+
+**Notes:**
+
+- **The report half of the 🍔 Hamburger Court.** A member taps a 🍔 control on
+  ANOTHER member's hot dog to flag it as a hamburger; enough fresh reports trip a
+  render-time HAMBURGER ALARM — two diagonal police-tape strips ("🍔 HAMBURGER
+  ALARM" + "TOP DOG IS THE ADJUDICATOR") slapped across the offending image on the
+  feed, dog detail, and owner gallery. This is the report + alarm-display half only;
+  the Top-Dog verdict + consequence is TASK-073.
+- **Anonymity via owner-scoped RLS + a server-side aggregate — the one twist vs.
+  `hotdog_reactions`.** `hotdog_reactions` (decision #12) reads SELECT-all, so any
+  member can see who reacted. `burger_alarms` deliberately narrows that: the SELECT
+  policy is **owner-scoped to the reporter** (`(select auth.uid()) = reporter_id`),
+  so a member can read only their OWN report rows and can NEVER read who else
+  reported a dog. The viewer's report/retract toggle state therefore comes from an
+  RLS-scoped read (`getMyReportedDogIds`, anonymity-safe by construction — it can
+  only ever return the viewer's own rows). The public per-dog aggregate (how many
+  fresh reports → alarm intensity) is read **server-side with the service client**
+  (`getBurgerAlarmCounts`), constructed AFTER the `safeGetSession()` gate, selecting
+  **only `hot_dog_id, created_at` — deliberately never `reporter_id`** — so a
+  reporter's identity never enters the server's working set, let alone the page
+  payload. This is the decision #27 / decision #6 service-client-after-auth-gate
+  pattern (the same shape TASK-033 used to mint cross-member signed URLs) reused for
+  an anonymous count read rather than for signing.
+- **No new architecture-decision row — recorded as a composition note in
+  [[PROJECT]].** The spec flagged a _likely_ new decision row ("anonymous cosmetic
+  surface: owner-scoped RLS + server-computed public aggregate so actor identity
+  never reaches the client"). On inspection it introduces no new invariant: it is
+  **decision #12** (cosmetic / many-allowed, no denormalized counter →
+  structurally ranking-inert) with the SELECT narrowed from select-all to
+  owner-scoped, **composed with decision #27/#6** (privileged service-client read
+  after the auth gate) for the public aggregate, and **decision #15** for the
+  render-time alarm decay. Following the TASK-070 and M3-reactions precedent
+  (compositions recorded as a progress note, not a new row), it lives as an M7
+  composition note in PROJECT.md rather than a new Architecture Decisions row.
+- **Structural ranking-inert guarantee.** Like `hotdog_reactions`, `burger_alarms`
+  has **no denormalized counter** — no `vote_count` / `peak_votes` / crown column,
+  no trigger, nothing that touches ranking. The alarm count is computed at RENDER
+  time by the pure `summarizeBurgerAlarm`. So decision #12's "no ranking effect"
+  holds **structurally** — there is no write path that could touch ranking state,
+  not by code discipline. Corollary: decision #24/#25's column-grant lockdown does
+  **not** apply (id/created_at being client-insertable is inert — no server-maintained
+  column to forge); the table follows the decision #28 grant model
+  (`authenticated` SELECT + column-scoped INSERT `(reporter_id, hot_dog_id)` + DELETE;
+  `service_role` full DML; `anon` nothing).
+- **No self-report, no forged reporter.** The INSERT `WITH CHECK` has two conjuncts:
+  it pins `reporter_id = (select auth.uid())` (a client cannot report as another
+  member) AND a `NOT EXISTS` blocks reporting a dog you own. A `42501` RLS denial maps
+  to the friendly `CANNOT_REPORT_OWN` message, never a raw error leak.
+- **Render-time alarm + seeded-angle banners.** `summarizeBurgerAlarm` (pure,
+  dependency-free, in `src/lib/features/reports/alarm.ts`) auto-quiets the alarm 24h
+  after the last report (`BURGER_ALARM_WINDOW_MS`), counts in-window reporters, and
+  derives `none/low/medium/high` intensity — defensive (skips unparseable rows, never
+  throws). Each police-tape strip is tilted by `bannerAngle` (`angle.ts`,
+  ±8°, FNV-1a + mulberry32 mirroring the emoji module's PRNG) seeded on
+  `${dogId}:${label}`, so the tilt is **stable per (dog, label)** and never jitters
+  between re-renders. The `HamburgerAlarmBanner` overlay is XSS-safe (fixed label
+  strings, dynamic values bound as text / inline-style numbers, no `{@html}`); the
+  profile route renders no dog images, so it carries no banner.
+- **Report/unreport idempotency.** `reportBurger` maps a `23505` unique-violation
+  (already reported) to a benign success (re-reporting is a no-op toggle-on);
+  `unreportBurger` deletes the `(reporter_id, hot_dog_id)` row scoped to the viewer
+  and succeeds on zero rows (retracting a non-existent report is a no-op). Both take
+  the `SupabaseClient` passed in and derive the reporter from the trusted session uid,
+  never a client-supplied id.
+- **DW-021 (avatar-symmetry) already logged — no new DW.** The TASK-070
+  avatar-symmetry follow-up is tracked in [[tasks/discovered]] as DW-021; nothing in
+  TASK-071 reopens or adds to it, and no new Discovered Work surfaced here.
+- **Outstanding hosted-push gate.** The migration
+  `20260617205453_burger_alarms.sql` has **NOT** yet been `supabase db push`ed to
+  hosted; the per-milestone hosted-push gate is **open** for it. No scheduled job
+  calls `burger_alarms`, so there is no keep-alive 404 / auto-pause risk if the push
+  lags (the gate is hosted enforcement/parity, not workflow health) — but the report
+  surface is not functional on hosted until it is pushed. See [[PROJECT]] Process
+  notes.
+- **Reviewer outcome:** APPROVE, **0 fix cycles**. One minor review finding —
+  missing report/unreport route-action tests — was addressed pre-merge. Gates at
+  merge: `pnpm test` 710, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4,
+  `@security` 81.
 
 ### TASK-070: Upload limits enforcement [`complete`] [`P1`] [`S`]
 

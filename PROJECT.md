@@ -157,8 +157,35 @@ architecture-decision row** (decision #16 already exists). DW-019 (VS16-decorate
 library-emoji handling) is **resolved/accepted** in TASK-061; DW-020 (a render-DOM E2E gap)
 is an accepted tracked gap. See the M6 progress notes and close notes below.
 
-**Milestone M7 — Safety & Polish is in progress (1 of 3 tasks done).** TASK-070
-(upload limits enforcement, PR #74 `864b8e2`) landed: upload limits are now
+**Milestone M7 — Safety & Polish is in progress (2 of 6 tasks done — TASK-070 +
+TASK-071).** TASK-071 (🍔 report-hamburger + HAMBURGER ALARM banners, PR #78
+`0089eb2`) landed the **report half of the 🍔 Hamburger Court**: a member taps a
+🍔 control on another member's hot dog to flag it as a hamburger, and enough fresh
+reports trip a render-time HAMBURGER ALARM (two diagonal police-tape strips, "🍔
+HAMBURGER ALARM" + "TOP DOG IS THE ADJUDICATOR", at seeded ±8° angles) across the
+offending image on the feed, dog detail, and owner gallery. The new `burger_alarms`
+table is a **decision #12 cosmetic / many-allowed table with no denormalized
+counter** — structurally ranking-inert (no write path to `vote_count`/`peak_votes`/
+crown) — but with **one twist vs. `hotdog_reactions`: the reporter is anonymous.**
+The SELECT policy is owner-scoped to the reporter (so a member reads only their own
+report rows), and the public per-dog alarm aggregate is computed **server-side with
+the service client after the `safeGetSession()` gate**, selecting only
+`hot_dog_id, created_at` — reporter ids never reach the client. Reports are
+idempotent toggles (report `23505` → benign; retract on zero rows → no-op), the
+INSERT `WITH CHECK` pins `reporter_id = auth.uid()` AND blocks reporting your own
+dog, and the alarm + banner tilt are computed entirely at render (pure
+`summarizeBurgerAlarm` 24h decay + `bannerAngle`). This **composes existing
+decisions #12 / #15 / #27(#6) with no new architecture-decision row** (recorded as
+an M7 composition note below). Reviewer APPROVE, 0 fix cycles (one minor finding —
+missing report/unreport route-action tests — addressed pre-merge); `pnpm test` 710,
+`pnpm check` 0, `pnpm lint` clean, `@smoke` 4, `@security` 81. **Hosted-push gate
+OUTSTANDING** — the migration `20260617205453_burger_alarms.sql` has not yet been
+`supabase db push`ed to hosted (see Process notes). Remaining in M7: TASK-073
+(Top-Dog verdict + HAMBURGER LIAR/HERETIC), TASK-074 (Top Dog privileges notice),
+TASK-075 (how-it-works help page), TASK-072 (polish pass). See the M7 progress notes
+below.
+
+Earlier in M7, **TASK-070** (upload limits enforcement, PR #74 `864b8e2`) landed: upload limits are now
 **DB + Storage-API enforced**, not only checked in the SvelteKit form action, so
 a direct PostgREST insert (browser publishable key, bypassing the form action)
 cannot bypass them. Three hard server-side layers: a Storage API
@@ -175,10 +202,10 @@ new architecture-decision row** (decision #24's column-grant lockdown is
 preserved untouched). DW-005's original `byte_size` residual is **substantially
 mitigated** (the real-bytes/oversized direction is closed; the global-sum
 understatement direction remains an accepted v1 residual, kept tracked). Reviewer
-APPROVE, 0 fix cycles; `pnpm test` 626, `pnpm check` 0, `@smoke` 4, `@security` 73. **Hosted-push gate done (2026-06-17)** — migration `20260617195233_upload_limits.sql`
-was `supabase db push`ed to hosted by the user, so the caps are live on hosted (see Process
-notes). Remaining in M7: TASK-071 (report button), TASK-072 (polish pass). See the
-M7 progress notes below.
+APPROVE, 0 fix cycles; `pnpm test` 626, `pnpm check` 0, `@smoke` 4, `@security` 73.
+**Hosted-push gate done (2026-06-17)** — migration `20260617195233_upload_limits.sql`
+was `supabase db push`ed to hosted by the user, so the caps are live on hosted (see
+Process notes). See the M7 progress notes below.
 
 ### Milestone M1 progress notes
 
@@ -1025,6 +1052,44 @@ seam pattern (`voting/ranking.ts`, `mustard/decay.ts`) one more time.
    live-DB cases in `tests/db-guards.e2e.ts`). Reviewer **APPROVE, 0 fix cycles**.
    **Hosted-push gate pending** (see Process notes).
 
+2. **🍔 report-hamburger + HAMBURGER ALARM banners (TASK-071, PR #78 `0089eb2`).**
+   The **report half of the 🍔 Hamburger Court**: a member taps a 🍔 control on
+   ANOTHER member's hot dog to flag it as a hamburger, and enough fresh reports trip
+   a render-time HAMBURGER ALARM — two diagonal police-tape strips ("🍔 HAMBURGER
+   ALARM" + "TOP DOG IS THE ADJUDICATOR", seeded ±8° tilts) across the offending
+   image on the feed, dog detail, and owner gallery. New table `burger_alarms`
+   (migration `20260617205453_burger_alarms.sql`): `reporter_id` → profiles,
+   `hot_dog_id` → hot_dogs, `UNIQUE(reporter_id, hot_dog_id)` (one report per member
+   per dog; many DIFFERENT members may report the same dog — that "many" trips the
+   alarm), **no denormalized counter**, decision #28 base grants. New
+   dependency-free feature folder `src/lib/features/reports/`: pure
+   `summarizeBurgerAlarm` (24h render-time decay + `none/low/medium/high` intensity,
+   like `mustard/decay.ts`) and `bannerAngle` (seeded ±8° via FNV-1a + mulberry32,
+   mirroring the emoji PRNG, stable per `(dog, label)` so banners never jitter), plus
+   idempotent `reportBurger` / `unreportBurger` wrappers (reporter from `auth.uid()`)
+   and the anonymity-preserving reads. The `HamburgerAlarmBanner` overlay is XSS-safe
+   (fixed labels, no `{@html}`).
+   **Anonymity — the one twist vs. `hotdog_reactions`:** where reactions read
+   SELECT-all (anyone sees who reacted), `burger_alarms` narrows SELECT to
+   **owner-scoped** (`(select auth.uid()) = reporter_id`), so a member reads only
+   their own report rows and can never read who else reported. The viewer's toggle
+   state comes from that RLS-scoped read (`getMyReportedDogIds`, anonymity-safe by
+   construction); the **public per-dog alarm aggregate** is read **server-side with
+   the service client AFTER the `safeGetSession()` gate** (`getBurgerAlarmCounts`),
+   selecting only `hot_dog_id, created_at` — never `reporter_id` — so a reporter's
+   identity never enters the server's working set, let alone the page payload.
+   **Security (L2):** INSERT `WITH CHECK` pins `reporter_id = auth.uid()` AND a
+   `NOT EXISTS` blocks reporting a dog you own; `42501` → friendly `CANNOT_REPORT_OWN`,
+   `23505` → benign idempotent toggle-on, retract on zero rows → no-op; raw errors
+   logged server-side only. Pinned by unit tests (pure modules + anonymity + the
+   report/unreport route actions) and a live-DB `@security` suite (forge/own-dog
+   rejected, anonymity, ranking-inert, toggle/immutability). **No new
+   architecture-decision row** (composition note below). DW-021 (avatar-symmetry)
+   already tracked; no new DW surfaced. Metrics: `pnpm test` 710, `pnpm check` 0,
+   lint clean, `@smoke` 4, `@security` 81. Reviewer **APPROVE, 0 fix cycles** (one
+   minor finding — missing route-action tests — addressed pre-merge).
+   **Hosted-push gate OUTSTANDING** (see Process notes).
+
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 
 ## Architecture Decisions
@@ -1092,6 +1157,10 @@ hotdog_reactions  id, user_id, hot_dog_id, emoji, created_at
               UNIQUE(user_id, hot_dog_id, emoji)  -- cosmetic; many DISTINCT
               emojis per user; owner-scoped RLS insert/delete (no RPC, no
               counter) — counts computed at render, never affects ranking
+burger_alarms id, reporter_id→profiles, hot_dog_id→hot_dogs, created_at
+              UNIQUE(reporter_id, hot_dog_id)  -- cosmetic, no counter,
+              ranking-inert; reporter ANONYMOUS (owner-scoped SELECT); public
+              alarm aggregate read server-side; render-time 24h decay
 mustard_sprays    id, sprayer_id, target_profile_id, x, y, sprayed_at
               (drip computed at render; pruned >24h by daily job)
 top_dog_days  profile_id, day(date)   UNIQUE(profile_id, day)
@@ -1194,6 +1263,30 @@ push` on 2026-06-17**, so the CHECK/trigger/Storage-API caps are now live on hos
   (preserved untouched) under the L2 defense-at-the-DB posture — it is a hardening
   of those, recorded in the M7 progress note rather than as a new row in the
   Architecture Decisions table.
+- **M7 hosted-push gate (TASK-071) — OUTSTANDING as of 2026-06-18.** TASK-071 added
+  one new migration, `20260617205453_burger_alarms.sql` (the `burger_alarms` table +
+  its owner-scoped RLS + decision #28 base grants). Per the per-milestone
+  hosted-push discipline it **must be `supabase db push`ed to hosted** so the report
+  surface is functional on the hosted project. As of this writing the push has **not**
+  been done; the director will surface it to the user as a post-merge ops step. No
+  scheduled job calls `burger_alarms`, so there is **no keep-alive 404 / auto-pause
+  risk** if the push lags (the daily `ping` still reads `profiles`) — the gate is
+  hosted enforcement/parity, not workflow health. This is the second M7 hosted-push
+  gate (TASK-070's, for `20260617195233_upload_limits.sql`, was done 2026-06-17).
+- **No new architecture-decision row for TASK-071 (2026-06-18).** The anonymous
+  burger-report surface was flagged in the spec as a _likely_ new decision row
+  ("owner-scoped RLS exposes only the actor's own rows; the public aggregate is
+  computed server-side so actor identity never reaches the client"). On inspection it
+  introduces **no new invariant**: it is **decision #12** (cosmetic / many-allowed,
+  no denormalized counter → structurally ranking-inert) with the SELECT narrowed from
+  select-all to owner-scoped, **composed with decision #27/#6** (privileged
+  service-client read constructed after the `safeGetSession()` gate — here used for
+  an anonymous count read rather than for signed-URL minting) for the public
+  aggregate, and **decision #15** for the render-time alarm decay. Following the
+  TASK-070 and M3-reactions precedent (compositions recorded as a progress note, not
+  a new row), it lives as the M7 TASK-071 progress note above rather than a new
+  Architecture Decisions row. The reviewer APPROVEd; reusable shape for any future
+  **anonymous** cosmetic surface (owner-scoped SELECT + server-side aggregate).
 
 ## Milestones
 

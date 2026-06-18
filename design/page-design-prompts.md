@@ -1,8 +1,9 @@
 # Snacktum Snacktorum — Page Design Prompts
 
 Ready-to-paste design prompts for every **not-yet-designed** page of the
-rebrand, written to match the auth mockups already produced (`Log In.dc.html`,
-`Reset Password.dc.html`, `Snacktum Onboarding.dc.html`). Hand each PROMPT to
+rebrand, written to match the auth mockups already produced
+(`design/pages/Log In.dc.html`, `design/pages/Reset Password.dc.html`,
+`design/pages/Snacktum Onboarding.dc.html`). Hand each PROMPT to
 your design tool to get a mockup in the established visual system.
 
 Every prompt below is grounded in the **real, shipped functionality** of the

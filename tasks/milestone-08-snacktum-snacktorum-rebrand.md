@@ -762,16 +762,94 @@ These are the undecided items the build must not guess. Resolve each **with the
 user, alongside the designs**, then update the affected task(s) and flip them
 `blocked → pending`.
 
-| ID        | Question                                                                                                                                                                                                                                                                      | Affects                                             | Recommended default                                                                                                                             | Status |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                         | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | OPEN   |
-| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                       | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | OPEN   |
-| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | OPEN   |
-| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                     | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | OPEN   |
-| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                    | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | OPEN   |
-| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                    | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | OPEN   |
-| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                        | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | OPEN   |
-| **OQ-5**  | **Cult display names for the six still-TBD pages** — `/app` home, `/sign-in`, `/app/dogs/[id]` (dog detail), `/app/profile/[handle]` (profile), `/app/messages` (DM inbox), `/app/messages/[handle]` (DM thread). The other seven page names are CONFIRMED (Page Naming Map). | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | OPEN   |
+> **Resolution status (2026-06-18, [[Handoffs/handoff-016]]):** **OQ-1, the avatar
+> mechanism, OQ-3, OQ-4, and the reset flow are RESOLVED** (see the RESOLVED rows +
+> notes below). **OQ-2 (all four Anoint sub-decisions) and OQ-5 (the six TBD page
+> names) remain OPEN**, as do the not-yet-generated in-app page designs (Procession,
+> profile, Your Litter, dog detail, the Tribunal, messages inbox + thread, invite,
+> the Catechism, the error/404 page — to be generated from
+> `design/page-design-prompts.md`). The RESOLVED decisions are all user-facing /
+> skin-only — **no migration, no infra/code-identifier rename, no new
+> architecture-decision row** (the [[PROJECT]] decision table stays at #28).
+
+| ID        | Question                                                                                                                                                                                                                                                                      | Affects                                             | Recommended default                                                                                                                             | Status                           |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                         | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | **RESOLVED** (B-absorb)          |
+| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                       | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | OPEN                             |
+| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | OPEN                             |
+| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                     | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | OPEN                             |
+| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                    | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | OPEN                             |
+| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                    | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | **RESOLVED** (dark temple)       |
+| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                        | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | **RESOLVED** (self-hosted woff2) |
+| **OQ-5**  | **Cult display names for the six still-TBD pages** — `/app` home, `/sign-in`, `/app/dogs/[id]` (dog detail), `/app/profile/[handle]` (profile), `/app/messages` (DM inbox), `/app/messages/[handle]` (DM thread). The other seven page names are CONFIRMED (Page Naming Map). | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | OPEN                             |
+
+### RESOLVED decisions (2026-06-18) — bake these into the affected tasks at build time
+
+- **OQ-1 — RESOLVED → a multi-step rite that ABSORBS onboarding** (Option B-with-absorb).
+  The initiation is a single flowing ceremony: **Summoned** (invite token) →
+  **Inscribe Thy Name** (Casing Name = `@handle` + email + password) → **Choose Thy
+  Sigil** (avatar) → **Renounce the Patty** (a pure-UX oath — **no data persisted**) →
+  **Received.** The rite **subsumes the `/app/onboarding` `@handle`+avatar step** into
+  sign-up. **TASK-084 consequences:** this is the higher-risk Option B — the
+  profile-funnel guard in `(protected)/app/+layout.server.ts` must be updated
+  coherently (a user who completed the rite has a profile and is NOT funneled; one who
+  didn't still is) **with no redirect loop**, and the **`@smoke` slice (invite →
+  profile → upload → see dog) must be updated in lockstep** if the rite changes the
+  path it walks. The invite-redemption mechanics (decisions #17/#22/#23) and handle
+  validation (`^[A-Za-z0-9_]{2,32}$`, `citext` uniqueness, `HANDLE_TAKEN` on `23505`)
+  stay **unchanged**. No migration expected.
+- **Avatar (within the rite) — RESOLVED → pick from 5 built-in SVG "sigils".** Cowled,
+  Haloed, Shadowed, Tube, Candle (designed at `design/avatars/Sigil*.dc.html`). Stored
+  as a small **sigil id** and rendered as **inline SVG**. **Mechanism: repurpose the
+  existing `avatar_path` column to hold the sigil id** — **NO migration, NO storage
+  upload.** This keeps the avatar step a pure skin change (no DB/storage/Storage-API
+  touch). **User-uploaded avatars are DEFERRED** to a later pass — TASK-084's "Choose
+  Thy Sigil" step offers only the 5 built-ins. (Note: this **removes** the avatar
+  upload path from the onboarding/ritual surface for now, which also retires the
+  TASK-070 2 MiB avatar-upload concern at this surface — keep the bucket cap in place;
+  it simply isn't exercised by the rite anymore.)
+- **OQ-3 — RESOLVED → the "dark temple" aesthetic.** Background `#17120e` painted with
+  a radial gold glow, parchment text `#f3e9d2`, accent **Mustard Gold `#E0A82E`**
+  (themeable alternates **Relic Crimson `#cf4636`** / **Verdigris `#57b59a`**). The
+  full Design System (palette, type scale, motifs, voice) is the source of truth in
+  `design/page-design-prompts.md` — **TASK-087** implements it in CSS.
+- **OQ-4 — RESOLVED → Cinzel + Cormorant Garamond, self-hosted woff2.** **Cinzel**
+  (display serif, ALL-CAPS letter-spaced) for headings/labels/buttons; **Cormorant
+  Garamond** (body serif) for prose. **Self-hosted `.woff2` files** (SIL OFL licensed)
+  — an **asset, NOT a package**, so the dependency gate is **NOT** triggered and **no
+  new dependency** is added (resolves the § Possible Dependencies candidate to "no
+  dependency"). TASK-087 wires the `@font-face` self-host through the root layout.
+- **Reset flow (TASK-083) — RESOLVED → a 6-digit OTP code recovery** (request →
+  emailed code → verify → set new password), **NOT** a magic link. The recovery email
+  template shows the **code**; locally the email lands in **Mailpit**
+  (`http://localhost:54324`). **TASK-083 consequence:** build a code-entry step (not a
+  link click). Confirm the current `@supabase/ssr` OTP recovery handshake against the
+  Supabase docs before building (the task's existing "one doc check" requirement still
+  applies — verify the OTP-code path, not the magic-link path).
+
+### Design-ready tasks (2026-06-18) — designs in hand; awaiting the user's build go-ahead
+
+**These tasks now have designs** and the resolved decisions above, so they are ready
+to build **the moment the user activates the milestone** — but they **remain
+`blocked`** (the director flips `blocked → pending` on the user's explicit "go", not
+the documenter, and not on the documenter's initiative):
+
+- **TASK-080 (global app shell + persistent nav)** — designed: `design/pages/App
+Chrome.dc.html`.
+- **TASK-082 (build `/sign-in`)** — designed: `design/pages/Log In.dc.html`.
+- **TASK-083 (forgot/reset password)** — designed: `design/pages/Reset Password.dc.html`
+  (+ the RESOLVED 6-digit OTP flow above).
+- **TASK-084 (ritual sign-up)** — designed: `design/pages/Snacktum Onboarding.dc.html`
+  (+ the RESOLVED OQ-1 B-absorb rite + the 5-sigil avatar above).
+- **TASK-087 (base cult theme)** — the Design System in `design/page-design-prompts.md`
+  (+ the RESOLVED OQ-3 dark-temple palette + OQ-4 self-hosted Cinzel/Cormorant fonts).
+
+**Still NOT design-ready** (need the remaining in-app designs and/or the OPEN OQs):
+TASK-081 (copy — blocked on OQ-5's six page names), TASK-085 (profile redesign — needs
+the profile mockup), TASK-086 (Anoint — blocked on OQ-2's four sub-decisions),
+TASK-088 (error/404 — has a prompt, "The Lost Pilgrim", but no mockup yet). Per § Next
+Steps in the handoff, build order on the user's "go" is theme → shell → sign-in →
+reset → ritual.
 
 **OQ-5 — suggested options (NON-BINDING prompts; the user chooses the final names):**
 

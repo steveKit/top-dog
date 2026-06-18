@@ -1,21 +1,113 @@
 # Milestone M7: Safety & Polish
 
-> **Status:** `active`
+> **Status:** `complete` (2026-06-18) · **Tag:** `milestone-07-safety-polish`
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** upload limits, report button, polish.
 
 ## Active Tasks
 
-### TASK-072: Polish pass [`pending`] [`P3`] [`M`]
+_None — all M7 tasks are complete. **Milestone M7 closed 2026-06-18.**_
+
+## Completed Tasks (this milestone)
+
+### TASK-072: Polish pass [`complete`] [`P3`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** all prior milestones
+**Merged:** PR #86 (`8496d94`, squash) · Reviewer: APPROVE · Fix cycles: 0 (2 minor
+non-blocking notes — `listThread` head-limit returns the oldest 50 not the latest →
+logged DW-025; an unstyled `.adjudicated-note` hook, harmless per the near-unstyled
+posture)
+**Scope (2026-06-18, user-approved option 2):** AC polish (empty/loading/responsive)
+plus four folded-in discovered-work items (DW-018/021/022/024). No visual redesign.
+
 **Acceptance Criteria:**
 
-- [ ] Responsive layout, empty states, loading states
-- [ ] `pnpm lint`, `pnpm check`, `pnpm test`, `@smoke` all green
+- [x] **Empty states** — verified all six main routes already had friendly empty states
+      (feed, dogs, profile wall, messages, thread, court); the profile "no sprays" case is
+      intentionally left (sprays are a cosmetic overlay, not a list).
+- [x] **Loading states** — `use:enhance` submitting affordances on court `rule`, messages
+      send, profile wall post, invite generate; a global nav indicator via `navigating`
+      from `$app/state` in the root layout.
+- [x] **Basic responsive layout** — new neutral `src/app.css` (~80 lines: box-sizing,
+      base type, centered `.page-container`, wrapping `.app-nav`, `img` max-width) + root
+      layout wrap; no visual redesign.
+- [x] **DW-022:** the report control now renders only when `alarmState === 'alarm'`; once
+      adjudicated it shows a "Court has ruled" note instead of a stale toggle (render-only;
+      security-sensitive loads untouched — reviewer-verified).
+- [x] **DW-021:** oversized avatar returns an early friendly `fail(400)` (mirrors the
+      hot-dog action; `MAX_UPLOAD_BYTES` single source; hard Storage-API cap still backs
+      it).
+- [x] **DW-018:** `listConversations` / `listThread` now `.limit()` (default 50, parity
+      with `listWallMessages`).
+- [x] **DW-024:** the flaky `@smoke` reaction-count test stabilized with `expect.poll`
+      (retried assertion) on both the increment and decrement.
+- [x] All gates green: `pnpm lint` clean, `pnpm check` 0, `pnpm test` 783, `@smoke` 4/4,
+      `@security` 94/94 (on a fresh `supabase db reset`).
 
-## Completed Tasks (this milestone)
+> No migration → no hosted-push gate.
+
+**Notes:**
+
+- **The M7 polish pass — empty/loading/responsive, no redesign.** The user-approved
+  scope (option 2) was the AC polish — friendly empty states, `use:enhance`
+  loading affordances, basic responsive layout — plus four folded-in
+  discovered-work items, with **no visual redesign**. The AC pass: all six main
+  routes (feed, dogs, profile wall, messages, thread, court) already carried
+  friendly empty states (only the cosmetic "no sprays" overlay was intentionally
+  left, since sprays are an overlay, not a list); `use:enhance` submitting
+  affordances were added on the court `rule`, the messages send, the profile-wall
+  post, and the invite generate, plus a global nav indicator via `navigating`
+  from `$app/state` in the root layout; and a new neutral `src/app.css` (~80
+  lines: box-sizing, base type, a centered `.page-container`, a wrapping
+  `.app-nav`, `img` max-width) wired through the root layout gives a basic
+  responsive layout without touching any visual design. **No migration, no new
+  dependency** → no hosted-push gate.
+- **DW-022 — render-only report-control gate, security-sensitive loads untouched.**
+  The lingering own-report toggle on a verdict-suppressed dog (TASK-073's review
+  finding) is fixed **at the render layer only**: the 🍔 report control now renders
+  only when `alarmState === 'alarm'`, and once a dog is adjudicated it shows a
+  static "Court has ruled" note instead of a stale toggle. This is purely a render
+  gate — the store-raw / resolve-at-render model is preserved (the raw report row
+  stays as audit), and the **security-sensitive loads were not touched** (the
+  reviewer verified the change is render-only and introduces no new trust path).
+- **DW-021 — friendly oversized-avatar `fail(400)`.** The avatar upload path now
+  mirrors the hot-dog action's early friendly `fail(400)` on
+  `photo.size > MAX_UPLOAD_BYTES` (the single-source size literal), so an oversized
+  avatar surfaces a friendly size message instead of the generic "We couldn't
+  upload your avatar." The hard Storage-API 2 MiB cap (TASK-070) still backs it as
+  the authoritative bound; this only adds the friendly UX layer.
+- **DW-018 — bounded DM reads.** `listConversations` / `listThread`
+  (`src/lib/features/dms/dms.ts`) now apply a default `.limit(50)`, reaching parity
+  with `listWallMessages`. The DM reads are no longer unbounded.
+- **DW-024 — stabilized the flaky `@smoke` reaction test.** The intermittent
+  reaction-count flake in `tests/feed-detail.e2e.ts` ("react increments and
+  un-react decrements the reaction count") was a timing race — the count was read
+  before the optimistic/server update settled. Stabilized with `expect.poll`
+  (retried assertion) on **both** the increment and the decrement, replacing the
+  bare one-shot assertion, so the `@smoke` suite is no longer order/timing-fragile
+  on that case.
+- **Two minor non-blocking reviewer notes.** (1) `listThread`'s `.limit(50)`
+  returns the **oldest** 50 rows (it orders ascending) while the comment says
+  "latest" — for thread UX you'd typically want the most-recent 50 (order desc +
+  limit + reverse for display) and/or fix the comment wording; logged as **DW-025**
+  (low priority — the DW-018 bounded-read goal is already met). (2) An unstyled
+  `.adjudicated-note` class — harmless, consistent with the deliberately
+  near-unstyled markup posture, no action taken.
+- **No migration, no new deps, no new architecture-decision row.** A pure
+  polish/wiring pass — empty/loading/responsive UX plus four render-/wrapper-layer
+  discovered-work fixes — introduces no schema, no invariant, and no new
+  dependency, so nothing to record in the Architecture Decisions table and **no
+  hosted-push gate** (the still-open TASK-071/073 two-migration gate is unchanged —
+  TASK-072 adds nothing to push).
+- **Reviewer outcome:** APPROVE, **0 fix cycles** (two minor non-blocking notes,
+  above — one logged as DW-025, one harmless and no-action). Gates (director-run on
+  a fresh `supabase db reset`): `pnpm check` 0, `pnpm test` 783, `pnpm lint` clean,
+  `@smoke` 4/4 (including the now-stabilized reaction test), `@security` 94/94.
+- **TASK-072 closes M7 — and all pre-specified plenary milestones M0–M7.** This was
+  the final M7 task; with it merged, Milestone M7 (Safety & Polish) is complete and
+  every pre-specified plenary milestone (M0 through M7) is now done. See the M7
+  close notes in [[PROJECT]].
 
 ### TASK-075: In-app help / "How Top Dog works" page [`complete`] [`P3`] [`M`]
 

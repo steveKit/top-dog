@@ -16,9 +16,15 @@
 
 	const flagged = $derived(data.flagged);
 
-	const submitRule = () => {
+	// Which ruling is in flight, keyed `${dogId}:${verdict}` so only the clicked
+	// button shows a pending label and every ruling button disables while it settles.
+	let pendingRule = $state<string | null>(null);
+
+	const submitRule = (key: string) => {
+		pendingRule = key;
 		return async ({ update }: { update: () => Promise<void> }) => {
 			await update();
+			pendingRule = null;
 			await invalidateAll();
 		};
 	};
@@ -70,15 +76,19 @@
 				</div>
 
 				<div class="rulings">
-					<form method="POST" action="?/rule" use:enhance={submitRule}>
+					<form method="POST" action="?/rule" use:enhance={() => submitRule(`${dog.id}:confirmed`)}>
 						<input type="hidden" name="dogId" value={dog.id} />
 						<input type="hidden" name="verdict" value="confirmed_hamburger" />
-						<button type="submit">Confirmed hamburger</button>
+						<button type="submit" disabled={pendingRule !== null}>
+							{pendingRule === `${dog.id}:confirmed` ? 'Ruling…' : 'Confirmed hamburger'}
+						</button>
 					</form>
-					<form method="POST" action="?/rule" use:enhance={submitRule}>
+					<form method="POST" action="?/rule" use:enhance={() => submitRule(`${dog.id}:cleared`)}>
 						<input type="hidden" name="dogId" value={dog.id} />
 						<input type="hidden" name="verdict" value="not_a_hamburger" />
-						<button type="submit">Not a hamburger</button>
+						<button type="submit" disabled={pendingRule !== null}>
+							{pendingRule === `${dog.id}:cleared` ? 'Ruling…' : 'Not a hamburger'}
+						</button>
 					</form>
 				</div>
 			</li>

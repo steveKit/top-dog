@@ -351,7 +351,11 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		// rendered chip is the reliable "the react POST has settled" signal.
 		const reactedChip = card.getByRole('button', { name: /🌭\s*1\s*✓/ });
 		await expect(reactedChip).toBeVisible();
-		expect(await reactionCount(dog, '🌭')).toBe(1);
+		// The authoritative DB row is written by the same async POST; even after the
+		// chip renders, the service-role read can momentarily lag the commit (DW-024
+		// flake). Poll the count so the assertion auto-retries until it settles to 1
+		// instead of sampling once mid-flight.
+		await expect.poll(() => reactionCount(dog, '🌭')).toBe(1);
 
 		// Un-react: clicking the owned chip toggles it off. Wait for the chip to go
 		// away (the picker 🌭 returns — a plain glyph button with no count) before
@@ -359,7 +363,8 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		await reactedChip.click();
 		await expect(card.getByRole('button', { name: '🌭', exact: true })).toBeVisible();
 		await expect(reactedChip).toHaveCount(0);
-		expect(await reactionCount(dog, '🌭')).toBe(0);
+		// Same lag on the delete path — poll until the row is gone (count back to 0).
+		await expect.poll(() => reactionCount(dog, '🌭')).toBe(0);
 	});
 
 	test('@smoke dog detail: another member’s dog renders image + stats; bad id is 404', async ({

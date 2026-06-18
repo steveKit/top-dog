@@ -15,7 +15,7 @@
 	<TopDogPrivilegesNotice />
 {/if}
 
-<nav>
+<nav class="app-nav">
 	<a href={resolve('/(protected)/app/dogs')}>Your hot dogs</a>
 	<a href={resolve('/(protected)/app/feed')}>The feed</a>
 	<a href={resolve('/(protected)/app/messages')}>Messages</a>

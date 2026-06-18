@@ -8,6 +8,7 @@ import {
 	HANDLE_TAKEN
 } from '$lib/features/profiles/profiles';
 import { upload, avatarPath, AVATARS_BUCKET } from '$lib/storage';
+import { MAX_UPLOAD_BYTES } from '$lib/features/hotdogs/hotdogs';
 
 // First-sign-in onboarding (TASK-011). A freshly-redeemed user has an auth
 // account but no `profiles` row; the app layout guard funnels them here. This
@@ -83,6 +84,19 @@ export const actions: Actions = {
 		// owner-prefixed key. Compression happens client-side before submit.
 		let avatarStoredPath: string | null = null;
 		if (avatarFile instanceof File && avatarFile.size > 0) {
+			// Per-file size cap (DW-021; friendly UX layer, mirrors the hot-dog upload
+			// action). The authoritative enforcement is the Storage API bucket
+			// file_size_limit (TASK-070) on the real object bytes — this early check
+			// just turns an oversized avatar into a friendly size message instead of a
+			// generic upload failure.
+			if (avatarFile.size > MAX_UPLOAD_BYTES) {
+				return fail(400, {
+					handle: rawHandle,
+					displayName: rawDisplayName,
+					error: "That avatar's too big — keep it under 2 MB."
+				});
+			}
+
 			const uploadResult = await upload(supabase, AVATARS_BUCKET, avatarPath(user.id), avatarFile);
 			if (!uploadResult.ok) {
 				console.error('[profiles] avatar upload failed during onboarding', {

@@ -114,7 +114,7 @@ Cult lexicon — use these terms, not the literal app terms:
 
 ## The prompts
 
-There are **eleven** page prompts below:
+There are **twelve** page prompts below:
 
 1. App shell + global nav (the temple chrome)
 2. The Procession — the feed (default landing)
@@ -127,6 +127,7 @@ There are **eleven** page prompts below:
 9. Summon a Frank — invite
 10. The Catechism — help / how-it-works
 11. The Lost Pilgrim — error / 404
+12. The Reliquary — the honors / badge shelf (a section of the profile / The Shrine)
 
 ---
 
@@ -282,8 +283,28 @@ wall; the surface the champion **Anoints**.
 - **Display name forward** (the human name) with the **`@casing-name`** as the
   secondary identifier.
 - A **"Days as The Anointed Wiener"** stat (the champion-reign tally).
+- A **stat ledger** of the member's standing, **every value derived from existing
+  data** (no new tracking) — design these as a plaque/ledger of Cinzel labels +
+  big gold numbers:
+  - **Days as The Anointed Wiener** (the reign tally, already shown — `days_as_top_dog`)
+  - **Times Crowned** — distinct reigns / crowned-days count (`top_dog_days`)
+  - **Franks Offered** — how many sacred links they've offered (count of their `hot_dogs`)
+  - **Total Devotion** — votes resting across all their franks (sum of `vote_count`)
+  - **Highest Blessing** — the most votes any one of their franks ever held
+    (`max(peak_votes)`)
+  - **Disciples Summoned** — invites they minted that were redeemed (consumed `invites`)
+  - **Anointings Received** — times the champion anointed them (`mustard_sprays` on them)
+  - **Reactions Received** — cosmetic reactions across their franks
+  - the **HERETIC / LIAR** shame marks (see the heresy brands below) when branded.
+  - **Caution — reports are ANONYMOUS.** Do **NOT** show "heresies you've called",
+    a reporter/accusation count the member made, or any reporter-side tally on a
+    public profile. Only the _consequences_ a member bears (HERETIC/LIAR, anointings
+    received) are public; the accusations they _make_ are never surfaced here.
 - The **joined date** ("Sworn since …").
 - **The Anointed Wiener badge** when this member currently holds the crown.
+- A **reliquary / relic-shelf of earned honors** (badges) — see prompt **#12**
+  for the full treatment; on the profile this is a section/shelf, earned relics
+  lit gold, unearned ones as dim silhouettes.
 - The **message wall**: a proper **composer** (a real compose area, not a
   cramped inline box) + the list of wall messages (each with author Casing Name,
   timestamp, and a **delete** affordance shown to the message's author or the
@@ -312,10 +333,22 @@ wall; the surface the champion **Anoints**.
 > **placeholder** (a line-art relic hot dog) for members who have no sigil yet.
 > Below it, the member's **display name** as a big Cinzel heading (the human
 > name, forward), with the **`@casing-name`** beneath as a muted secondary id.
-> Show a **"Sworn since {date}"** line, and a **stat plaque** reading **"DAYS AS
-> THE ANOINTED WIENER"** with a big gold Cinzel number (the champion-reign
-> tally). If this member currently reigns, place **The Anointed Wiener** champion
-> badge near the sigil.
+> Show a **"Sworn since {date}"** line, and a **stat ledger** — a gold-bordered
+> plaque of Cinzel labels over big gold Cinzel numbers — carrying the member's
+> standing: **DAYS AS THE ANOINTED WIENER** (the reign tally), **TIMES CROWNED**,
+> **FRANKS OFFERED**, **TOTAL DEVOTION** (votes across their links), **HIGHEST
+> BLESSING** (the most votes one frank ever held), **DISCIPLES SUMMONED** (invites
+> they brought in), **ANOINTINGS RECEIVED**, and **REACTIONS RECEIVED**. (All
+> derived from existing records — design the ledger, not new mechanics. Never show
+> a count of accusations the member _made_ — reports are anonymous.) If this member
+> currently reigns, place **The Anointed Wiener** champion badge near the sigil.
+>
+> Below the ledger, design a **reliquary — a relic-shelf of earned honors**
+> (badges): earned relics rendered as small lit gold medallions/sigils with a
+> Cinzel name, unearned ones as dim silhouettes the disciple may yet earn (a
+> tiered honor like a reign-length crown shows its current tier). Treat this as a
+> section of the shrine; the full reliquary treatment is its own design — see the
+> separate **Reliquary** prompt.
 >
 > Design the **Anoint overlay** (the champion's mustard blessing): golden splotch
 > marks scattered over the sigil area that **fade with age** (render-time decay
@@ -726,6 +759,110 @@ back. **Never** shows raw internal error detail.
 > End with a mustard-gold **"RETURN TO THE PROCESSION →"** button (dark text,
 > Cinzel uppercase, trailing arrow) linking home. Keep AA contrast; convey the
 > error by the status text + copy, not color alone.
+
+---
+
+## 12. The Reliquary — the honors / badge shelf
+
+> **A section of the profile / The Shrine (prompt #3), not a standalone route.**
+> It renders the member's earned **honors** (badges) as a relic-shelf. **Every
+> badge is DERIVED at render from data the app already keeps** — there is no new
+> "badge" record, no new tracking, nothing a member can set. So a badge is simply
+> a relic that lights up once the underlying record crosses a threshold; the rest
+> sit dim as silhouettes the disciple may yet earn. (Build note for the implementer
+> is **TASK-089**; this prompt is only the visual.)
+
+**Route:** rendered within `/app/profile/[handle]` (a shelf on The Shrine).
+**Purpose:** show, at a glance, which honors of the Order a member has earned —
+earned relics lit in gold, unearned ones as dim silhouettes, tiered honors
+showing their current tier.
+
+**Must include (real, all DERIVED from existing data — no new mechanic):**
+
+- A **relic-shelf grid** of honor medallions. Each relic is a small gold
+  line-art **sigil + a Cinzel name**; below or on hover, a one-line liturgical
+  description of how it was earned.
+- **Two states per relic:**
+  - **Earned** — the medallion lit in mustard gold, crisp, with a faint glow.
+  - **Unearned / locked** — the same medallion as a **dim parchment silhouette**
+    (no glow), so the shelf reads as a collection with gaps to fill. Never rely
+    on color alone — the locked state must also read by reduced contrast + a
+    "not yet" cue (e.g. an italic "unearned" line), per AA.
+- **Tiered relics** (some honors have ranks) show the **current tier** (e.g. a
+  reign relic at I / II / III, or a small "×N" / numeral) and hint the next tier.
+- The **v1 honor set** (design a medallion for each — these are the real,
+  derivable honors):
+  - **First Frank** — offered thy first sacred link.
+  - **The Anointed (Crowned)** — _tiered_: held the crown **1 / 7 / 30** days
+    (the reign-length relic, three ranks).
+  - **Centurion** — a single frank that once bore **100 blessings** (≥100 votes)
+    — _tiers optional_.
+  - **The Summoner** — _tiered_: disciples thou broughtest into the Order
+    (redeemed summons), e.g. **1 / 5 / 25**.
+  - **The Drenched** — _tiered_: times the champion **anointed** thee.
+  - **Heretic** — a lasting mark: thou keepest a frank the Tribunal confirmed a
+    hamburger (a shame-relic, rendered darker / inverted — an excommunication
+    mark, not a gilded honor).
+  - **False Witness (Liar)** — thou borest false witness against a clean link (a
+    fading shame-relic; lean into the cult/heresy framing).
+  - **The Inquisitor** — _tiered_: verdicts thou renderedst as The Anointed
+    Wiener (heresies judged from the Tribunal).
+  - **Elder** — among the first of the Faithful to be sworn (an early-member
+    relic).
+- A small **count line** — "Thou hast earned {n} of {total} relics."
+- An **empty state** — when none are earned: the dim shelf with "No relics yet —
+  earn thy first honor in the service of the Tube."
+- A clear cue that the **shame-relics (Heretic / Liar) are marks of disgrace**,
+  not gilded honors — visually distinct from the earned-gold honors so the shelf
+  doesn't read a heresy brand as a trophy.
+
+> **State note (for the designer):** every relic is either **earned** or
+> **locked** (and tiered relics carry a rank). Design **all three**: a lit earned
+> honor, a dim locked silhouette, and a tiered relic showing a current rank +
+> next-tier hint. The two **shame-relics** are a fourth visual register (disgrace,
+> not honor).
+
+**PROMPT:**
+
+> Design **The Reliquary** — a member's shelf of earned **honors** (badges) — as a
+> section of the profile / shrine for **Snacktum Snacktorum** (the hot-dog cult
+> app). Dark temple aesthetic: `#17120e` background with a soft radial gold glow,
+> parchment text `#f3e9d2`, accent **Mustard Gold `#E0A82E`**. Type: **Cinzel**
+> (ALL-CAPS, letter-spaced) for the section heading and the relic names; **Cormorant
+> Garamond** for the liturgical one-line descriptions. Assume the brand header lockup
+> and global nav chrome wrap the page; this is a shelf within the shrine, beneath the
+> member's sigil + stat ledger.
+>
+> Lead with a Cinzel **eyebrow** ("HONORS OF THE ORDER") over an **h2** ("The
+> Reliquary"), an **✦** ornament divider, and a small count line ("Thou hast earned
+> {n} of {total} relics"). Render a **relic-shelf grid** of honor medallions — each a
+> small **gold line-art sigil** in a thin gold ring, with a **Cinzel name** beneath
+> and a one-line **Cormorant** description of how it is earned.
+>
+> Design **two states for each relic**: an **earned** state — the medallion lit in
+> mustard gold, crisp, with a faint glow — and an **unearned / locked** state — the
+> same medallion as a **dim parchment silhouette**, no glow, clearly "not yet" (carry
+> the locked cue in text + contrast, never color alone). For **tiered** honors, show
+> the **current rank** (a small numeral or I / II / III) and hint the next tier.
+>
+> Lay out medallions for these honors (real, earnable relics of the Order): **First
+> Frank** (offered thy first sacred link); **The Anointed** — _tiered I/II/III_ —
+> reigned as The Anointed Wiener for **1 / 7 / 30** days; **Centurion** (a single
+> frank that bore a hundred blessings); **The Summoner** — _tiered_ — disciples thou
+> broughtest into the Order; **The Drenched** — _tiered_ — times the champion anointed
+> thee; **The Inquisitor** — _tiered_ — heresies thou judged as the champion; and
+> **Elder** (among the first sworn to the Tube). Render two **shame-relics** in a
+> distinct, darker / inverted register — **excommunication marks**, not gilded honors:
+> **HERETIC** (thou keepest a frank the Tribunal confirmed a hamburger — a lasting
+> mark) and **FALSE WITNESS / LIAR** (thou borest false witness against a clean link —
+> a fading mark). Lean fully into the cult/heresy framing for these two.
+>
+> Design the **empty state** (no relics earned): the dim shelf with a centered
+> relic-hot-dog mark and "No relics yet — earn thy first honor in the service of the
+> Tube." Keep AA contrast throughout; the earned/locked distinction and the
+> honor/shame distinction must each read by shape, glow, and text — never by hue
+> alone. Match the auth mockups: `border-radius:2px`, faint gold dividers, gold
+> drop-shadow on lit relics.
 
 ---
 

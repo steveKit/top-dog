@@ -6,24 +6,6 @@
 
 ## Active Tasks
 
-### TASK-074: Top Dog privileges in-app notice [`pending`] [`P3`] [`S`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-073 (advertises adjudication), M4 mustard, M2 crown engine
-**Scope note (2026-06-17, user-themed):** when a member holds the crown, tell them what
-they can do — an **in-app notice** (chosen over a system DM to avoid inventing a system
-sender; the DM author-pin privacy model stays intact).
-
-**Acceptance Criteria:**
-
-- [ ] In-app "👑 Top Dog privileges" notice shown to the crown-holder (gated on the live
-      `is_current_top_dog` crown state, decision #25), listing their powers: adjudicate
-      🍔 hamburger reports (TASK-073) + spray mustard (M4).
-- [ ] Live-crown gated — appears on gaining the crown, gone on losing it. Dismissible
-      (optional one-time `seen` flag; no fake DM, minimal/no schema).
-- [ ] Non-Top-Dog members never see it.
-- [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`.
-
 ### TASK-075: In-app help / "How Top Dog works" page [`pending`] [`P3`] [`M`]
 
 **Owner:** unassigned
@@ -59,6 +41,83 @@ per-user status.
 - [ ] `pnpm lint`, `pnpm check`, `pnpm test`, `@smoke` all green
 
 ## Completed Tasks (this milestone)
+
+### TASK-074: Top Dog privileges in-app notice [`complete`] [`P3`] [`S`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-073 (advertises adjudication), M4 mustard, M2 crown engine
+**Merged:** PR #82 (`20adc9a`, squash) · Reviewer: APPROVE · Fix cycles: 0 (2 trivial
+notes — a bookkeeping test-count miscount, since corrected to 8; an exported
+`DISMISSED_KEY` consumed by the test + internally, kept by design)
+**Scope note (2026-06-17, user-themed):** when a member holds the crown, tell them what
+they can do — an **in-app notice** (chosen over a system DM to avoid inventing a system
+sender; the DM author-pin privacy model stays intact).
+
+**Acceptance Criteria:**
+
+- [x] In-app "👑 Top Dog privileges" notice shown to the crown-holder, gated on the live
+      `is_current_top_dog` crown state (decision #25), listing their powers: adjudicate
+      🍔 hamburger reports (link to `/app/court`) + spray mustard (guidance to a member
+      profile).
+- [x] Live-crown gated (server-derived each load via `+layout.server.ts` → appears on
+      gaining the crown, gone on losing it). Dismissible via client-side `localStorage`
+      (SSR-guarded; **no fake DM, no schema, no migration**).
+- [x] Non-Top-Dog members never see it (gate at the parent page; the component holds no
+      crown logic).
+- [x] All gates green: `pnpm test` 778, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4/4.
+
+> No migration → no hosted-push gate.
+
+**Notes:**
+
+- **A small crown-holder nudge — when you hold the crown, tell you what you can
+  do.** Shown on the app home (`(protected)/app/+page.svelte`) inside the
+  existing `{#if data.profile?.is_current_top_dog}` server-derived crown gate, the
+  notice lists the Top Dog's two powers: adjudicate 🍔 hamburger reports (link to
+  `/app/court`) and spray mustard (guidance to a member profile). Chosen over a
+  system DM (per the scope note) so no system sender had to be invented — the DM
+  author-pin privacy model stays intact.
+- **Crown gate at the parent, presentation in the component.** The live
+  `is_current_top_dog` gate lives at the page (`+page.svelte`), not inside the
+  component: `TopDogPrivilegesNotice.svelte` holds **no crown logic** at all and
+  is purely presentational + a client-only dismiss toggle. Because the gate is
+  the same server-derived crown flag re-derived each load (decision #25, never
+  cached), the notice appears on gaining the crown and disappears on losing it,
+  and a non-Top-Dog member can never reach the render path. This mirrors the
+  sibling 🍔 Hamburger Court nav link added in TASK-073 (same gate, same parent).
+- **No-schema `localStorage` dismissal — and why.** The AC mandated a minimal,
+  schema-free notice (**no fake DM, no `profiles` column, no migration**), so
+  dismissal is persisted **per-browser in `localStorage`**, not server-side. The
+  pure helpers (`topDogPrivilegesNotice.ts`: `DISMISSED_KEY`, `isNoticeDismissed`,
+  `persistNoticeDismissed`) take the `Storage` instance explicitly and are
+  SSR-safe — `null` on the server (the component passes `browser ? localStorage :
+null` from a mount `$effect`), and they swallow storage read/write errors
+  (private mode / quota / disabled) so a dismiss click never throws and a thrown
+  read never blanks render. Consequence: **no migration → no hosted-push gate**
+  (the still-open TASK-071/073 two-migration hosted-push gate is unchanged —
+  TASK-074 added nothing to push). The exported `DISMISSED_KEY` is consumed both
+  internally and by the unit test; kept by design (a reviewer note, no change).
+- **XSS-safe, Svelte 5 runes.** All copy is fixed strings, links use `resolve`,
+  no `{@html}`, no user-supplied content; dismiss state via `$state` + a mount
+  `$effect`.
+- **No new architecture-decision row.** This is pure UI composition of the
+  existing live-crown gate (decision #25) — a presentational surface over a
+  server-maintained flag, no schema, no new invariant — so nothing to record in
+  the Architecture Decisions table (following the TASK-070/071/073 composition
+  precedents).
+- **Reviewer outcome:** APPROVE, **0 fix cycles**. Two trivial non-blocking notes,
+  no code change: a bookkeeping test-count miscount (said "9", actually **8** new
+  dismissal-helper cases — 5 `isNoticeDismissed` + 3 `persistNoticeDismissed`,
+  consistent with the suite moving `770 → 778`); and the exported `DISMISSED_KEY`
+  (consumed by the test + internally, kept by design). Gates (director-run):
+  `pnpm test` 778 (8 new cases), `pnpm check` 0, `pnpm lint` clean, `@smoke` 4/4
+  on a clean run. No migration, no new deps, no schema → no hosted-push gate.
+- **Verification flake (logged DW-024).** On the clean-run verification, the
+  `@smoke` spec `tests/feed-detail.e2e.ts:329` ("react increments and un-react
+  decrements the reaction count") **flaked once then passed on re-run** — a
+  pre-existing intermittent timing/race in the feed reaction-count UI assertion,
+  **unrelated to TASK-074** (which doesn't touch the feed). Logged as DW-024, a
+  TASK-072 / E2E-stabilization candidate.
 
 ### TASK-073: Top-Dog verdict + HAMBURGER LIAR / HERETIC banners [`complete`] [`P2`] [`L`]
 

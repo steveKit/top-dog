@@ -3,7 +3,7 @@
 ## Status
 
 **Phase:** Active Development
-**Last Updated:** 2026-06-17
+**Last Updated:** 2026-06-18
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
@@ -157,8 +157,27 @@ architecture-decision row** (decision #16 already exists). DW-019 (VS16-decorate
 library-emoji handling) is **resolved/accepted** in TASK-061; DW-020 (a render-DOM E2E gap)
 is an accepted tracked gap. See the M6 progress notes and close notes below.
 
-**Milestone M7 — Safety & Polish is in progress (3 of 6 tasks done — TASK-070 +
-TASK-071 + TASK-073).** TASK-073 (Top-Dog verdict + HAMBURGER LIAR / HERETIC
+**Milestone M7 — Safety & Polish is in progress (4 of 6 tasks done — TASK-070 +
+TASK-071 + TASK-073 + TASK-074; TASK-075 + TASK-072 remain).** TASK-074 (Top Dog
+privileges in-app notice, PR #82 `20adc9a`) is a small crown-holder nudge: when a
+member holds the crown, the app home shows a dismissible "👑 Top Dog privileges"
+notice listing their powers — adjudicate 🍔 hamburger reports (→ `/app/court`) and
+spray mustard (guidance to a member profile). It is gated at the parent page on the
+live, server-derived `is_current_top_dog` crown flag (decision #25), so it appears on
+gaining the crown and is gone on losing it; the component itself holds no crown logic
+(presentational + a client-only dismiss). Dismissal is per-browser `localStorage`
+with **no schema, no migration, no `profiles` column** (the AC mandated minimal /
+no-schema — chosen over a system DM so no system sender had to be invented), so
+**TASK-074 adds nothing to the still-open TASK-071/073 two-migration hosted-push gate**.
+Pure UI composition of the existing crown gate — **no new architecture-decision row**.
+Reviewer APPROVE, 0 fix cycles (two trivial non-blocking notes, no code change — a
+test-count miscount corrected to **8** new dismissal-helper cases, `770 → 778`; an
+exported `DISMISSED_KEY` consumed by the test + internally, kept by design); `pnpm
+test` 778, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4/4 on a clean run. (See the
+M7 progress notes below; DW-024 logs an unrelated `@smoke` reaction-count flake noted
+during verification.)
+
+Earlier in M7, TASK-073 (Top-Dog verdict + HAMBURGER LIAR / HERETIC
 banners, PR #80 `cdd17ff`) landed the **moderation half of the 🍔 Hamburger
 Court**: the **current Top Dog** adjudicates a flagged dog via the
 `render_burger_verdict` SECURITY DEFINER RPC and renders a per-dog verdict, with a
@@ -1174,6 +1193,39 @@ the_verdict)` SECURITY DEFINER RPC (migration `20260618120000_burger_verdicts.sq
    **Hosted-push gate OUTSTANDING** — batch the `burger_verdicts` migration with the
    TASK-071 `burger_alarms` migration in one `supabase db push` (see Process notes).
 
+4. **Top Dog privileges in-app notice (TASK-074, PR #82 `20adc9a`).** A small
+   crown-holder nudge: when a member holds the crown, the app home
+   (`(protected)/app/+page.svelte`) shows a dismissible "👑 Top Dog privileges"
+   notice listing their two powers — adjudicate 🍔 hamburger reports (link to
+   `/app/court`) and spray mustard (guidance to a member profile). Chosen over a
+   system DM so no system sender had to be invented (the DM author-pin privacy model
+   stays intact). **Gate at the parent, presentation in the component:** the
+   `{#if data.profile?.is_current_top_dog}` live-crown gate lives at the page (the
+   same server-derived flag re-derived each load — decision #25, never cached — so
+   the notice appears on gaining the crown and disappears on losing it), while
+   `TopDogPrivilegesNotice.svelte` holds **no crown logic** and is purely
+   presentational plus a client-only dismiss; a non-Top-Dog member can never reach the
+   render path. This mirrors the sibling 🍔 Hamburger Court nav link from TASK-073.
+   **No-schema `localStorage` dismissal:** the AC mandated a minimal, schema-free
+   notice (no fake DM, no `profiles` column, no migration), so dismissal is persisted
+   per-browser in `localStorage` via pure SSR-safe helpers
+   (`topDogPrivilegesNotice.ts`: `DISMISSED_KEY` / `isNoticeDismissed` /
+   `persistNoticeDismissed`, each taking the `Storage` instance explicitly — `null` on
+   the server — and swallowing storage read/write errors so a dismiss click never
+   throws and a thrown read never blanks render). Svelte 5 runes, XSS-safe (fixed copy,
+   `resolve`d links, no `{@html}`). **No migration → TASK-074 adds nothing to the
+   still-open TASK-071/073 two-migration hosted-push gate. No new
+   architecture-decision row** — pure UI composition of the existing live-crown gate
+   (decision #25), following the TASK-070/071/073 composition precedents. Metrics:
+   `pnpm test` 778 (8 new dismissal-helper unit cases — 5 `isNoticeDismissed` + 3
+   `persistNoticeDismissed`), `pnpm check` 0, lint clean, `@smoke` 4/4 on a clean run.
+   Reviewer **APPROVE, 0 fix cycles** (two trivial non-blocking notes, no code change:
+   a test-count miscount corrected to 8 / `770 → 778`; the exported `DISMISSED_KEY`,
+   consumed by the test + internally, kept by design). An unrelated `@smoke`
+   reaction-count flake observed during verification (`tests/feed-detail.e2e.ts:329`,
+   passed on re-run) is logged as **DW-024** (a TASK-072 / E2E-stabilization
+   candidate).
+
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 
 ## Architecture Decisions
@@ -1416,4 +1468,4 @@ push` on 2026-06-17**, so the CHECK/trigger/Storage-API caps are now live on hos
 | M4 — Mustard mechanic          | spray + render-time decay + >24h prune                                              | complete | All 3 tasks done. TASK-040 (mustard decay math, PR #53 `5afd0da`) — pure render-time `src/lib/features/mustard/decay.ts` (`MUSTARD_LIFESPAN_MS` + `mustardOpacity`, full→0 over 24h, clock-skew clamp), TDD-first (19 unit cases), realizing decision #15; orphan-by-design with TASK-041 as the named consumer, no schema/RLS/RPC change. TASK-041 (mustard spray + render, PR #55 `e1eafb9`) — `mustard_sprays` table + plain owner-scoped RLS write with a **Top-Dog `WITH CHECK` INSERT gate** (only the current Top Dog may spray; gate trustworthy because `is_current_top_dog` is non-client-writable per decision #25), immutable/persistent (no UPDATE/DELETE), profile-page overlay rendered at render-time decay via `mustardOpacity` (consumes the TASK-040 seam); cosmetic flair like reactions but with the extra authz conjunct — captured as a reusable [[CLAUDE]] gotcha, not a new decision row. TASK-042 (mustard prune job, PR #57 `6452407`) — `prune_mustard_sprays()` SECURITY DEFINER RPC (the table's **sole DELETE path**, mirroring `tally_top_dog_day()`) deletes >24h sprays + `sprayed_at` index; anon-callable / idempotent / not-forgeable (decision #26 applied to a destructive job — no input, deletes only provably-invisible rows), wired into keep-alive as a third fail-on-non-2xx step. Tag `milestone-04-mustard-mechanic`. **Hosted-push gate pending** — the `mustard_sprays` + `mustard_prune` migrations must be `supabase db push`ed to hosted before the next keep-alive run (see Process notes). See M4 close notes above                                                                                                          |
 | M5 — Walls & DMs               | message walls + direct messages                                                     | complete | All 4 tasks done. TASK-050 (message walls, PR #60 `d3c7a4d`) — `wall_messages` table, plain owner-scoped RLS (decision #12, no counter), stores original body verbatim, SELECT any member / un-forgeable author pin / two-principal DELETE (author OR wall owner) / no UPDATE, wired into the profile route. TASK-051 (direct messages, PR #62 `4ac8ff8`) — `dms` table with a privacy boundary (participant-scoped SELECT, sender-pinned INSERT, no DELETE) + a `read_at`-only UPDATE column grant (decision #24's mechanism applied to a privacy column), pure `summarizeConversations` inbox collapse, `/app/messages` inbox + `/app/messages/[handle]` thread routes. TASK-052 (restore Data API grants, PR #66 `18f9baa`) — **P0 hotfix** for the 2026-05-30 `auto_expose_new_tables` default flip that stopped a fresh `supabase db reset` issuing the implicit base GRANTs PostgREST needs alongside RLS; new `restore_data_api_grants` migration makes grants explicit (authenticated SELECT all 9 tables; INSERT/DELETE only on counter-free cosmetic tables; DELETE on `hot_dogs`; service_role full DML; anon nothing) preserving the decision #24/#25 lockdowns + decision #12 RPC-only paths, `auto_expose_new_tables = false` pinned in config — recorded as **decision #28**. TASK-053 (grant-invariant verification, PR #68 `7603438`) — `tests/grants.e2e.ts` (`@security`, 11 cases) locks the required AND forbidden grant matrix in against drift. Tag `milestone-05-walls-dms`. **Hosted-push gate deferred to TASK-054** (three migrations in one `supabase db push`; user-gated ops, no auto-pause risk — see [[tasks/deferred]]). See M5 close notes above |
 | M6 — Emoji library             | hot-dog emoji set + render filter + random sprinkle                                 | complete | All 2 tasks done. TASK-060 (emoji filter + sprinkle, PR #71 `a2e309d`) — new dependency-free `src/lib/features/emoji/` (`emojiSet.ts` curated `HOTDOG_EMOJIS` + `isHotdogEmoji`; `filter.ts` `filterToHotdog` grapheme-cluster-safe via `Intl.Segmenter` + `sprinkleHotdog` deterministic via a hand-written `mulberry32` PRNG, zero deps), realizing **decision #16** (hot-dog-only library, filter at RENDER, store original); **TDD-first**, orphan-by-design, no schema/RLS/RPC change, no new decision row. TASK-061 (apply filter in walls/DM render, PR #72 `3d85087`) — new pure composition layer `src/lib/features/emoji/render.ts` (`renderWallBody` = filter + seeded sprinkle for walls via an FNV-1a per-message-uuid seed; `renderMessageBody` = filter only for DMs), wired into the profile wall + DM thread + DM inbox preview, all through Svelte auto-escaped text (no `{@html}` → XSS-safe); decision #16's store-original guarantee holds structurally (no persist path). DW-019 (VS16-decorated library emoji → `🌭`) **resolved/accepted**; DW-020 (render-DOM E2E gap) accepted tracked gap. No new decision row. Reviewer APPROVE, 0 fix cycles each; `pnpm test` 622/622, `@smoke` 4/4. Tag `milestone-06-emoji-library`. See M6 progress + close notes above                                                                                                                                                                                                                                                                                                                                                                                           |
-| M7 — Safety & polish           | upload limits, report button, polish                                                | active   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| M7 — Safety & polish           | upload limits, report button, polish                                                | active   | 4 of 6 tasks done. TASK-070 (upload limits, PR #74 `864b8e2`) — three hard server-side layers (Storage-API `file_size_limit = 2 MiB` on both buckets, DB CHECK on declared `byte_size`, per-user-cap BEFORE INSERT trigger), composing decisions #10/#11/#24, DW-005 substantially mitigated. TASK-071 (🍔 report-hamburger + HAMBURGER ALARM, PR #78 `0089eb2`) — `burger_alarms` cosmetic table (decision #12, no counter, ranking-inert) with anonymous reporter (owner-scoped SELECT + service-client aggregate after the auth gate, decision #27), render-time decay + seeded-angle police-tape banners. TASK-073 (Top-Dog verdict + HAMBURGER LIAR / HERETIC, PR #80 `cdd17ff`) — moderation half of the Court: `render_burger_verdict` Top-Dog-gated SECURITY DEFINER RPC, two no-client-write stores (`burger_verdicts` / `hamburger_liars`, votes-style lockdown), render-time LIAR decay + derived persistent HERETIC, double-gated `/app/court`; composes decisions #12/#13/#15/#25. TASK-074 (Top Dog privileges in-app notice, PR #82 `20adc9a`) — small crown-holder nudge on the app home (gated at the parent on the live `is_current_top_dog` flag, decision #25; presentational component, client-only `localStorage` dismiss), **no schema / no migration / no new decision row**. Remaining: TASK-075 (how-it-works help page), TASK-072 (polish pass). **Hosted-push gate OUTSTANDING** — the TASK-071 `burger_alarms` + TASK-073 `burger_verdicts` migrations must be `supabase db push`ed to hosted together (TASK-070's was pushed 2026-06-17; TASK-074 added none). See M7 progress notes + Process notes above                                           |

@@ -241,6 +241,25 @@ display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`
   the message author **OR** the wall owner (`author_id = … OR profile_id = …`) and
   there is no UPDATE (messages immutable). Decision #24/#25 lockdown likewise does not
   apply (no server-maintained column to forge).
+  **EXCEPTION — a cosmetic table is RPC-only-write when the write is a SERVER-IMPOSED
+  PRIVILEGED CONSEQUENCE, not a self-service toggle.** The plain-RLS shape above is for
+  a member acting on their OWN behalf (I react, I spray, I post). When a cosmetic /
+  ranking-inert table is instead written as a _consequence imposed by a privileged
+  actor on someone else_ — e.g. the current Top Dog branding a member a HAMBURGER LIAR
+  / HERETIC (`burger_verdicts` / `hamburger_liars`, TASK-073) — invert it: give the
+  table the **votes-style "no client write policy" lockdown** (SELECT-only for
+  `authenticated`, default-deny on writes, like `votes` / `top_dog_days`) and make a
+  SECURITY DEFINER **RPC the sole write path**, with the RPC's authorization gating on
+  a non-client-writable column (the crown, decision #25; actor from `auth.uid()`
+  inside the RPC). The table is still decision #12 (no counter, ranking-inert) and
+  still decays/persists at render (decision #15) — but it is RPC-only because the
+  write is privileged, not because it maintains a counter. This is the deliberate
+  inverse of the bullet above; do NOT reach for plain owner-scoped RLS here (there is
+  no owner who may self-issue the brand). Note the contrast with the next gotcha
+  (`mustard_sprays`): there the privileged-but-cosmetic write stays **plain RLS** with
+  a `WITH CHECK` gate because the actor sprays on their own behalf; here the actor
+  brands _another_ member, so it is RPC-only. Composes #12/#13/#15/#25, no new
+  decision row. Reuse for any future "the Top Dog brands you X" surface.
 - **Privileged-but-cosmetic write = plain RLS write + an authorization `WITH CHECK`
   conjunct that reads a server-maintained, non-client-writable column.** When a
   cosmetic/many-allowed surface (no denormalized counter, see the gotcha above) is

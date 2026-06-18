@@ -157,8 +157,38 @@ architecture-decision row** (decision #16 already exists). DW-019 (VS16-decorate
 library-emoji handling) is **resolved/accepted** in TASK-061; DW-020 (a render-DOM E2E gap)
 is an accepted tracked gap. See the M6 progress notes and close notes below.
 
-**Milestone M7 — Safety & Polish is in progress (2 of 6 tasks done — TASK-070 +
-TASK-071).** TASK-071 (🍔 report-hamburger + HAMBURGER ALARM banners, PR #78
+**Milestone M7 — Safety & Polish is in progress (3 of 6 tasks done — TASK-070 +
+TASK-071 + TASK-073).** TASK-073 (Top-Dog verdict + HAMBURGER LIAR / HERETIC
+banners, PR #80 `cdd17ff`) landed the **moderation half of the 🍔 Hamburger
+Court**: the **current Top Dog** adjudicates a flagged dog via the
+`render_burger_verdict` SECURITY DEFINER RPC and renders a per-dog verdict, with a
+consequence on each branch — a `not_a_hamburger` verdict brands every **reporter**
+with a render-time HAMBURGER LIAR profile banner (decays ~7 days), a
+`confirmed_hamburger` verdict brands the **uploader** with a persistent HAMBURGER
+HERETIC banner (derived, no separate table) and converts the dog's decaying
+HAMBURGER ALARM into a persistent CONFIRMED HAMBURGER stamp. Unlike the
+self-service cosmetic tables (`hotdog_reactions` / `mustard_sprays` /
+`wall_messages`, plain owner-scoped RLS), the two new stores (`burger_verdicts`,
+`hamburger_liars`) are written **only by the RPC** — they take the votes-style
+**no-client-write lockdown** (SELECT-only for `authenticated`, decision #28 grants)
+because a LIAR brand is a **server-imposed privileged consequence**, not a member
+toggle; the RPC's authorization gates on the **non-client-writable**
+`is_current_top_dog` crown column (decision #25), so a member cannot forge a
+verdict. The `/app/court` adjudication route is double-gated (UI crown gate +
+DB-authoritative RPC gate); the flagged-dog list is an anonymous service-client
+aggregate after the gate (preserving TASK-071 reporter anonymity, decision #27).
+The report → ALARM → verdict → LIAR/HERETIC loop is now closed. This **composes
+existing decisions #12 / #13 / #15 / #25 with no new architecture-decision row**
+(recorded as an M7 composition note below). Reviewer APPROVE, 0 fix cycles (two
+minor non-blocking notes → DW-022 / DW-023); `pnpm test` 770, `pnpm check` 0,
+`pnpm lint` clean, `@smoke` 4, `@security` 94. **Hosted-push gate OUTSTANDING** —
+the migration `20260618120000_burger_verdicts.sql` has not been `supabase db
+push`ed to hosted; batch it with the still-pending TASK-071 `burger_alarms`
+migration (see Process notes). Remaining in M7: TASK-074 (Top Dog privileges
+notice), TASK-075 (how-it-works help page), TASK-072 (polish pass). See the M7
+progress notes below.
+
+Earlier in M7, TASK-071 (🍔 report-hamburger + HAMBURGER ALARM banners, PR #78
 `0089eb2`) landed the **report half of the 🍔 Hamburger Court**: a member taps a
 🍔 control on another member's hot dog to flag it as a hamburger, and enough fresh
 reports trip a render-time HAMBURGER ALARM (two diagonal police-tape strips, "🍔
@@ -180,12 +210,10 @@ an M7 composition note below). Reviewer APPROVE, 0 fix cycles (one minor finding
 missing report/unreport route-action tests — addressed pre-merge); `pnpm test` 710,
 `pnpm check` 0, `pnpm lint` clean, `@smoke` 4, `@security` 81. **Hosted-push gate
 OUTSTANDING** — the migration `20260617205453_burger_alarms.sql` has not yet been
-`supabase db push`ed to hosted (see Process notes). Remaining in M7: TASK-073
-(Top-Dog verdict + HAMBURGER LIAR/HERETIC), TASK-074 (Top Dog privileges notice),
-TASK-075 (how-it-works help page), TASK-072 (polish pass). See the M7 progress notes
-below.
+`supabase db push`ed to hosted (to be pushed together with the TASK-073
+`burger_verdicts` migration; see Process notes). See the M7 progress notes below.
 
-Earlier in M7, **TASK-070** (upload limits enforcement, PR #74 `864b8e2`) landed: upload limits are now
+Earlier still in M7, **TASK-070** (upload limits enforcement, PR #74 `864b8e2`) landed: upload limits are now
 **DB + Storage-API enforced**, not only checked in the SvelteKit form action, so
 a direct PostgREST insert (browser publishable key, bypassing the form action)
 cannot bypass them. Three hard server-side layers: a Storage API
@@ -1090,6 +1118,62 @@ seam pattern (`voting/ranking.ts`, `mustard/decay.ts`) one more time.
    minor finding — missing route-action tests — addressed pre-merge).
    **Hosted-push gate OUTSTANDING** (see Process notes).
 
+3. **Top-Dog verdict + HAMBURGER LIAR / HERETIC banners (TASK-073, PR #80
+   `cdd17ff`).** The **moderation half of the 🍔 Hamburger Court**, closing the
+   report → ALARM → verdict → LIAR/HERETIC loop TASK-071 opened. The **current Top
+   Dog** adjudicates a flagged dog via the `render_burger_verdict(target_dog,
+the_verdict)` SECURITY DEFINER RPC (migration `20260618120000_burger_verdicts.sql`)
+   and renders a per-dog verdict in one transaction: a `not_a_hamburger` verdict
+   brands every **reporter** a HAMBURGER LIAR (idempotent `ON CONFLICT`), a
+   `confirmed_hamburger` verdict clears any stale LIAR rows and brands the
+   **uploader** a HAMBURGER HERETIC. The adjudicator is derived from
+   `(select auth.uid())` **inside** the RPC, and the gate is an `EXISTS` on the
+   non-client-writable `is_current_top_dog` crown column (decision #25), so a
+   verdict cannot be forged; standard private-RPC lockdown (`search_path=''`,
+   schema-qualified, `revoke execute … from public, anon, authenticated` then grant
+   to `authenticated`), with a `28000`/`42501`/`22023`/`P0002` SQLSTATE error
+   contract mapped to typed sentinels in `verdictStore.ts`.
+   **The two stores take the votes-style no-client-write lockdown, NOT the
+   plain-RLS cosmetic shape.** `burger_verdicts` (`UNIQUE(hot_dog_id)`, verdict
+   CHECK, `decided_by`, `decided_at`) and `hamburger_liars`
+   (`UNIQUE(reporter_id, hot_dog_id)`) are both **SELECT-only for `authenticated`
+   with NO client write policy** (default-deny on writes, like `votes` /
+   `top_dog_days`) — the deliberate inverse of the self-service cosmetic tables,
+   because a LIAR brand is a **server-imposed privileged consequence**, not a member
+   toggle, so the write must route through the RPC. Both still carry **no
+   denormalized counter** and never touch `vote_count` / `peak_votes` / the crown
+   (decision #12 ranking-inert); decision #28 base grants apply (`authenticated`
+   SELECT, `service_role` full DML, `anon` nothing).
+   **The HERETIC brand is derived (table-less); the LIAR brand is stored + decays.**
+   `verdict.ts` is a pure dependency-free module: `summarizeLiarBrand` computes the
+   ~7-day linear LIAR fade from raw `created_at` (clock-skew clamped, unparseable
+   rows skipped); `isHamburgerHeretic` derives the **persistent** HERETIC state from
+   whether any of an owner's dogs has a `confirmed_hamburger` verdict (no table); and
+   `dogAlarmState(verdict)` is the **confirmed-branch resolution** — it maps a verdict
+   to the dog's render-time alarm state (`cleared` suppresses the TASK-071 alarm on
+   `not_a_hamburger`; `confirmed` converts it to a persistent CONFIRMED HAMBURGER
+   stamp; absent → falls through to the decaying `summarizeBurgerAlarm`). The
+   `burger_alarms` rows are **preserved** on a verdict (audit trail; render layer
+   decides), all decay/persist computed at render (decision #15). Surfaces:
+   `ProfilePoliceBanner.svelte` (LIAR/HERETIC profile strip) +
+   `ConfirmedHamburgerStamp.svelte` (dog-image stamp), both Svelte auto-escaped text
+   (no `{@html}` → XSS-safe); the Top-Dog-only `/app/court` route is **double-gated**
+   (UI crown gate redirects a non-Top-Dog, AND the RPC re-checks the crown at the DB),
+   the `rule` action passes only `(dogId, verdict)`, and `listFlaggedDogs` is an
+   **anonymous** service-client aggregate after the gate (reporter ids never leave the
+   server — TASK-071 anonymity preserved, decision #27) with images signed
+   server-side (the TASK-033 cross-owner pattern). **No new architecture-decision
+   row** — a genuinely novel _combination_ of decisions #12 / #13 / #15 / #25
+   (composition note below), captured as a reusable [[CLAUDE]] gotcha. Two minor
+   non-blocking reviewer notes logged as **DW-022** (a lingering own-report toggle on
+   a verdict-suppressed dog — TASK-072 polish candidate) and **DW-023**
+   (`toEpochMs` / `tryEpochMs` ~5-line duplication between `verdict.ts` and
+   `alarm.ts` — optional tidy). Metrics (director-run on a fresh `supabase db reset`):
+   `pnpm test` 770, `pnpm check` 0, lint clean, `@smoke` 4, `@security` 94 (incl. the
+   new `tests/burger-court.e2e.ts`). Reviewer **APPROVE, 0 fix cycles**.
+   **Hosted-push gate OUTSTANDING** — batch the `burger_verdicts` migration with the
+   TASK-071 `burger_alarms` migration in one `supabase db push` (see Process notes).
+
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 
 ## Architecture Decisions
@@ -1161,6 +1245,15 @@ burger_alarms id, reporter_id→profiles, hot_dog_id→hot_dogs, created_at
               UNIQUE(reporter_id, hot_dog_id)  -- cosmetic, no counter,
               ranking-inert; reporter ANONYMOUS (owner-scoped SELECT); public
               alarm aggregate read server-side; render-time 24h decay
+burger_verdicts   id, hot_dog_id→hot_dogs, verdict, decided_by→profiles, decided_at
+              UNIQUE(hot_dog_id)  -- per-dog Top-Dog verdict; written ONLY by
+              render_burger_verdict RPC (no client write policy, SELECT-only);
+              confirmed_hamburger ⇒ owner is a HERETIC (derived, persistent);
+              ranking-inert
+hamburger_liars   id, reporter_id→profiles, hot_dog_id→hot_dogs, created_at
+              UNIQUE(reporter_id, hot_dog_id)  -- LIAR brand minted by the RPC on a
+              not_a_hamburger verdict; no client write policy, SELECT-only;
+              render-time ~7-day decay; cosmetic, no counter, ranking-inert
 mustard_sprays    id, sprayer_id, target_profile_id, x, y, sprayed_at
               (drip computed at render; pruned >24h by daily job)
 top_dog_days  profile_id, day(date)   UNIQUE(profile_id, day)
@@ -1263,16 +1356,40 @@ push` on 2026-06-17**, so the CHECK/trigger/Storage-API caps are now live on hos
   (preserved untouched) under the L2 defense-at-the-DB posture — it is a hardening
   of those, recorded in the M7 progress note rather than as a new row in the
   Architecture Decisions table.
-- **M7 hosted-push gate (TASK-071) — OUTSTANDING as of 2026-06-18.** TASK-071 added
-  one new migration, `20260617205453_burger_alarms.sql` (the `burger_alarms` table +
-  its owner-scoped RLS + decision #28 base grants). Per the per-milestone
-  hosted-push discipline it **must be `supabase db push`ed to hosted** so the report
-  surface is functional on the hosted project. As of this writing the push has **not**
-  been done; the director will surface it to the user as a post-merge ops step. No
-  scheduled job calls `burger_alarms`, so there is **no keep-alive 404 / auto-pause
-  risk** if the push lags (the daily `ping` still reads `profiles`) — the gate is
-  hosted enforcement/parity, not workflow health. This is the second M7 hosted-push
-  gate (TASK-070's, for `20260617195233_upload_limits.sql`, was done 2026-06-17).
+- **M7 hosted-push gate (TASK-071 + TASK-073) — OUTSTANDING as of 2026-06-18, TWO
+  migrations to push together.** TASK-071 added `20260617205453_burger_alarms.sql`
+  (the `burger_alarms` table + owner-scoped RLS + decision #28 base grants) and
+  TASK-073 added `20260618120000_burger_verdicts.sql` (the `burger_verdicts` +
+  `hamburger_liars` tables, their no-client-write RLS + decision #28 grants, and the
+  `render_burger_verdict` RPC). Per the per-milestone hosted-push discipline **both
+  must be `supabase db push`ed to hosted — batch them in a SINGLE push** so the full
+  report → verdict flow is functional on the hosted project (the verdict migration
+  depends on `burger_alarms` existing, so pushing them together also keeps the
+  dependency order correct). As of this writing neither has been pushed; the director
+  will surface it to the user as a post-merge ops step. **No** scheduled job calls
+  either table's objects, so there is **no keep-alive 404 / auto-pause risk** if the
+  push lags (the daily `ping` still reads `profiles`) — the gate is hosted
+  enforcement/parity, not workflow health. (TASK-070's `20260617195233_upload_limits.sql`
+  was the first M7 push, done 2026-06-17.)
+- **No new architecture-decision row for TASK-073 — a novel COMPOSITION of
+  #12/#13/#15/#25 (2026-06-18).** The spec flagged this as a likely composition note
+  rather than a new numbered row, and on inspection that is right — it introduces no
+  new product/architecture _invariant_, but it IS a genuinely novel _combination_
+  worth recording (following the TASK-070/071 composition-note precedents). The shape:
+  a **server-imposed cosmetic consequence** table (`hamburger_liars`, plus the
+  `burger_verdicts` store) is **decision #12** cosmetic / ranking-inert (no counter)
+  BUT — unlike the self-service cosmetic tables (`hotdog_reactions` / `mustard_sprays`
+  / `wall_messages`, which write through plain owner-scoped RLS) — it is written
+  **only by an RPC**, so it takes the votes-style **"no client write policy" lockdown
+  (decision #13)**, with the RPC's authorization reading the **non-client-writable
+  crown column (decision #25)** and the brand decaying/persisting at render time
+  (**decision #15**). This is the deliberate _inverse_ of the [[CLAUDE]] "cosmetic
+  tables are plain-RLS, NOT an RPC" gotcha: a cosmetic table legitimately IS RPC-only
+  here because the write is a **privileged consequence**, not a self-service toggle.
+  The reviewer independently agreed with this framing. A one-paragraph [[CLAUDE]]
+  gotcha was added (extending the "Cosmetic / many-allowed tables" gotcha with this
+  server-imposed-consequence exception) so a future agent doesn't mis-apply the
+  plain-RLS shape. Reusable for any future "the Top Dog brands you X" surface.
 - **No new architecture-decision row for TASK-071 (2026-06-18).** The anonymous
   burger-report surface was flagged in the spec as a _likely_ new decision row
   ("owner-scoped RLS exposes only the actor's own rows; the public aggregate is

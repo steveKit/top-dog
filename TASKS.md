@@ -24,13 +24,13 @@
 upload limits, the 🍔 **Hamburger Court** (report → HAMBURGER ALARM → Top-Dog verdict →
 HAMBURGER LIAR / HERETIC) + a Top-Dog-privileges notice, an in-app help page, and a
 final polish pass. Full task detail: [[tasks/milestone-07-safety-polish]].
-**Progress: 4/6** — TASK-070 (upload limits, P1) `complete` (PR #74, hosted-push done),
+**Progress: 5/6** — TASK-070 (upload limits, P1) `complete` (PR #74, hosted-push done),
 TASK-071 (🍔 report + HAMBURGER ALARM banners, P2) `complete` (PR #78), TASK-073
-(Top-Dog verdict + HAMBURGER LIAR / HERETIC, P2) `complete` (PR #80), and TASK-074
-(Top-Dog privileges notice, P3) `complete` (PR #82) — **the two new migrations
-(`20260617205453_burger_alarms.sql`, `20260618120000_burger_verdicts.sql`) still need a
-hosted `supabase db push`**; TASK-075 (in-app help page, P3) and TASK-072 (polish pass,
-P3) `pending`.
+(Top-Dog verdict + HAMBURGER LIAR / HERETIC, P2) `complete` (PR #80), TASK-074 (Top-Dog
+privileges notice, P3) `complete` (PR #82), and TASK-075 (in-app help page, P3)
+`complete` (PR #84) — **the two new migrations (`20260617205453_burger_alarms.sql`,
+`20260618120000_burger_verdicts.sql`) still need a hosted `supabase db push`**; TASK-072
+(polish pass, P3) `pending` (last M7 task).
 
 Prior: **Milestone M6 — Emoji Library completed** 2026-06-17 (TASK-060/061; tag
 `milestone-06-emoji-library`). The deferred M5 hosted-push follow-up (TASK-054) is

@@ -6,56 +6,6 @@
 
 ## Active Tasks
 
-### TASK-073: Top-Dog verdict + HAMBURGER LIAR / HERETIC banners [`pending`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-071, TASK-013, TASK-011, M2 crown engine (`recompute_top_dog`)
-**Scope note (2026-06-17, user-themed):** the moderation half of the Hamburger Court.
-The **current Top Dog adjudicates** flagged dogs and renders a per-dog verdict, with a
-consequence on each branch: a **"not a hamburger"** verdict brands every reporter of that
-dog with a render-time **HAMBURGER LIAR** banner on their profile (decays ~7 days); a
-**"confirmed hamburger"** verdict brands the **uploader** with a **HAMBURGER HERETIC**
-banner on their profile (persistent). Reuses the Top-Dog-gated privilege model (decisions
-#25/#15) and the consuming-writes-via-RPC convention.
-
-**Acceptance Criteria:**
-
-- [ ] **Verdict RPC (Top-Dog-gated, sole write path):** a SECURITY DEFINER RPC renders a
-      per-dog verdict (`confirmed_hamburger` | `not_a_hamburger`) in one transaction,
-      resolving all pending reports on that dog. Gated via EXISTS on the
-      non-client-writable `is_current_top_dog` crown column (decision #25 — trustworthy
-      because the crown column is not client-writable). `search_path=''`,
-      schema-qualified, `revoke execute … from public, anon, authenticated`.
-- [ ] **Verdict store:** a per-dog review state (`none`/`pending`/`confirmed`/`cleared`)
-      or a `burger_verdicts` table, server-maintained (non-client-writable, decision
-      #24/#25 style) — written only by the verdict RPC.
-- [ ] **HAMBURGER LIAR consequence:** a `not_a_hamburger` verdict mints HAMBURGER LIAR
-      rows for every reporter of that dog (transactionally in the RPC) — cosmetic /
-      many-allowed surface (decision #12, no denormalized counter, ranking-inert).
-- [ ] **HAMBURGER LIAR banner:** render-time police-tape banner on the offending
-      reporter's PROFILE, **decaying over ~7 days** (render-time, like mustard decay);
-      seeded-random angle (same helper as TASK-071).
-- [ ] **HAMBURGER HERETIC consequence + banner:** a `confirmed_hamburger` verdict brands
-      the dog's **owner/uploader** — their PROFILE shows a render-time **HAMBURGER HERETIC**
-      police-tape banner, **persistent** (does NOT decay; a confirmed offense is a lasting
-      brand), seeded-random angle (same helper as TASK-071). Derived from the confirmed
-      verdict (a profile is a HERETIC if any of their dogs has a `confirmed_hamburger`
-      verdict). Cosmetic / ranking-inert.
-- [ ] **Adjudication surface:** a Top-Dog-only control to view flagged dogs and rule
-      (`confirmed` / `not a hamburger`). Non-Top-Dog members never see it; the gate is
-      also enforced at the DB (the RPC), not just the UI.
-- [ ] **Confirmed branch resolution:** a `confirmed_hamburger` verdict resolves the review
-      (alarm justified) and triggers the HAMBURGER HERETIC brand above; document whether the
-      dog's HAMBURGER ALARM then clears or converts to a "CONFIRMED HAMBURGER" stamp.
-- [ ] **Tests:** unit (pure LIAR/HERETIC-decay-or-persist logic; verdict→state mapping).
-      `@security` live-DB: a non-Top-Dog cannot call the verdict RPC (gate rejects); the
-      verdict cannot be forged client-side (RPC is the sole write path); LIAR and HERETIC
-      rows are ranking-inert; a verdict resolves the correct reports (LIAR for reporters on
-      a clear, HERETIC for the owner on a confirm).
-- [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`, `@security`.
-
-> **Post-merge ops gate:** adds a migration → the per-milestone hosted-push gate applies.
-
 ### TASK-074: Top Dog privileges in-app notice [`pending`] [`P3`] [`S`]
 
 **Owner:** unassigned
@@ -109,6 +59,170 @@ per-user status.
 - [ ] `pnpm lint`, `pnpm check`, `pnpm test`, `@smoke` all green
 
 ## Completed Tasks (this milestone)
+
+### TASK-073: Top-Dog verdict + HAMBURGER LIAR / HERETIC banners [`complete`] [`P2`] [`L`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-071, TASK-013, TASK-011, M2 crown engine (`recompute_top_dog`)
+**Merged:** PR #80 (`cdd17ff`, squash) · Reviewer: APPROVE · Fix cycles: 0 (2 minor
+non-blocking notes — a lingering own-report toggle after a verdict → TASK-072 polish
+candidate; a 5-line time-helper duplication → optional tidy)
+**Scope note (2026-06-17, user-themed):** the moderation half of the Hamburger Court.
+The **current Top Dog adjudicates** flagged dogs and renders a per-dog verdict, with a
+consequence on each branch: a **"not a hamburger"** verdict brands every reporter of that
+dog with a render-time **HAMBURGER LIAR** banner on their profile (decays ~7 days); a
+**"confirmed hamburger"** verdict brands the **uploader** with a **HAMBURGER HERETIC**
+banner on their profile (persistent). Reuses the Top-Dog-gated privilege model (decisions
+#25/#15) and the consuming-writes-via-RPC convention (decision #13).
+
+**Acceptance Criteria:**
+
+- [x] **Verdict RPC (Top-Dog-gated, sole write path):** `render_burger_verdict(target_dog,
+the_verdict)` SECURITY DEFINER RPC, one transaction; gated via `EXISTS` on the
+      non-client-writable `is_current_top_dog` (decision #25), `search_path=''`, fully
+      schema-qualified, `revoke execute … from public, anon, authenticated` then grant to
+      `authenticated`; actor derived from `auth.uid()` inside the RPC.
+- [x] **Verdict store:** `burger_verdicts` table (`UNIQUE(hot_dog_id)`), server-maintained,
+      **no client write policy** (votes-style lockdown), SELECT-only for `authenticated`,
+      decision #28 grants — written only by the RPC.
+- [x] **HAMBURGER LIAR consequence:** `hamburger_liars` rows minted transactionally for
+      every reporter on a `not_a_hamburger` verdict (idempotent `ON CONFLICT`) — cosmetic /
+      many-allowed, no counter, ranking-inert.
+- [x] **HAMBURGER LIAR banner:** render-time profile police-tape banner, ~7-day decay
+      (`summarizeLiarBrand`), seeded angle (reused `bannerAngle`).
+- [x] **HAMBURGER HERETIC consequence + banner:** persistent render-time profile banner,
+      **derived** from a `confirmed_hamburger` verdict (no separate consequence table).
+- [x] **Adjudication surface:** Top-Dog-only `/app/court` route — crown-gated load
+      (non-Top-Dog redirected) plus the DB-authoritative RPC gate; the `rule` action passes
+      only `(dogId, verdict)` (adjudicator id never client-supplied).
+- [x] **Confirmed branch resolution:** documented — a verdict resolves the render-time
+      alarm: `not_a_hamburger` suppresses it (reporters branded LIARs); `confirmed_hamburger`
+      converts it to a persistent CONFIRMED HAMBURGER stamp. `burger_alarms` rows preserved
+      (audit trail; render layer decides).
+- [x] **Tests:** unit `verdict.test.ts` (decay/persist + verdict→state) + `@security`
+      `tests/burger-court.e2e.ts` (non-Top-Dog rejected; verdict not forgeable via direct
+      INSERT/UPDATE/DELETE; LIAR/HERETIC ranking-inert; a clear mints LIARs, a confirm makes
+      the owner a HERETIC and clears stale LIARs).
+- [x] All gates green: `pnpm test` 770, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4,
+      `@security` 94.
+
+> **Post-merge ops gate — OUTSTANDING:** the migration `20260618120000_burger_verdicts.sql`
+> must be `supabase db push`ed to hosted before the report→verdict flow works on hosted
+> (batch with the still-pending TASK-071 `burger_alarms` push). No keep-alive/auto-pause
+> risk (no scheduled job touches these tables).
+
+**Notes:**
+
+- **The moderation half of the 🍔 Hamburger Court.** TASK-071 shipped the report
+  half (a member flags another member's dog → render-time HAMBURGER ALARM); this
+  task adds the verdict. The **current Top Dog** adjudicates a flagged dog and
+  renders a per-dog verdict, with a consequence on each branch: a
+  `not_a_hamburger` verdict brands every **reporter** of that dog with a
+  render-time **HAMBURGER LIAR** profile banner (decays ~7 days); a
+  `confirmed_hamburger` verdict brands the **uploader** with a persistent
+  **HAMBURGER HERETIC** profile banner. The full report → ALARM → verdict →
+  LIAR/HERETIC loop is now closed.
+- **The verdict RPC is the sole write path, Top-Dog-gated.**
+  `render_burger_verdict(target_dog, the_verdict)` (migration
+  `20260618120000_burger_verdicts.sql`) is a SECURITY DEFINER RPC that does
+  everything in one transaction: upserts the per-dog verdict (UNIQUE
+  `hot_dog_id` → a re-rule re-points the existing row), and on `not_a_hamburger`
+  mints a LIAR row for every current reporter (idempotent `ON CONFLICT`), or on
+  `confirmed_hamburger` clears any stale LIAR rows (a re-rule from "not a
+  hamburger" must not leave vindicated reporters branded). The adjudicator is
+  derived from `(select auth.uid())` **inside** the RPC — never client-supplied —
+  and the gate is an `EXISTS` on the non-client-writable `is_current_top_dog`
+  crown column (decision #25), so a member cannot self-grant the crown to forge a
+  verdict. Standard private-RPC lockdown: `search_path=''`, fully
+  schema-qualified, `revoke execute … from public, anon, authenticated` then
+  grant to `authenticated` only. SQLSTATE error contract — `28000`
+  (unauthenticated), `42501` (not the Top Dog), `22023` (bad verdict value),
+  `P0002` (no such dog) — mapped to typed sentinels in `verdictStore.ts`, keyed on
+  the SQLSTATE, never message text.
+- **Two non-client-writable tables (votes-style lockdown), NOT plain-RLS cosmetic
+  tables.** `burger_verdicts` (`UNIQUE(hot_dog_id)`, verdict CHECK, `decided_by`,
+  `decided_at`) and `hamburger_liars` (`UNIQUE(reporter_id, hot_dog_id)`) are both
+  **SELECT-only for `authenticated`, with NO client INSERT/UPDATE/DELETE policy** —
+  default-deny covers all writes, exactly like `votes` / `top_dog_days`. This is
+  the deliberate **inverse** of the self-service cosmetic tables
+  (`hotdog_reactions` / `mustard_sprays` / `wall_messages`, which write through
+  plain owner-scoped RLS): those are member toggles, but a LIAR brand is a
+  **server-imposed privileged consequence**, so the write must route through the
+  RPC and the tables take the no-client-write lockdown. Both still carry **no
+  denormalized counter** and never touch `vote_count` / `peak_votes` / the crown,
+  so they are decision #12 ranking-inert; decision #28 base grants apply
+  (`authenticated` SELECT; `service_role` full DML; `anon` nothing).
+- **The HERETIC brand is derived (table-less), the LIAR brand is stored.** There
+  is no `hamburger_heretics` table — `isHamburgerHeretic` (pure, in `verdict.ts`)
+  derives the persistent HERETIC state from whether ANY of an owner's dogs carries
+  a `confirmed_hamburger` verdict (`getDogVerdictsForOwner` joins
+  `burger_verdicts → hot_dogs` on `owner_id`). The LIAR brand, by contrast, needs
+  a per-(reporter, dog) row in `hamburger_liars` because it decays per-brand from
+  its own `created_at`.
+- **Render-time decay-or-persist seam (decision #15).** `verdict.ts` is a pure
+  dependency-free module (no SvelteKit/Supabase imports, fully unit-testable):
+  `summarizeLiarBrand` computes the ~7-day linear LIAR fade from the raw
+  `created_at` timestamps (clock-skew clamped, unparseable rows skipped
+  defensively — one bad row can't blank or fake a brand); `isHamburgerHeretic` is
+  persistent (no clock); and `dogAlarmState(verdict)` maps a verdict to the dog's
+  alarm display state. The DB stores only the raw verdict + raw timestamps; the
+  decayed/derived display state is computed entirely at render.
+- **Confirmed-branch resolution — a verdict resolves the alarm.**
+  `dogAlarmState` switches the feed/detail/dogs/profile render surfaces:
+  `not_a_hamburger` → `cleared` (the TASK-071 HAMBURGER ALARM is suppressed and
+  the reporters are branded LIARs); `confirmed_hamburger` → `confirmed` (the
+  decaying alarm is converted to a persistent CONFIRMED HAMBURGER stamp,
+  `ConfirmedHamburgerStamp.svelte`, driven by the verdict store, not the decaying
+  report timestamps); no verdict → `alarm` (falls through to the decaying
+  `summarizeBurgerAlarm`). The `burger_alarms` rows are **preserved** on a verdict
+  (audit trail; the render layer decides) rather than deleted.
+- **Surfaces.** `ProfilePoliceBanner.svelte` (the LIAR/HERETIC profile strip) and
+  `ConfirmedHamburgerStamp.svelte` (the dog-image stamp) render through Svelte
+  auto-escaped text (no `{@html}` → XSS-safe). The Top-Dog-only `/app/court`
+  adjudication route is **double-gated**: the load reads the viewer's own
+  (non-client-writable) crown and redirects a non-Top-Dog to `/app/feed`, AND the
+  RPC re-checks the crown at the DB, so the gate holds even if the UI is bypassed.
+  The `rule` action passes only `(dogId, verdict)` — the adjudicator id is never
+  client-supplied. The flagged-dog list (`listFlaggedDogs`) is an **anonymous**
+  aggregate read on the service client AFTER the gate (reporter ids never leave
+  the server, preserving the TASK-071 anonymity), and dog images come from the
+  private `hotdogs` bucket signed server-side (the TASK-033 cross-owner signed-URL
+  pattern, decision #27).
+- **Architecture-decision call — a composition note, NOT a new numbered row.**
+  Recorded in [[PROJECT]] (M7 progress note + a Process note), following the
+  TASK-070/071 composition-note precedents. The genuinely novel _combination_: a
+  **server-imposed cosmetic consequence** table is decision #12 ranking-inert (no
+  counter) BUT — unlike the self-service cosmetic tables, which write through
+  plain owner-scoped RLS — it is written **only by an RPC**, so it takes the
+  votes-style **no-client-write lockdown** (decision #13), with the RPC's
+  authorization reading the **non-client-writable crown column** (decision #25).
+  This is the deliberate _inverse_ of the existing "cosmetic tables are plain-RLS,
+  NOT an RPC" gotcha: a cosmetic table legitimately IS RPC-only here because the
+  write is a _privileged consequence_, not a self-service toggle. The reviewer
+  independently agreed with this framing. Reusable for any future "the Top Dog
+  brands you X" surface. **A one-paragraph [[CLAUDE]] gotcha was added** (extending
+  the "Cosmetic / many-allowed tables" gotcha with the server-imposed-consequence
+  exception) so a future agent doesn't mis-apply the plain-RLS shape to this case.
+- **Two minor reviewer notes (non-blocking) logged as Discovered Work.** (1) A
+  reporter's own "reported ✓" toggle still shows on a dog whose alarm has been
+  verdict-suppressed — cosmetic, consistent with the store-raw / resolve-at-render
+  model — **DW-022**, a TASK-072 polish candidate. (2) `toEpochMs` / `tryEpochMs`
+  (~5 lines) are duplicated between `verdict.ts` and `alarm.ts` — an optional tidy
+  matching the deliberate self-contained-pure-module convention — **DW-023**.
+- **Outstanding hosted-push gate.** The migration
+  `20260618120000_burger_verdicts.sql` has **NOT** been `supabase db push`ed to
+  hosted — batch it with the still-pending TASK-071
+  `20260617205453_burger_alarms.sql` (both in one push). No keep-alive /
+  auto-pause risk (no scheduled job touches these tables; the daily `ping` still
+  reads `profiles`); the report → verdict flow is simply non-functional on hosted
+  until pushed. See [[PROJECT]] Process notes.
+- **Reviewer outcome:** APPROVE, **0 fix cycles**, two minor non-blocking notes
+  (above, logged as DW-022 / DW-023). Gates (director-run on a fresh
+  `supabase db reset`): `pnpm test` 770, `pnpm check` 0, `pnpm lint` clean,
+  `@smoke` 4, `@security` 94 (incl. the new `tests/burger-court.e2e.ts`:
+  non-Top-Dog rejected; verdict not forgeable via direct INSERT/UPDATE/DELETE;
+  LIAR/HERETIC ranking-inert; a clear mints LIARs, a confirm makes the owner a
+  HERETIC and clears stale LIARs).
 
 ### TASK-071: 🍔 report-hamburger + HAMBURGER ALARM banners [`complete`] [`P2`] [`L`]
 

@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import TopDogPrivilegesNotice from '$lib/components/TopDogPrivilegesNotice.svelte';
 
 	let { data } = $props();
 </script>
 
 <h1>Your kennel</h1>
 <p>Signed in as {data.user?.email ?? 'unknown'}.</p>
+
+<!-- 👑 Top Dog privileges notice — gated on the live, server-derived crown flag
+     (decision #25), so it appears on gaining the crown and disappears on losing
+     it. Non-Top-Dog members never see it. (TASK-074) -->
+{#if data.profile?.is_current_top_dog}
+	<TopDogPrivilegesNotice />
+{/if}
 
 <nav>
 	<a href={resolve('/(protected)/app/dogs')}>Your hot dogs</a>

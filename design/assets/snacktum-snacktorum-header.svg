@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 40" width="600" height="80">
+  <defs>
+    
+  </defs>
+  <svg x="2" y="9" width="22" height="22" viewBox="0 0 200 200" fill="none" stroke="#E0A82E" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" overflow="visible">
+    <ellipse cx="100" cy="56" rx="40" ry="11"></ellipse>
+    <rect x="50" y="96" width="100" height="28" rx="14" fill="rgba(224,168,46,0.2)"></rect>
+    <rect x="40" y="120" width="120" height="34" rx="17"></rect>
+  </svg>
+  <text x="35" y="18" font-family="&#39;Cinzel&#39;, serif" font-size="14" font-weight="600" letter-spacing="4" fill="#f0e2c2">SNACKTUM SNACKTORUM</text>
+  <text x="35" y="33" font-family="&#39;Cinzel&#39;, serif" font-size="11" font-weight="400" letter-spacing="3" fill="#E0A82E" fill-opacity="0.78">ORDER OF THE HOLY TUBE</text>
+</svg>

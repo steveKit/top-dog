@@ -55,3 +55,6 @@ Thumbs.db
 
 # Task-migration backup (temporary; review then delete)
 .task-migration-backup/
+
+# Windows "mark of the web" cruft (appears on files copied through Windows/WSL)
+*:Zone.Identifier

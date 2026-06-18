@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" width="640" height="300">
+  <defs>
+    
+  </defs>
+  <g transform="translate(245,20) scale(0.75)" fill="none" stroke="#E0A82E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke-width="2.5">
+      <line x1="100" y1="30" x2="100" y2="14"></line>
+      <line x1="74" y1="36" x2="64" y2="22"></line>
+      <line x1="126" y1="36" x2="136" y2="22"></line>
+      <line x1="52" y1="50" x2="40" y2="40"></line>
+      <line x1="148" y1="50" x2="160" y2="40"></line>
+    </g>
+    <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+    <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.18)"></rect>
+    <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+    <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.06)"></path>
+  </g>
+  <text x="320" y="228" text-anchor="middle" font-family="&#39;Cinzel&#39;, serif" font-size="38" font-weight="600" letter-spacing="7" fill="#f0e2c2">SNACKTUM SNACKTORUM</text>
+  <text x="320" y="264" text-anchor="middle" font-family="&#39;Cinzel&#39;, serif" font-size="16" font-weight="400" letter-spacing="6" fill="#E0A82E">ORDER OF THE HOLY TUBE</text>
+</svg>

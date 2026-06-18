@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&amp;family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#17120e}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes stamp{0%{transform:scale(1.3);opacity:0}45%{transform:scale(.88);opacity:1}100%{transform:scale(1)}}
+  @keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:.85}}
+  ::selection{background:rgba(224,168,46,.3)}
+  input::placeholder{color:rgba(243,233,210,.28)}
+</style>
+</helmet>
+<div style="--accent:{{ accentVar }}; --accent-dim:{{ accentDimVar }}; --glow:{{ glowVar }}; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:space-between; gap:28px; padding:36px 24px 34px; background:radial-gradient(125% 80% at 50% -5%, #271c12 0%, #1a130d 52%, #120d09 100%); color:#f3e9d2; font-family:'Cormorant Garamond',serif; position:relative; overflow:hidden;">
+
+  <sc-if value="{{ glow }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute; top:-160px; left:50%; transform:translateX(-50%); width:620px; height:620px; border-radius:50%; background:radial-gradient(circle, var(--glow,rgba(224,168,46,0.45)) 0%, transparent 64%); filter:blur(26px); animation:glowPulse 6s ease-in-out infinite; pointer-events:none; z-index:0;"></div>
+  </sc-if>
+
+  <header style="z-index:1; display:flex; align-items:center; gap:11px;">
+    <svg viewBox="0 0 200 200" width="22" height="22" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="100" cy="56" rx="40" ry="11"></ellipse>
+      <rect x="50" y="96" width="100" height="28" rx="14" fill="rgba(224,168,46,0.2)"></rect>
+      <rect x="40" y="120" width="120" height="34" rx="17"></rect>
+    </svg>
+    <div style="display:flex; flex-direction:column; gap:3px; text-align:left;">
+      <span style="font:600 14px/1 'Cinzel',serif; letter-spacing:4px; color:#f0e2c2;">SNACKTUM SNACKTORUM</span>
+      <span style="font:400 11px/1 'Cinzel',serif; letter-spacing:3px; color:rgba(224,168,46,0.75);">ORDER OF THE HOLY TUBE</span>
+    </div>
+  </header>
+
+  <main style="z-index:1; width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; padding:8px 0;">
+
+    <sc-if value="{{ isSummoned }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:22px; text-align:center; animation:fadeUp .55s ease both;">
+        <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+          <svg viewBox="0 0 200 200" width="150" height="150" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <g stroke-width="2.5" opacity="0.9"><line x1="100" y1="30" x2="100" y2="14"></line><line x1="74" y1="36" x2="64" y2="22"></line><line x1="126" y1="36" x2="136" y2="22"></line><line x1="52" y1="50" x2="40" y2="40"></line><line x1="148" y1="50" x2="160" y2="40"></line></g>
+            <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+            <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.18)"></rect>
+            <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+            <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.06)"></path>
+          </svg>
+        </div>
+        <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E);">The First Rite</span>
+        <h1 style="font:600 clamp(34px,6vw,52px)/1.05 'Cinzel',serif; letter-spacing:1px; margin:0; color:#f6ecd2; text-shadow:0 2px 34px rgba(224,168,46,0.16);">You Have Been<br>Summoned</h1>
+        <sc-if value="{{ ornaments }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:12px; color:var(--accent,#E0A82E); font-size:13px;"><span style="width:42px; height:1px; background:var(--accent,#E0A82E); opacity:.45;"></span>✦<span style="width:42px; height:1px; background:var(--accent,#E0A82E); opacity:.45;"></span></div>
+        </sc-if>
+        <p style="font:400 20px/1.55 'Cormorant Garamond',serif; color:rgba(243,233,210,0.74); max-width:430px; margin:0; text-wrap:pretty;">Pilgrim — the Order has watched you linger at the grill and deems you worthy to judge the sacred links. Present your token and pass through the rite.</p>
+        <label style="display:flex; flex-direction:column; gap:7px; text-align:left; width:100%; max-width:340px;">
+          <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(224,168,46,0.85);">Your Summoning Token</span>
+          <input value="{{ invite }}" onChange="{{ onInvite }}" style="background:rgba(243,233,210,0.04); border:1px solid rgba(224,168,46,0.25); border-bottom:1.5px solid var(--accent,#E0A82E); border-radius:2px; padding:13px 15px; color:#f3e9d2; font:600 20px/1.2 'Cinzel',serif; letter-spacing:3px; text-align:center; outline:none;" style-focus="background:rgba(243,233,210,0.07)">
+        </label>
+        <button onClick="{{ begin }}" style="display:inline-flex; align-items:center; justify-content:center; gap:10px; margin-top:4px; padding:16px 42px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 14px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 8px 28px rgba(224,168,46,0.22);" style-hover="filter:brightness(1.08)">Begin the Rite →</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isToken }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:18px; text-align:center; width:100%; animation:fadeUp .55s ease both;">
+        <div style="position:relative; display:flex; align-items:center; justify-content:center; flex:none;">
+          <svg viewBox="0 0 200 200" width="150" height="150" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <g stroke-width="2.5" opacity="0.9"><line x1="100" y1="30" x2="100" y2="14"></line><line x1="74" y1="36" x2="64" y2="22"></line><line x1="126" y1="36" x2="136" y2="22"></line><line x1="52" y1="50" x2="40" y2="40"></line><line x1="148" y1="50" x2="160" y2="40"></line></g>
+            <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+            <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.18)"></rect>
+            <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+            <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.06)"></path>
+          </svg>
+        </div>
+        <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E);">The Second Rite</span>
+        <h1 style="font:600 clamp(30px,5vw,44px)/1.05 'Cinzel',serif; letter-spacing:1px; margin:0; color:#f6ecd2;">Inscribe Thy Name</h1>
+        <p style="font:400 19px/1.5 'Cormorant Garamond',serif; color:rgba(243,233,210,0.72); max-width:420px; margin:0 0 4px; text-wrap:pretty;">Every disciple of the Tube is known by a name, a mustard-address, and a secret word. Speak them now.</p>
+        <div style="display:flex; flex-direction:column; gap:16px; width:100%; max-width:400px;">
+          <label style="display:flex; flex-direction:column; gap:7px; text-align:left;">
+            <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(224,168,46,0.85);">Casing Name</span>
+            <input value="{{ handle }}" onChange="{{ onHandle }}" placeholder="e.g. FrankfurterTheFaithful" style="background:rgba(243,233,210,0.04); border:1px solid rgba(224,168,46,0.22); border-bottom:1.5px solid var(--accent,#E0A82E); border-radius:2px; padding:13px 14px; color:#f3e9d2; font:400 18px/1.2 'Cormorant Garamond',serif; outline:none;" style-focus="background:rgba(243,233,210,0.07)">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:7px; text-align:left;">
+            
+            <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(224,168,46,0.85);">MUSTARD ADDRESS</span><input value="{{ email }}" onChange="{{ onEmail }}" type="email" placeholder="you@parish.com" style="background:rgba(243,233,210,0.04); border:1px solid rgba(224,168,46,0.22); border-bottom:1.5px solid var(--accent,#E0A82E); border-radius:2px; padding:13px 14px; color:#f3e9d2; font:400 18px/1.2 'Cormorant Garamond',serif; outline:none;" style-focus="background:rgba(243,233,210,0.07)">
+          </label>
+          <label style="display:flex; flex-direction:column; gap:7px; text-align:left;">
+            <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(224,168,46,0.85);">Secret Word</span>
+            <input value="{{ pass }}" onChange="{{ onPass }}" type="password" placeholder="known only to you and the Tube" style="background:rgba(243,233,210,0.04); border:1px solid rgba(224,168,46,0.22); border-bottom:1.5px solid var(--accent,#E0A82E); border-radius:2px; padding:13px 14px; color:#f3e9d2; font:400 18px/1.2 'Cormorant Garamond',serif; outline:none;" style-focus="background:rgba(243,233,210,0.07)">
+          </label>
+        </div>
+        <div style="display:flex; align-items:center; gap:22px; margin-top:6px;">
+          <button onClick="{{ back }}" style="background:none; border:none; color:rgba(243,233,210,0.5); font:400 16px/1 'Cormorant Garamond',serif; letter-spacing:1px; cursor:pointer; text-decoration:underline; text-underline-offset:3px;" style-hover="color:#f3e9d2">← Step back</button>
+          <button onClick="{{ next }}" disabled="{{ tokenLocked }}" style="{{ tokenBtnStyle }}" style-hover="filter:brightness(1.08)">Continue →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSigil }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:18px; text-align:center; width:100%; animation:fadeUp .55s ease both;">
+        <div style="position:relative; display:flex; align-items:center; justify-content:center; flex:none;">
+          <svg viewBox="0 0 200 200" width="150" height="150" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <g stroke-width="2.5" opacity="0.9"><line x1="100" y1="30" x2="100" y2="14"></line><line x1="74" y1="36" x2="64" y2="22"></line><line x1="126" y1="36" x2="136" y2="22"></line><line x1="52" y1="50" x2="40" y2="40"></line><line x1="148" y1="50" x2="160" y2="40"></line></g>
+            <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+            <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.18)"></rect>
+            <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+            <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.06)"></path>
+          </svg>
+        </div>
+        <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E);">The Third Rite · Thy Sigil</span>
+        <h1 style="font:600 clamp(30px,5vw,44px)/1.05 'Cinzel',serif; letter-spacing:1px; margin:0; color:#f6ecd2;">Choose Thy Sigil</h1>
+        <p style="font:400 19px/1.5 'Cormorant Garamond',serif; color:rgba(243,233,210,0.72); max-width:430px; margin:0 0 2px; text-wrap:pretty;">Until thou reveal thine own likeness, the Order grants thee a sacred face. Choose the one thou shalt wear among the faithful.</p>
+        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px; max-width:320px;">
+
+          <button onClick="{{ onSig0 }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px; width:92px;">
+            <div style="position:relative; width:84px; height:84px;">
+              <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid rgba(224,168,46,0.22); background:#1a120b;">
+                <dc-import name="SigilCowled" hint-size="84px,84px" style="width:84px; height:84px; display:block;"></dc-import>
+              </div>
+              <sc-if value="{{ selSig0 }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute; inset:0; border-radius:50%; border:2.5px solid var(--accent,#E0A82E); box-shadow:0 0 0 4px rgba(224,168,46,0.14); pointer-events:none;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:var(--accent,#E0A82E); color:#17120e; display:flex; align-items:center; justify-content:center; font:700 11px/1 'Cinzel',serif; border:2px solid #17120e;">✓</div>
+              </sc-if>
+            </div>
+            <span style="font:600 9px/1.1 'Cinzel',serif; letter-spacing:1px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Cowled</span>
+          </button>
+
+          <button onClick="{{ onSig1 }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px; width:92px;">
+            <div style="position:relative; width:84px; height:84px;">
+              <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid rgba(224,168,46,0.22); background:#1a120b;">
+                <dc-import name="SigilHaloed" hint-size="84px,84px" style="width:84px; height:84px; display:block;"></dc-import>
+              </div>
+              <sc-if value="{{ selSig1 }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; inset:0; border-radius:50%; border:2.5px solid var(--accent,#E0A82E); box-shadow:0 0 0 4px rgba(224,168,46,0.14); pointer-events:none;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:var(--accent,#E0A82E); color:#17120e; display:flex; align-items:center; justify-content:center; font:700 11px/1 'Cinzel',serif; border:2px solid #17120e;">✓</div>
+              </sc-if>
+            </div>
+            <span style="font:600 9px/1.1 'Cinzel',serif; letter-spacing:1px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Haloed</span>
+          </button>
+
+          <button onClick="{{ onSig2 }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px; width:92px;">
+            <div style="position:relative; width:84px; height:84px;">
+              <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid rgba(224,168,46,0.22); background:#1a120b;">
+                <dc-import name="SigilShadowed" hint-size="84px,84px" style="width:84px; height:84px; display:block;"></dc-import>
+              </div>
+              <sc-if value="{{ selSig2 }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; inset:0; border-radius:50%; border:2.5px solid var(--accent,#E0A82E); box-shadow:0 0 0 4px rgba(224,168,46,0.14); pointer-events:none;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:var(--accent,#E0A82E); color:#17120e; display:flex; align-items:center; justify-content:center; font:700 11px/1 'Cinzel',serif; border:2px solid #17120e;">✓</div>
+              </sc-if>
+            </div>
+            <span style="font:600 9px/1.1 'Cinzel',serif; letter-spacing:1px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Shadowed</span>
+          </button>
+
+          <button onClick="{{ onSig3 }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px; width:92px;">
+            <div style="position:relative; width:84px; height:84px;">
+              <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid rgba(224,168,46,0.22); background:#1a120b;">
+                <dc-import name="SigilTube" hint-size="84px,84px" style="width:84px; height:84px; display:block;"></dc-import>
+              </div>
+              <sc-if value="{{ selSig3 }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; inset:0; border-radius:50%; border:2.5px solid var(--accent,#E0A82E); box-shadow:0 0 0 4px rgba(224,168,46,0.14); pointer-events:none;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:var(--accent,#E0A82E); color:#17120e; display:flex; align-items:center; justify-content:center; font:700 11px/1 'Cinzel',serif; border:2px solid #17120e;">✓</div>
+              </sc-if>
+            </div>
+            <span style="font:600 9px/1.1 'Cinzel',serif; letter-spacing:1px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Tube Sigil</span>
+          </button>
+
+          <button onClick="{{ onSig4 }}" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer; padding:4px; width:92px;">
+            <div style="position:relative; width:84px; height:84px;">
+              <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid rgba(224,168,46,0.22); background:#1a120b;">
+                <dc-import name="SigilCandle" hint-size="84px,84px" style="width:84px; height:84px; display:block;"></dc-import>
+              </div>
+              <sc-if value="{{ selSig4 }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; inset:0; border-radius:50%; border:2.5px solid var(--accent,#E0A82E); box-shadow:0 0 0 4px rgba(224,168,46,0.14); pointer-events:none;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:22px; height:22px; border-radius:50%; background:var(--accent,#E0A82E); color:#17120e; display:flex; align-items:center; justify-content:center; font:700 11px/1 'Cinzel',serif; border:2px solid #17120e;">✓</div>
+              </sc-if>
+            </div>
+            <span style="font:600 9px/1.1 'Cinzel',serif; letter-spacing:1px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Candle</span>
+          </button>
+
+        </div>
+        <p style="font:400 17px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.85); margin:0;">Thy sigil — {{ chosenSigilName }}</p>
+        <div style="display:flex; align-items:center; gap:22px; margin-top:2px;">
+          <button onClick="{{ back }}" style="background:none; border:none; color:rgba(243,233,210,0.5); font:400 16px/1 'Cormorant Garamond',serif; letter-spacing:1px; cursor:pointer; text-decoration:underline; text-underline-offset:3px;" style-hover="color:#f3e9d2">← Step back</button>
+          <button onClick="{{ next }}" style="display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:15px 38px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 14px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.25);" style-hover="filter:brightness(1.08)">Continue →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRenounce }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:20px; text-align:center; width:100%; animation:fadeUp .55s ease both;">
+        <div style="position:relative; display:flex; align-items:center; justify-content:center; flex:none;">
+          <svg viewBox="0 0 200 200" width="150" height="150" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <g stroke-width="2.5" opacity="0.9"><line x1="100" y1="30" x2="100" y2="14"></line><line x1="74" y1="36" x2="64" y2="22"></line><line x1="126" y1="36" x2="136" y2="22"></line><line x1="52" y1="50" x2="40" y2="40"></line><line x1="148" y1="50" x2="160" y2="40"></line></g>
+            <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+            <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.18)"></rect>
+            <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+            <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.06)"></path>
+          </svg>
+        </div>
+        <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E);">The Fourth Rite · The Renunciation</span>
+        <h1 style="font:600 clamp(32px,5.5vw,48px)/1.05 'Cinzel',serif; letter-spacing:1px; margin:0; color:#f6ecd2;">Renounce The Patty</h1>
+        <p style="font:400 21px/1.5 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.78); max-width:460px; margin:0; text-wrap:pretty;">“Dost thou forswear the ground patty and all its flattened kin — the burger, the slider, the meatball sub — and pledge thy judgment to the one true Tube?”</p>
+        <div style="margin:8px 0 4px;">
+          <sc-if value="{{ notSworn }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ swear }}" style="width:138px; height:138px; border-radius:50%; border:2px dashed var(--accent,#E0A82E); background:rgba(224,168,46,0.06); color:var(--accent,#E0A82E); font:600 12px/1.4 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0 16px; text-align:center;" style-hover="background:rgba(224,168,46,0.14)">Press to<br>Swear the<br>Oath</button>
+          </sc-if>
+          <sc-if value="{{ sworn }}">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+              <div style="width:138px; height:138px; border-radius:50%; background:var(--accent,#E0A82E); color:#17120e; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; animation:stamp .5s ease both; box-shadow:0 0 0 7px rgba(224,168,46,0.14);">
+                <div style="font-size:38px; line-height:1;">☩</div>
+                <div style="font:700 13px/1 'Cinzel',serif; letter-spacing:3px;">SWORN</div>
+              </div>
+              <span style="font:400 17px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.85);">Thy oath is sealed.</span>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex; align-items:center; gap:22px; margin-top:2px;">
+          <button onClick="{{ back }}" style="background:none; border:none; color:rgba(243,233,210,0.5); font:400 16px/1 'Cormorant Garamond',serif; letter-spacing:1px; cursor:pointer; text-decoration:underline; text-underline-offset:3px;" style-hover="color:#f3e9d2">← Step back</button>
+          <button onClick="{{ next }}" disabled="{{ oathLocked }}" style="{{ oathBtnStyle }}" style-hover="filter:brightness(1.08)">Continue →</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isReceived }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:20px; text-align:center; animation:fadeUp .55s ease both;">
+        <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+          <svg viewBox="0 0 200 200" width="150" height="150" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <g stroke-width="2.5" opacity="0.95"><line x1="100" y1="30" x2="100" y2="12"></line><line x1="74" y1="36" x2="64" y2="20"></line><line x1="126" y1="36" x2="136" y2="20"></line><line x1="52" y1="50" x2="38" y2="38"></line><line x1="148" y1="50" x2="162" y2="38"></line><line x1="40" y1="70" x2="24" y2="66"></line><line x1="160" y1="70" x2="176" y2="66"></line></g>
+            <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+            <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.22)"></rect>
+            <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+            <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.08)"></path>
+          </svg>
+        </div>
+        <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E);">You Are Received</span>
+        <h1 style="font:600 clamp(30px,5vw,46px)/1.1 'Cinzel',serif; letter-spacing:1px; margin:0; color:#f6ecd2;">Welcome, {{ displayName }}</h1>
+        <p style="font:400 20px/1.55 'Cormorant Garamond',serif; color:rgba(243,233,210,0.74); max-width:430px; margin:0; text-wrap:pretty;">Thou art now sworn of the Order of the Holy Tube. Go forth and judge the sacred links with a righteous eye.</p>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:5px; padding:18px 34px; border:1px solid rgba(224,168,46,0.3); border-radius:3px; background:rgba(224,168,46,0.05);">
+          <div style="width:64px; height:64px; border-radius:50%; overflow:hidden; border:2px solid var(--accent,#E0A82E); margin-bottom:6px;">
+            <sc-if value="{{ selSig0 }}" hint-placeholder-val="{{ true }}"><dc-import name="SigilCowled" hint-size="64px,64px" style="width:64px; height:64px; display:block;"></dc-import></sc-if>
+            <sc-if value="{{ selSig1 }}" hint-placeholder-val="{{ false }}"><dc-import name="SigilHaloed" hint-size="64px,64px" style="width:64px; height:64px; display:block;"></dc-import></sc-if>
+            <sc-if value="{{ selSig2 }}" hint-placeholder-val="{{ false }}"><dc-import name="SigilShadowed" hint-size="64px,64px" style="width:64px; height:64px; display:block;"></dc-import></sc-if>
+            <sc-if value="{{ selSig3 }}" hint-placeholder-val="{{ false }}"><dc-import name="SigilTube" hint-size="64px,64px" style="width:64px; height:64px; display:block;"></dc-import></sc-if>
+            <sc-if value="{{ selSig4 }}" hint-placeholder-val="{{ false }}"><dc-import name="SigilCandle" hint-size="64px,64px" style="width:64px; height:64px; display:block;"></dc-import></sc-if>
+          </div>
+          <span style="font:600 10px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:rgba(224,168,46,0.7);">Sworn of the Tube</span>
+          <span style="font:700 26px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">№ {{ memberNo }}</span>
+        </div>
+        <button style="display:inline-flex; align-items:center; justify-content:center; gap:10px; margin-top:4px; padding:16px 42px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 14px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 8px 28px rgba(224,168,46,0.22);" style-hover="filter:brightness(1.08)">Enter the Sanctum →</button>
+      </div>
+    </sc-if>
+
+  </main>
+
+  <footer style="z-index:1; display:flex; align-items:flex-start; gap:30px;">
+    <sc-for list="{{ beads }}" as="b" hint-placeholder-count="5">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:74px;">
+        <div style="{{ b.dotStyle }}"></div>
+        <span style="{{ b.labelStyle }}">{{ b.label }}</span>
+      </div>
+    </sc-for>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;ornaments&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    step: 0,
+    invite: 'TUBE-7\u00B77',
+    handle: '',
+    email: '',
+    pass: '',
+    sworn: false,
+    sigil: 0,
+    memberNo: 4000 + Math.floor(Math.random() * 5996)
+  };
+
+  set = (k) => (e) => this.setState({ [k]: e.target.value });
+  begin = () => this.setState({ step: 1 });
+  next = () => this.setState((s) => ({ step: Math.min(4, s.step + 1) }));
+  pickSig = (i) => () => this.setState({ sigil: i });
+  back = () => this.setState((s) => ({ step: Math.max(0, s.step - 1) }));
+  swear = () => this.setState({ sworn: true });
+
+  renderVals() {
+    const acc = this.props.accent || 'Mustard Gold';
+    const PAL = {
+      'Mustard Gold':  ['#E0A82E', '#b9842a', 'rgba(224,168,46,0.45)'],
+      'Relic Crimson': ['#cf4636', '#a3392c', 'rgba(207,70,54,0.45)'],
+      'Verdigris':     ['#57b59a', '#3f8e79', 'rgba(87,181,154,0.45)']
+    };
+    const [accentVar, accentDimVar, glowVar] = PAL[acc] || PAL['Mustard Gold'];
+    const step = this.state.step;
+
+    const tokenLocked = !(this.state.handle.trim() && this.state.email.trim());
+    const oathLocked = !this.state.sworn;
+
+    const baseBtn = {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+      padding: '15px 38px', background: accentVar, color: '#17120e', border: 'none',
+      borderRadius: '2px', font: "600 14px/1 'Cinzel',serif", letterSpacing: '2px',
+      textTransform: 'uppercase', boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+    };
+    const tokenBtnStyle = { ...baseBtn, opacity: tokenLocked ? 0.35 : 1, cursor: tokenLocked ? 'not-allowed' : 'pointer' };
+    const oathBtnStyle  = { ...baseBtn, opacity: oathLocked ? 0.35 : 1, cursor: oathLocked ? 'not-allowed' : 'pointer' };
+
+    const labels = ['Summoned', 'Token', 'Sigil', 'Renounce', 'Received'];
+    const beads = labels.map((label, i) => {
+      const on = i <= step;
+      return {
+        label,
+        dotStyle: {
+          width: '11px', height: '11px', borderRadius: '50%',
+          border: '1.5px solid ' + (on ? accentVar : 'rgba(224,168,46,0.35)'),
+          background: on ? accentVar : 'transparent',
+          boxShadow: i === step ? '0 0 0 4px rgba(224,168,46,0.15)' : 'none',
+          transition: 'all .3s ease'
+        },
+        labelStyle: {
+          font: "600 10px/1.2 'Cinzel',serif", letterSpacing: '1.5px', textTransform: 'uppercase',
+          color: on ? '#e9d9b3' : 'rgba(243,233,210,0.35)', textAlign: 'center'
+        }
+      };
+    });
+
+    const sigNames = ['The Cowled Initiate', 'The Haloed Saint', 'The Shadowed Acolyte', 'The Tube Sigil', 'The Candle Bearer'];
+    const sig = {};
+    for (let i = 0; i < 5; i++) { sig['onSig' + i] = this.pickSig(i); sig['selSig' + i] = this.state.sigil === i; }
+
+    return {
+      accentVar, accentDimVar, glowVar,
+      glow: this.props.glow !== false,
+      ornaments: this.props.ornaments !== false,
+      isSummoned: step === 0, isToken: step === 1, isSigil: step === 2, isRenounce: step === 3, isReceived: step === 4,
+      invite: this.state.invite, handle: this.state.handle, email: this.state.email, pass: this.state.pass,
+      onInvite: this.set('invite'), onHandle: this.set('handle'), onEmail: this.set('email'), onPass: this.set('pass'),
+      begin: this.begin, next: this.next, back: this.back, swear: this.swear,
+      sworn: this.state.sworn, notSworn: !this.state.sworn,
+      tokenLocked, oathLocked, tokenBtnStyle, oathBtnStyle,
+      displayName: this.state.handle.trim() || 'Pilgrim',
+      memberNo: this.state.memberNo.toLocaleString('en-US'),
+      ...sig, chosenSigilName: sigNames[this.state.sigil],
+      beads
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -6,31 +6,6 @@
 
 ## Active Tasks
 
-### TASK-075: In-app help / "How Top Dog works" page [`pending`] [`P3`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** none hard (references mechanics from M2–M7); best built after TASK-071
-**Scope note (2026-06-17, user-themed):** an everyone-facing **static** in-app how-it-works
-page explaining what members can do, with emphasis on the **vote system**. Distinct from
-TASK-074 (the crown-holder-only privileges nudge). Static content only — no dynamic
-per-user status.
-
-**Acceptance Criteria:**
-
-- [ ] A static in-app route (e.g. `/app/help`) linked from the app nav.
-- [ ] **Vote system explained** (emphasis): one vote per member, **movable** anytime,
-      **cannot vote for your own** dog; most votes wins the crown; sticky tie-break; **days
-      as Top Dog** tally.
-- [ ] **What you can do** sections: voting + the Top Dog crown + Top-Dog powers (spray
-      mustard, adjudicate 🍔 hamburger reports), reactions, mustard, walls & DMs, and the 🍔
-      Hamburger Court (report → HAMBURGER ALARM → Top-Dog verdict → HAMBURGER LIAR /
-      HERETIC).
-- [ ] Static content only — no migration, no new deps, no dynamic per-user status. Svelte 5
-      runes; XSS-safe.
-- [ ] All gates green: `pnpm test`, `pnpm check`, `pnpm lint`, `@smoke`.
-
-> No migration → no hosted-push gate.
-
 ### TASK-072: Polish pass [`pending`] [`P3`] [`M`]
 
 **Owner:** unassigned
@@ -41,6 +16,67 @@ per-user status.
 - [ ] `pnpm lint`, `pnpm check`, `pnpm test`, `@smoke` all green
 
 ## Completed Tasks (this milestone)
+
+### TASK-075: In-app help / "How Top Dog works" page [`complete`] [`P3`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** none hard (references mechanics from M2–M7)
+**Merged:** PR #84 (`f894112`, squash) · Reviewer: APPROVE · Fix cycles: 0 (2 trivial
+stylistic notes, no change)
+**Scope note (2026-06-17, user-themed):** an everyone-facing **static** in-app
+how-it-works page explaining what members can do, with emphasis on the **vote system**.
+Distinct from TASK-074 (the crown-holder-only privileges nudge). Static content only.
+
+**Acceptance Criteria:**
+
+- [x] Static in-app route `/app/help` (`src/routes/(protected)/app/help/+page.svelte`),
+      linked from the app home nav.
+- [x] **Vote system explained** (emphasis): one movable vote per member, no self-vote, most
+      votes wins the crown, sticky tie-break (incumbent holds until a challenger pulls
+      strictly ahead), days-as-Top-Dog tally — copy cross-checked against
+      `voting/ranking.ts`.
+- [x] **What you can do** sections: voting + crown + Top-Dog powers (spray mustard,
+      adjudicate 🍔 reports), reactions, mustard (~24h fade), walls & DMs, and the 🍔
+      Hamburger Court (report → ALARM → verdict → LIAR ~7d / HERETIC persistent) — all
+      mechanics verified against source.
+- [x] Static content only — no migration, no new deps, no load/per-user data; Svelte 5
+      runes; XSS-safe (fixed strings, no `{@html}`); semantic `aria-labelledby` sections.
+- [x] All gates green: `pnpm test` 778, `pnpm check` 0, `pnpm lint` clean, `@smoke` 4/4.
+
+> No migration → no hosted-push gate.
+
+**Notes:**
+
+- **A static, everyone-facing how-it-works page.** `/app/help`
+  (`src/routes/(protected)/app/help/+page.svelte`) is a pure static route — **no
+  `load`, no per-user data, no server round-trip** — explaining what members can
+  do, with the **vote system** emphasized: one movable vote per member, no
+  self-vote, most votes wins the crown, the **sticky tie-break** (an incumbent
+  holds until a challenger pulls strictly ahead), and the days-as-Top-Dog tally.
+  Further sections cover Top Dog powers, reactions, mustard, walls & DMs, and the
+  🍔 Hamburger Court. Linked from the app home nav
+  (`(protected)/app/+page.svelte`). Distinct from TASK-074's crown-holder-only
+  privileges nudge — this page is shown to everyone.
+- **Mechanics accuracy was the load-bearing concern.** Because the copy describes
+  live game mechanics, every mechanic-bearing line was cross-checked against
+  source: the vote rules + sticky tie-break against `voting/ranking.ts`, the
+  mustard ~24h fade against `mustard/decay.ts`, and the Hamburger Court flow
+  (report → ALARM → verdict → LIAR ~7d / HERETIC persistent, and the
+  LIAR/HERETIC branch direction) against `reports/verdict.ts` — plus the
+  ranking-inert nature of reactions. The reviewer independently re-checked each
+  line against source and found all accurate.
+- **No tests, no schema, no deps → no hosted-push gate.** Static content with no
+  logic to unit-test; the suite count stays at 778. No migration, no new
+  dependency, no `load`/per-user data, so there is **no hosted-push gate** for this
+  task (the still-open TASK-071/073 two-migration gate is unchanged — TASK-075 adds
+  nothing to push). XSS-safe by construction (fixed strings, no `{@html}`),
+  `aria-labelledby` sections, Svelte 5.
+- **No new architecture-decision row.** A static content page introduces no
+  invariant, schema, or write path — nothing to record in the Architecture
+  Decisions table (following the TASK-070/071/073/074 composition precedents).
+- **Reviewer outcome:** APPROVE, **0 fix cycles** (two trivial stylistic notes, no
+  code change). Gates (director-run): `pnpm test` 778 (no new tests — static
+  content), `pnpm check` 0, `pnpm lint` clean, `@smoke` 4/4.
 
 ### TASK-074: Top Dog privileges in-app notice [`complete`] [`P3`] [`S`]
 

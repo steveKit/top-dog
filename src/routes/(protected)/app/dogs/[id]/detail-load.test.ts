@@ -81,12 +81,23 @@ vi.mock('$lib/features/reports/reports', async () => {
 	};
 });
 
+// 🍔 Hamburger Court verdict (TASK-073). The detail load reads this dog's verdict via
+// getVerdictsForDogs on the RLS-scoped client and resolves the render-time alarm state
+// through the REAL pure dogAlarmState (kept real so the verdict -> alarm-state mapping
+// is exercised faithfully). A not_a_hamburger verdict suppresses the alarm; a
+// confirmed_hamburger verdict converts it to a persistent CONFIRMED stamp. Only the
+// network-touching wrapper is mocked; the load degrades to "no verdict" on failure.
+vi.mock('$lib/features/reports/verdictStore', () => ({
+	getVerdictsForDogs: vi.fn()
+}));
+
 import { actions, load } from './+page.server';
 import { getDogDetail, DOG_NOT_FOUND } from '$lib/features/hotdogs/detail';
 import { getSignedUrl, isUuid } from '$lib/storage';
 import { getServiceClient } from '$lib/server/supabase';
 import { listReactionsForDogs } from '$lib/features/reactions/reactions';
 import { reportBurger, unreportBurger, CANNOT_REPORT_OWN } from '$lib/features/reports/reports';
+import { getVerdictsForDogs } from '$lib/features/reports/verdictStore';
 
 // The detail load now reads the anonymous per-dog burger-alarm aggregate with the
 // SERVICE client (getBurgerAlarmCounts: `.from('burger_alarms').select('hot_dog_id,
@@ -173,6 +184,7 @@ type LoadData = {
 	signedUrl: string | null;
 	reactions: { emoji: string; count: number; reactedByMe: boolean }[];
 	alarm: { active: boolean; reporterCount: number; intensity: string };
+	alarmState: 'alarm' | 'cleared' | 'confirmed';
 	iReported: boolean;
 	isOwnDog: boolean;
 };
@@ -203,6 +215,9 @@ beforeEach(() => {
 	// Report action wrappers default to success; individual tests override.
 	vi.mocked(reportBurger).mockResolvedValue({ ok: true, data: null });
 	vi.mocked(unreportBurger).mockResolvedValue({ ok: true, data: null });
+	// No verdict by default: the dog falls through to its decaying report alarm
+	// ('alarm'). Verdict-specific tests override with a populated Map.
+	vi.mocked(getVerdictsForDogs).mockResolvedValue({ ok: true, data: new Map() });
 });
 
 const report_ = actions.report;
@@ -530,6 +545,60 @@ describe('dog detail load', () => {
 
 		expect(result.alarm).toEqual({ active: false, reporterCount: 0, intensity: 'none' });
 		// The dog + signed URL are unaffected.
+		expect(result.dog).toEqual(DOG_DETAIL);
+		expect(console.error).toHaveBeenCalled();
+	});
+
+	// 🍔 Hamburger Court verdict-resolved alarm state (TASK-073). A verdict RESOLVES the
+	// render-time alarm: not_a_hamburger SUPPRESSES it ('cleared'); confirmed_hamburger
+	// converts it to a persistent CONFIRMED stamp ('confirmed'). No verdict -> the
+	// decaying alarm stands ('alarm'). The mapping is the REAL pure dogAlarmState; these
+	// cases pin that the load surfaces the verdict-resolved state and degrades on failure.
+	it("surfaces 'alarm' alarmState when there is no verdict (default)", async () => {
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(getVerdictsForDogs).toHaveBeenCalledWith(expect.anything(), [DOG_ID]);
+		expect(result.alarmState).toBe('alarm');
+	});
+
+	it("surfaces 'cleared' alarmState for a dog ruled not_a_hamburger (alarm suppressed)", async () => {
+		// The dog was flagged, then ruled NOT a hamburger -> the alarm is suppressed.
+		const fresh = new Date().toISOString();
+		serviceAlarmRows = [{ hot_dog_id: DOG_ID, created_at: fresh }];
+		vi.mocked(getVerdictsForDogs).mockResolvedValue({
+			ok: true,
+			data: new Map([[DOG_ID, 'not_a_hamburger']])
+		});
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.alarmState).toBe('cleared');
+	});
+
+	it("surfaces 'confirmed' alarmState for a dog ruled confirmed_hamburger (persistent stamp)", async () => {
+		vi.mocked(getVerdictsForDogs).mockResolvedValue({
+			ok: true,
+			data: new Map([[DOG_ID, 'confirmed_hamburger']])
+		});
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		expect(result.alarmState).toBe('confirmed');
+	});
+
+	it('degrades to plain alarm behavior (alarmState) when the verdict read fails', async () => {
+		vi.mocked(getVerdictsForDogs).mockResolvedValue({ ok: false, error: 'verdict read boom' });
+		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await loadData(event);
+
+		// A verdict-read failure must not blank the page; the alarm falls back to its
+		// own decay ('alarm') and the failure is logged.
+		expect(result.alarmState).toBe('alarm');
 		expect(result.dog).toEqual(DOG_DETAIL);
 		expect(console.error).toHaveBeenCalled();
 	});

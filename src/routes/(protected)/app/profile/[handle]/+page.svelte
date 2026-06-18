@@ -3,6 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
+	import ProfilePoliceBanner from '$lib/components/ProfilePoliceBanner.svelte';
 	import { mustardOpacity } from '$lib/features/mustard/decay';
 	import { renderWallBody } from '$lib/features/emoji/render';
 
@@ -15,6 +16,10 @@
 	const wallMessages = $derived(data.wallMessages);
 	const viewerId = $derived(data.viewerId);
 	const isWallOwner = $derived(data.isWallOwner);
+	// 🍔 Hamburger Court brands (TASK-073): the decaying LIAR brand summary and the
+	// persistent HERETIC flag, both computed server-side at render time.
+	const liarBrand = $derived(data.liarBrand);
+	const isHeretic = $derived(data.isHeretic);
 
 	// Bound to the post box; cleared after a successful post.
 	let wallBody = $state('');
@@ -104,6 +109,21 @@
 
 		{#if profile.is_current_top_dog}
 			<TopDogBadge />
+		{/if}
+
+		<!-- 🍔 Hamburger Court brands (TASK-073). HERETIC is persistent (any owned dog
+		     confirmed a hamburger); LIAR decays over ~7 days (opacity from the brand
+		     summary). Both are render-time, ranking-inert police-tape strips slapped
+		     across the profile head. -->
+		{#if isHeretic}
+			<ProfilePoliceBanner label="HAMBURGER HERETIC" seed={`${profile.id}:HERETIC`} />
+		{/if}
+		{#if liarBrand.active}
+			<ProfilePoliceBanner
+				label="HAMBURGER LIAR"
+				seed={`${profile.id}:LIAR`}
+				opacity={liarBrand.intensity}
+			/>
 		{/if}
 
 		<!-- Mustard overlay: one decaying splotch per spray (decision #15 — opacity

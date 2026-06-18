@@ -10,6 +10,8 @@ import {
 	getBurgerAlarmCounts
 } from '$lib/features/reports/reports';
 import { summarizeBurgerAlarm } from '$lib/features/reports/alarm';
+import { getVerdictsForDogs } from '$lib/features/reports/verdictStore';
+import { dogAlarmState } from '$lib/features/reports/verdict';
 import { getSignedUrl, isUuid } from '$lib/storage';
 import { getServiceClient } from '$lib/server/supabase';
 
@@ -113,6 +115,22 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		alarm = summarizeBurgerAlarm(alarmCountsResult.data.get(dog.id) ?? [], new Date());
 	}
 
+	// 🍔 Hamburger Court verdict (TASK-073). A verdict RESOLVES the render-time alarm
+	// (confirmed-branch resolution): 'cleared' (ruled not_a_hamburger -> suppress the
+	// alarm) or 'confirmed' (ruled confirmed_hamburger -> show a persistent CONFIRMED
+	// HAMBURGER stamp). No verdict -> 'alarm' (the decaying report alarm above stands).
+	// A read failure degrades to "no verdict" (the alarm falls back to its own decay).
+	const verdictsResult = await getVerdictsForDogs(supabase, [dog.id]);
+	const verdict = verdictsResult.ok ? (verdictsResult.data.get(dog.id) ?? null) : null;
+	if (!verdictsResult.ok) {
+		console.error('[dog-detail] failed to load verdict', {
+			userId: user.id,
+			dogId: dog.id,
+			error: verdictsResult.error
+		});
+	}
+	const alarmState = dogAlarmState(verdict);
+
 	// Whether the viewer is the dog's owner: you can't report your own dog, so the
 	// report control is hidden for the owner.
 	const isOwnDog = dog.owner_id === user.id;
@@ -129,7 +147,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		iReported = myReportsResult.data.has(dog.id);
 	}
 
-	return { dog, signedUrl, reactions, alarm, iReported, isOwnDog };
+	return { dog, signedUrl, reactions, alarm, alarmState, iReported, isOwnDog };
 };
 
 export const actions: Actions = {

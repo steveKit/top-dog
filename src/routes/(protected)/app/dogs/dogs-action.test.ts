@@ -86,6 +86,17 @@ vi.mock('$lib/server/supabase', () => ({
 	}))
 }));
 
+// 🍔 Hamburger Court verdicts on the owner's OWN dogs (TASK-073). The gallery load
+// reads per-dog verdicts via getVerdictsForDogs on the RLS-scoped client and resolves
+// each own dog's render-time alarm state through the REAL pure dogAlarmState (kept
+// real so the verdict -> alarm-state mapping is exercised faithfully). A confirmed
+// verdict converts your own dog's alarm to a persistent CONFIRMED stamp; a
+// not_a_hamburger verdict clears it. Only the network-touching wrapper is mocked; the
+// load degrades to "no verdict" (plain decaying alarm) when it fails.
+vi.mock('$lib/features/reports/verdictStore', () => ({
+	getVerdictsForDogs: vi.fn()
+}));
+
 import { actions, load } from './+page.server';
 import {
 	createHotDog,
@@ -99,6 +110,7 @@ import {
 import { upload, remove, getSignedUrl, evaluateUpload } from '$lib/storage';
 import { getProfileById } from '$lib/features/profiles/profiles';
 import { getServiceClient } from '$lib/server/supabase';
+import { getVerdictsForDogs } from '$lib/features/reports/verdictStore';
 
 const upload_ = actions.upload;
 const delete_ = actions.delete;
@@ -172,6 +184,9 @@ beforeEach(() => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		data: { id: USER_ID, is_current_top_dog: false, top_dog_since: null } as any
 	});
+	// No verdicts by default: own dogs fall through to their decaying alarm ('alarm').
+	// Verdict-specific load tests override with a populated Map.
+	vi.mocked(getVerdictsForDogs).mockResolvedValue({ ok: true, data: new Map() });
 });
 
 describe('dogs upload action', () => {
@@ -698,6 +713,7 @@ describe('dogs load', () => {
 		dogs: {
 			signedUrl: string | null;
 			alarm: { active: boolean; reporterCount: number; intensity: string };
+			alarmState: 'alarm' | 'cleared' | 'confirmed';
 		}[];
 		cap: number;
 		isCurrentTopDog: boolean;
@@ -750,8 +766,18 @@ describe('dogs load', () => {
 		expect(getSignedUrl).toHaveBeenCalledTimes(2);
 		expect(result.cap).toBe(100);
 		expect(result.dogs).toEqual([
-			{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}`, alarm: INACTIVE_ALARM },
-			{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}`, alarm: INACTIVE_ALARM }
+			{
+				...DOG_A,
+				signedUrl: `https://signed/${DOG_A.image_path}`,
+				alarm: INACTIVE_ALARM,
+				alarmState: 'alarm'
+			},
+			{
+				...DOG_B,
+				signedUrl: `https://signed/${DOG_B.image_path}`,
+				alarm: INACTIVE_ALARM,
+				alarmState: 'alarm'
+			}
 		]);
 		// Default profile is non-crown, so no badge data accompanies the grid.
 		expect(result.isCurrentTopDog).toBe(false);
@@ -837,6 +863,67 @@ describe('dogs load', () => {
 	// the vote-RPC crown recompute uses — never a parallel ordering — so it stays
 	// in lockstep across a crown handoff (a handoff just changes what the next load
 	// reads back). These cases exercise the real comparator end-to-end via the load.
+	// 🍔 Hamburger Court verdict-resolved alarm state on the OWN gallery (TASK-073).
+	// A verdict RESOLVES the render-time alarm on your own dog: not_a_hamburger
+	// suppresses it ('cleared'); confirmed_hamburger converts it to a persistent
+	// CONFIRMED stamp ('confirmed'). No verdict -> the decaying alarm stands
+	// ('alarm'). The mapping is the REAL pure dogAlarmState.
+	describe('verdict-resolved alarm state', () => {
+		it("surfaces 'confirmed' alarmState on an own dog ruled confirmed_hamburger", async () => {
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A, DOG_B] });
+			vi.mocked(getSignedUrl).mockImplementation(async (_c, path) => ({
+				ok: true,
+				data: { signedUrl: `https://signed/${path}` }
+			}));
+			vi.mocked(getVerdictsForDogs).mockResolvedValue({
+				ok: true,
+				data: new Map([[DOG_A.id, 'confirmed_hamburger']])
+			});
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			// Verdicts are read for the owner's OWN dog ids.
+			expect(getVerdictsForDogs).toHaveBeenCalledWith(expect.anything(), [DOG_A.id, DOG_B.id]);
+			expect(result.dogs[0].alarmState).toBe('confirmed');
+			// DOG_B carries no verdict -> the plain decaying alarm stands.
+			expect(result.dogs[1].alarmState).toBe('alarm');
+		});
+
+		it("surfaces 'cleared' alarmState on an own dog ruled not_a_hamburger", async () => {
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A] });
+			vi.mocked(getSignedUrl).mockImplementation(async (_c, path) => ({
+				ok: true,
+				data: { signedUrl: `https://signed/${path}` }
+			}));
+			vi.mocked(getVerdictsForDogs).mockResolvedValue({
+				ok: true,
+				data: new Map([[DOG_A.id, 'not_a_hamburger']])
+			});
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			expect(result.dogs[0].alarmState).toBe('cleared');
+		});
+
+		it('degrades to plain alarm behavior (alarmState) when the verdict read fails', async () => {
+			vi.mocked(listHotDogsByOwner).mockResolvedValue({ ok: true, data: [DOG_A] });
+			vi.mocked(getSignedUrl).mockImplementation(async (_c, path) => ({
+				ok: true,
+				data: { signedUrl: `https://signed/${path}` }
+			}));
+			vi.mocked(getVerdictsForDogs).mockResolvedValue({ ok: false, error: 'verdict read boom' });
+
+			const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+			// A verdict-read failure must not blank the grid; the dog falls back to
+			// plain 'alarm' and the failure is logged.
+			expect(result.dogs).toHaveLength(1);
+			expect(result.dogs[0].alarmState).toBe('alarm');
+			expect(result.dogs[0].signedUrl).toBe(`https://signed/${DOG_A.image_path}`);
+			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
 	describe('Top Dog badge wiring', () => {
 		// A crowned-owner profile. The single shared `top_dog_since` means the
 		// stickiness tie-break degenerates to vote_count + id across the owner's dogs.
@@ -964,8 +1051,18 @@ describe('dogs load', () => {
 			expect(result.isCurrentTopDog).toBe(false);
 			expect(result.topDogId).toBeNull();
 			expect(result.dogs).toEqual([
-				{ ...DOG_A, signedUrl: `https://signed/${DOG_A.image_path}`, alarm: INACTIVE_ALARM },
-				{ ...DOG_B, signedUrl: `https://signed/${DOG_B.image_path}`, alarm: INACTIVE_ALARM }
+				{
+					...DOG_A,
+					signedUrl: `https://signed/${DOG_A.image_path}`,
+					alarm: INACTIVE_ALARM,
+					alarmState: 'alarm'
+				},
+				{
+					...DOG_B,
+					signedUrl: `https://signed/${DOG_B.image_path}`,
+					alarm: INACTIVE_ALARM,
+					alarmState: 'alarm'
+				}
 			]);
 		});
 

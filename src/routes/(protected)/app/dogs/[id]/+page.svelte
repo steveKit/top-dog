@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 	import HamburgerAlarmBanner from '$lib/components/HamburgerAlarmBanner.svelte';
+	import ConfirmedHamburgerStamp from '$lib/components/ConfirmedHamburgerStamp.svelte';
 	import BurgerReportControl from '$lib/components/BurgerReportControl.svelte';
 
 	let { data } = $props();
@@ -19,7 +20,13 @@
 {#if data.signedUrl}
 	<div class="dog-image">
 		<img src={data.signedUrl} alt={dog.caption ?? 'A hot dog'} width="480" />
-		{#if data.alarm.active}
+		<!-- 🍔 Hamburger Court display (TASK-073). A verdict overrides the decaying
+		     alarm: 'confirmed' -> persistent CONFIRMED HAMBURGER stamp; 'cleared' ->
+		     nothing (adjudicated). Only when there is NO verdict ('alarm') does the
+		     decaying report alarm show. -->
+		{#if data.alarmState === 'confirmed'}
+			<ConfirmedHamburgerStamp dogId={dog.id} />
+		{:else if data.alarmState === 'alarm' && data.alarm.active}
 			<HamburgerAlarmBanner
 				dogId={dog.id}
 				intensity={data.alarm.intensity}

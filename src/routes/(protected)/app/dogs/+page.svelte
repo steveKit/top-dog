@@ -5,6 +5,7 @@
 	import { compressToWebp } from '$lib/image/compress';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 	import HamburgerAlarmBanner from '$lib/components/HamburgerAlarmBanner.svelte';
+	import ConfirmedHamburgerStamp from '$lib/components/ConfirmedHamburgerStamp.svelte';
 
 	let { data, form } = $props();
 
@@ -97,7 +98,12 @@
 				{#if dog.signedUrl}
 					<div class="dog-image">
 						<img src={dog.signedUrl} alt={dog.caption ?? 'A hot dog'} width="240" />
-						{#if dog.alarm.active}
+						<!-- 🍔 Hamburger Court display (TASK-073): a verdict overrides the
+						     decaying alarm ('confirmed' -> persistent stamp; 'cleared' ->
+						     nothing). -->
+						{#if dog.alarmState === 'confirmed'}
+							<ConfirmedHamburgerStamp dogId={dog.id} />
+						{:else if dog.alarmState === 'alarm' && dog.alarm.active}
 							<HamburgerAlarmBanner
 								dogId={dog.id}
 								intensity={dog.alarm.intensity}

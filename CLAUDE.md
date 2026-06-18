@@ -28,7 +28,7 @@ Canonical [[wikilink]] targets for this project:
 - [[TASKS-ARCHIVE]] — completed-milestone archive (pre-migration M0/M1)
 - [[README]] — setup, usage, contributing
 - [[memory/MEMORY]] — stable cross-session agent patterns
-- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-015]])
+- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-016]])
 
 ## Commands
 
@@ -55,6 +55,11 @@ supabase db reset            # re-apply all migrations to local DB
 
 # Run development server
 pnpm dev
+# Local dev on WSL: `pnpm dev` binds inside WSL, so a Windows-native browser cannot
+# reach the default bind. Use `pnpm dev --host` and open http://localhost:5173 (or the
+# WSL IP) from Windows. (Reset emails for the password-recovery flow land in Mailpit:
+# http://localhost:54324.)
+pnpm dev --host              # expose the dev server to a Windows-native browser
 
 # Run tests (CI mode — no watch)
 pnpm test                    # vitest run
@@ -417,4 +422,15 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   migration with cross-reference comments both directions + a unit test pinning the value.
   This composes decisions #10/#11/#24 (the column-grant lockdown is preserved, NOT touched);
   no new decision row. Reuse this layering for any future hard upload/quota limit.
-  Use [[wikilinks]] when cross-referencing project docs.
+- **Local dev (WSL).** `pnpm dev` binds the Vite server **inside WSL**, so a
+  **Windows-native browser cannot reach the default bind** — run **`pnpm dev --host`**
+  and open `http://localhost:5173` (or the WSL IP) from Windows. **`/sign-in` is
+  currently a non-functional stub** (no form, no action — TASK-082 builds it in M8), so
+  there is **no working login UI yet**: to get into the app locally, use the \*\*sign-up
+  - invite path** (mint an invite at `/app/invite`, redeem via `/sign-up?token=…`). A
+    seeded dev login (`dev@topdog.test`) created via the service-role client becomes
+    directly usable **once sign-in is built**; **a `supabase db reset` wipes any seeded
+    user** — re-seed, or run `pnpm test:e2e --grep @smoke` (it mints
+    `smoke-inviter@topdog.test`). Password-recovery (reset) emails land in **Mailpit\*\*
+    (`http://localhost:54324`).
+    Use [[wikilinks]] when cross-referencing project docs.

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#17120e}
+  @keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:.8}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  ::selection{background:rgba(224,168,46,.3)}
+</style>
+</helmet>
+<div style="--accent:{{ accentVar }}; --glow:{{ glowVar }}; min-height:100vh; background:radial-gradient(120% 60% at 50% -5%, #271c12 0%, #1a130d 45%, #15100b 100%); color:#f3e9d2; font-family:'Cormorant Garamond',serif; position:relative; overflow:hidden;">
+
+  <sc-if value="{{ glow }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute; top:-200px; left:50%; transform:translateX(-50%); width:760px; height:620px; background:radial-gradient(circle, var(--glow,rgba(224,168,46,0.4)) 0%, transparent 64%); filter:blur(30px); pointer-events:none; z-index:0;"></div>
+  </sc-if>
+
+  <!-- ===== CHROME: header ===== -->
+  <header style="position:relative; z-index:2; display:flex; align-items:center; gap:30px; padding:17px 32px; background:rgba(23,18,14,0.86); border-bottom:1px solid rgba(224,168,46,0.18);">
+    <a href="#" style="display:flex; align-items:center; gap:11px; flex:none; text-decoration:none; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">
+      <svg viewBox="0 0 200 200" width="30" height="30" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="100" cy="56" rx="40" ry="11"></ellipse><rect x="50" y="96" width="100" height="28" rx="14" fill="rgba(224,168,46,0.2)"></rect><rect x="40" y="120" width="120" height="34" rx="17"></rect></svg>
+      <span style="display:flex; flex-direction:column; gap:3px;">
+        <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:3px; color:#f3e9d2; white-space:nowrap;">SNACKTUM SNACKTORUM</span>
+        <span style="font:400 10px/1 'Cinzel',serif; letter-spacing:3px; color:var(--accent,#E0A82E); white-space:nowrap;">ORDER OF THE HOLY TUBE</span>
+      </span>
+    </a>
+    <nav style="display:flex; align-items:center; gap:24px; margin-left:6px;">
+      <a href="#" style="position:relative; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:var(--accent,#E0A82E); text-decoration:none; padding:4px 0; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Procession<span style="position:absolute; left:0; right:0; bottom:-7px; height:2px; background:var(--accent,#E0A82E);"></span></a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Your Litter</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Messages</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Catechism</a>
+    </nav>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:18px;">
+      <button style="display:inline-flex; align-items:center; gap:9px; padding:12px 22px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 6px 20px rgba(224,168,46,0.28);" style-hover="filter:brightness(1.08);" style-focus="outline:2px solid #f3e9d2; outline-offset:3px;">＋ Offer a Frank →</button>
+      <span style="width:1px; height:30px; background:rgba(224,168,46,0.22);"></span>
+      <button style="width:42px; height:42px; border-radius:50%; padding:0; border:1.5px solid var(--accent,#E0A82E); overflow:hidden; cursor:pointer; background:#1a120b; display:block;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;"><dc-import name="SigilCowled" hint-size="40px,40px" style="width:40px; height:40px; display:block;"></dc-import></button>
+    </div>
+  </header>
+
+  <!-- ===== CHROME: Anointed Wiener ribbon ===== -->
+  <div style="position:relative; z-index:2; display:flex; align-items:center; justify-content:center; gap:13px; padding:8px 20px; background:linear-gradient(#1e1610,#181109); border-bottom:1px solid rgba(224,168,46,0.2);">
+    <svg viewBox="0 0 24 16" width="17" height="11" aria-hidden="true"><path d="M2 14 L2 5 L7 9 L12 2 L17 9 L22 5 L22 14 Z" fill="var(--accent,#E0A82E)" stroke="#17120e" stroke-width="1.2" stroke-linejoin="round"></path></svg>
+    <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">The Anointed Wiener</span>
+    <span style="width:1px; height:15px; background:rgba(224,168,46,0.3);"></span>
+    <span style="width:22px; height:22px; border-radius:50%; overflow:hidden; border:1px solid var(--accent,#E0A82E); display:block; flex:none;"><dc-import name="SigilHaloed" hint-size="20px,20px" style="width:20px; height:20px; display:block;"></dc-import></span>
+    <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:1.5px; color:#f3e9d2; white-space:nowrap;">ViennaTheVictor</span>
+    <span style="font:400 15px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.8); white-space:nowrap;">reigning · № 1</span>
+  </div>
+
+  <!-- ===== PAGE ===== -->
+  <main style="position:relative; z-index:1; max-width:840px; margin:0 auto; padding:46px 24px 72px; display:flex; flex-direction:column; align-items:center;">
+
+    <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:5px; text-transform:uppercase; color:var(--accent,#E0A82E);">Standings of the Blessed</span>
+    <h1 style="font:600 clamp(40px,7vw,64px)/1.02 'Cinzel',serif; letter-spacing:1px; margin:14px 0 0; color:#f6ecd2; text-shadow:0 2px 36px rgba(224,168,46,0.18); text-align:center;">The Procession</h1>
+    <div style="display:flex; align-items:center; gap:14px; color:var(--accent,#E0A82E); font-size:14px; margin:20px 0 0;"><span style="width:54px; height:1px; background:var(--accent,#E0A82E); opacity:.45;"></span>✦<span style="width:54px; height:1px; background:var(--accent,#E0A82E); opacity:.45;"></span></div>
+    <p style="font:400 20px/1.5 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.74); max-width:520px; margin:18px 0 0; text-align:center; text-wrap:pretty;">Cast thy single vote upon the worthiest link — moving it anoints another.</p>
+
+    <div style="width:100%; display:flex; flex-direction:column; gap:18px; margin-top:40px;">
+      <sc-for list="{{ cards }}" as="card" hint-placeholder-count="5">
+        <article style="position:relative; display:flex; gap:20px; padding:20px; background:#1c140d; border:1px solid rgba(224,168,46,0.16); border-radius:4px; box-shadow:0 10px 30px rgba(0,0,0,0.32); animation:fadeUp .5s ease both;">
+
+          <sc-if value="{{ card.isChampion }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; border:1.5px solid var(--accent,#E0A82E); border-radius:4px; box-shadow:0 0 0 4px rgba(224,168,46,0.12); pointer-events:none;"></div>
+            <div style="position:absolute; top:-13px; right:22px; z-index:3; display:flex; align-items:center; gap:7px; padding:6px 14px; background:linear-gradient(#f0c45a,#d2972a); border:1px solid #8a6a24; border-radius:2px; box-shadow:0 6px 16px rgba(224,168,46,0.4);">
+              <svg viewBox="0 0 24 16" width="15" height="10" aria-hidden="true"><path d="M2 14 L2 5 L7 9 L12 2 L17 9 L22 5 L22 14 Z" fill="#17120e" stroke="#17120e" stroke-width="1" stroke-linejoin="round"></path></svg>
+              <span style="font:700 10px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:#17120e;">The Anointed Wiener</span>
+            </div>
+          </sc-if>
+
+          <div style="flex:none; display:flex; flex-direction:column; align-items:center; gap:10px; width:150px;">
+            <span style="font:700 20px/1 'Cinzel',serif; letter-spacing:1px; color:var(--accent,#E0A82E);">№ {{ card.rank }}</span>
+            <div style="position:relative; width:150px; height:150px; border:2px solid rgba(224,168,46,0.5); border-radius:3px; overflow:hidden; background:#0f0b07;">
+              <image-slot id="frank-{{ card.id }}" shape="rounded" radius="0" placeholder="the sacred link" style="width:100%; height:100%; display:block;"></image-slot>
+              <sc-if value="{{ card.showTape }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; top:50%; left:-14%; width:128%; transform:translateY(-50%) rotate(-12deg); background:repeating-linear-gradient(45deg,#E0A82E 0 11px,#1a120b 11px 22px); padding:6px 0; text-align:center; pointer-events:none; box-shadow:0 2px 10px rgba(0,0,0,0.6);">
+                  <span style="display:inline-block; font:700 11px/1 'Cinzel',serif; letter-spacing:2px; color:#1a120b; background:#E0A82E; padding:3px 7px;">⚠ HAMBURGER ALARM</span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ card.isConfirmed }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; background:rgba(15,9,6,0.5);">
+                  <div style="transform:rotate(-14deg); border:3px double #d24a36; border-radius:8px; padding:8px 12px; background:rgba(140,47,31,0.32);">
+                    <div style="font:700 13px/1.15 'Cinzel',serif; letter-spacing:2px; color:#ef8a72; text-align:center;">CONFIRMED<br>HAMBURGER</div>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:13px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px;">
+              <span style="font:600 16px/1.2 'Cinzel',serif; letter-spacing:1px; color:#f3e9d2;">@{{ card.handle }}</span>
+              <div style="flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                <div style="display:flex; align-items:baseline; gap:7px;"><span style="font:700 26px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ card.displayVotes }}</span><span style="font:600 10px/1 'Cinzel',serif; letter-spacing:2px; color:rgba(243,233,210,0.55);">VOTES</span></div>
+                <span style="font:400 13px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.5);">peak {{ card.peakDisplay }}</span>
+              </div>
+            </div>
+
+            <p style="font:400 17px/1.4 'Cormorant Garamond',serif; color:rgba(243,233,210,0.72); margin:0; text-wrap:pretty;">{{ card.caption }}</p>
+
+            <div>
+              <sc-if value="{{ card.vIsVote }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ card.onVote }}" style="display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 5px 16px rgba(224,168,46,0.26);" style-hover="filter:brightness(1.08);" style-focus="outline:2px solid #f3e9d2; outline-offset:3px;">Vote →</button>
+              </sc-if>
+              <sc-if value="{{ card.vIsMove }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ card.onVote }}" style="display:inline-flex; align-items:center; gap:8px; padding:10px 21px; background:transparent; color:var(--accent,#E0A82E); border:1.5px solid var(--accent,#E0A82E); border-radius:2px; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer;" style-hover="background:rgba(224,168,46,0.1);" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;">Move Vote Here →</button>
+              </sc-if>
+              <sc-if value="{{ card.vIsVoted }}" hint-placeholder-val="{{ false }}">
+                <div style="display:inline-flex; align-items:center; gap:14px;">
+                  <span style="display:inline-flex; align-items:center; gap:8px; padding:11px 20px; background:rgba(224,168,46,0.16); color:var(--accent,#E0A82E); border:1.5px solid var(--accent,#E0A82E); border-radius:2px; font:700 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase;">Voted ✓</span>
+                  <button onClick="{{ card.onRemove }}" style="background:none; border:none; color:rgba(243,233,210,0.5); font:400 15px/1 'Cormorant Garamond',serif; font-style:italic; cursor:pointer; text-decoration:underline; text-underline-offset:3px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">Remove vote</button>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <sc-for list="{{ card.reactions }}" as="r" hint-placeholder-count="6">
+                <sc-if value="{{ r.off }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ r.toggle }}" style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; background:rgba(243,233,210,0.04); border:1px solid rgba(224,168,46,0.18); border-radius:999px; cursor:pointer;" style-hover="border-color:rgba(224,168,46,0.5);" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;"><span style="font-size:14px; line-height:1;">{{ r.emoji }}</span><span style="font:600 11px/1 'Cinzel',serif; color:rgba(243,233,210,0.6);">{{ r.count }}</span></button>
+                </sc-if>
+                <sc-if value="{{ r.on }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ r.toggle }}" style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; background:rgba(224,168,46,0.16); border:1px solid var(--accent,#E0A82E); border-radius:999px; cursor:pointer;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;"><span style="font-size:14px; line-height:1;">{{ r.emoji }}</span><span style="font:700 11px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ r.count }}</span></button>
+                </sc-if>
+              </sc-for>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:2px; padding-top:13px; border-top:1px solid rgba(224,168,46,0.12);">
+              <div>
+                <sc-if value="{{ card.isConfirmed }}" hint-placeholder-val="{{ false }}">
+                  <span style="font:400 15px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.85);">the Tribunal of the Holy Tube has ruled.</span>
+                </sc-if>
+                <sc-if value="{{ card.reportedOff }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ card.onReport }}" style="display:inline-flex; align-items:center; gap:7px; padding:7px 13px; background:none; border:1px solid rgba(224,168,46,0.2); border-radius:2px; color:rgba(243,233,210,0.55); font:600 10px/1 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;" style-hover="border-color:rgba(210,74,54,0.6); color:#ef8a72;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">🍔 Call it Heresy</button>
+                </sc-if>
+                <sc-if value="{{ card.reportedOn }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ card.onReport }}" style="display:inline-flex; align-items:center; gap:7px; padding:7px 13px; background:rgba(210,74,54,0.14); border:1px solid #d24a36; border-radius:2px; color:#ef8a72; font:700 10px/1 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">🍔 Heresy Called</button>
+                </sc-if>
+              </div>
+              <a href="#" style="flex:none; font:400 15px/1 'Cormorant Garamond',serif; font-style:italic; color:var(--accent,#E0A82E); text-decoration:none; border-radius:2px;" style-hover="text-decoration:underline; text-underline-offset:3px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;">View the relic →</a>
+            </div>
+          </div>
+
+        </article>
+      </sc-for>
+    </div>
+
+    <!-- ===== EMPTY STATE (documented variant) ===== -->
+    <div style="width:100%; margin-top:64px; display:flex; flex-direction:column; align-items:center; gap:18px;">
+      <div style="display:flex; align-items:center; gap:14px; width:100%; color:rgba(224,168,46,0.5);"><span style="flex:1; height:1px; background:rgba(224,168,46,0.18);"></span><span style="font:600 10px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase;">The Procession · Empty State</span><span style="flex:1; height:1px; background:rgba(224,168,46,0.18);"></span></div>
+      <div style="width:100%; border:1px dashed rgba(224,168,46,0.25); border-radius:4px; padding:60px 24px; display:flex; flex-direction:column; align-items:center; gap:20px; background:rgba(224,168,46,0.02);">
+        <svg viewBox="0 0 200 200" width="120" height="120" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.85;">
+          <g stroke-width="2.5" opacity="0.9"><line x1="100" y1="30" x2="100" y2="14"></line><line x1="74" y1="36" x2="64" y2="22"></line><line x1="126" y1="36" x2="136" y2="22"></line><line x1="52" y1="50" x2="40" y2="40"></line><line x1="148" y1="50" x2="160" y2="40"></line></g>
+          <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+          <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.14)"></rect>
+          <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+          <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.05)"></path>
+        </svg>
+        <p style="font:400 21px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.7); margin:0; text-align:center; text-wrap:pretty;">No other links yet await thy judgment.</p>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { votedId: null, reactions: {}, reported: {} };
+
+  renderVals() {
+    const acc = this.props.accent || 'Mustard Gold';
+    const PAL = {
+      'Mustard Gold':  ['#E0A82E', 'rgba(224,168,46,0.4)'],
+      'Relic Crimson': ['#cf4636', 'rgba(207,70,54,0.4)'],
+      'Verdigris':     ['#57b59a', 'rgba(87,181,154,0.4)']
+    };
+    const [accentVar, glowVar] = PAL[acc] || PAL['Mustard Gold'];
+    const EMOJIS = ['🌭', '❤️', '🔥', '😂', '🤤', '👑'];
+
+    const DATA = [
+      { id: 'vienna', rank: '1', handle: 'ViennaTheVictor', caption: 'A snap heard clear across the parish.', votes: 1204, peak: 1400, status: 'normal', champion: true, reacts: [312, 540, 410, 88, 130, 220] },
+      { id: 'bratwurst', rank: '2', handle: 'BratwurstBishop', caption: 'Blessed upon the coals of dawn.', votes: 980, peak: 1010, status: 'normal', reacts: [180, 260, 150, 40, 72, 30] },
+      { id: 'kielbasa', rank: '3', handle: 'KielbasaKnight', caption: 'Smoked slow, in the old rite.', votes: 612, peak: 700, status: 'flagged', reacts: [90, 110, 300, 20, 18, 5] },
+      { id: 'frankfurter', rank: '4', handle: 'FrankfurterTheBold', caption: 'Bold of casing, pure of tube.', votes: 540, peak: 560, status: 'normal', reacts: [120, 140, 95, 33, 60, 12] },
+      { id: 'chorizo', rank: '5', handle: 'ChorizoCharlatan', caption: 'It claimed a place among links. It was no link.', votes: 88, peak: 510, status: 'confirmed', reacts: [4, 6, 2, 410, 3, 1] }
+    ];
+
+    const votedId = this.state.votedId;
+
+    const cards = DATA.map((f) => {
+      const isConfirmed = f.status === 'confirmed';
+      const viewerReported = this.state.reported[f.id] !== undefined ? this.state.reported[f.id] : (f.status === 'flagged');
+      const reactions = EMOJIS.map((e, i) => {
+        const on = !!this.state.reactions[f.id + ':' + i];
+        return {
+          emoji: e,
+          count: (f.reacts[i] + (on ? 1 : 0)).toLocaleString('en-US'),
+          on, off: !on,
+          toggle: () => this.setState((s) => {
+            const r = { ...s.reactions }; const k = f.id + ':' + i; r[k] = !r[k]; return { reactions: r };
+          })
+        };
+      });
+      const voteState = votedId === f.id ? 'voted' : (votedId ? 'move' : 'vote');
+      return {
+        id: f.id, rank: f.rank, handle: f.handle, caption: f.caption,
+        displayVotes: (f.votes + (votedId === f.id ? 1 : 0)).toLocaleString('en-US'),
+        peakDisplay: f.peak.toLocaleString('en-US'),
+        isChampion: !!f.champion,
+        isConfirmed,
+        showTape: !isConfirmed && viewerReported,
+        reportedOn: !isConfirmed && viewerReported,
+        reportedOff: !isConfirmed && !viewerReported,
+        vIsVote: voteState === 'vote', vIsVoted: voteState === 'voted', vIsMove: voteState === 'move',
+        onVote: () => this.setState({ votedId: f.id }),
+        onRemove: () => this.setState({ votedId: null }),
+        onReport: () => this.setState((s) => ({ reported: { ...s.reported, [f.id]: !viewerReported } })),
+        reactions
+      };
+    });
+
+    return {
+      accentVar, glowVar,
+      glow: this.props.glow !== false,
+      cards
+    };
+  }
+}
+</script>
+</body>
+</html>

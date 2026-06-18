@@ -46,11 +46,28 @@ vi.mock('$lib/storage', () => ({
 	getPublicUrl: vi.fn()
 }));
 
+// 🍔 Hamburger Court profile brands (TASK-073, decision #12/#15 — cosmetic,
+// ranking-inert, computed at RENDER time). The load derives two banners from
+// verdictStore reads:
+//   - HAMBURGER LIAR: decaying, from getLiarBrandTimestamps (the reporter's brand
+//     timestamps) summarized by the REAL pure summarizeLiarBrand.
+//   - HAMBURGER HERETIC: persistent, from getDogVerdictsForOwner (verdicts on the
+//     owner's dogs) decided by the REAL pure isHamburgerHeretic.
+// Only the two network-touching wrappers are mocked; the pure render-time math stays
+// real so the banner derivation is exercised faithfully. Each read degrades to "no
+// banner" (page not blanked) on failure.
+vi.mock('$lib/features/reports/verdictStore', () => ({
+	getLiarBrandTimestamps: vi.fn(),
+	getDogVerdictsForOwner: vi.fn()
+}));
+
 import { load } from './+page.server';
 import { getProfileByHandle, getProfileById } from '$lib/features/profiles/profiles';
 import { listSpraysForProfile } from '$lib/features/mustard/sprays';
 import { listWallMessages } from '$lib/features/walls/walls';
 import { getPublicUrl } from '$lib/storage';
+import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
+import { LIAR_BRAND_WINDOW_MS } from '$lib/features/reports/verdict';
 
 const VIEWER_ID = '11111111-1111-4111-8111-111111111111';
 const VALID_USER = { id: VIEWER_ID, email: 'viewer@topdog.test' };
@@ -110,6 +127,8 @@ type LoadData = {
 	wallMessages: unknown[];
 	viewerId: string;
 	isWallOwner: boolean;
+	liarBrand: { active: boolean; brandCount: number; intensity: number };
+	isHeretic: boolean;
 };
 
 async function callLoad(event: unknown): Promise<LoadData> {
@@ -127,6 +146,10 @@ beforeEach(() => {
 	vi.mocked(listSpraysForProfile).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(listWallMessages).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(getPublicUrl).mockReturnValue('https://cdn/avatar.webp');
+	// Default: the profile carries no LIAR brands and owns no confirmed-hamburger dog
+	// (no banners). Brand-specific tests override.
+	vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: true, data: [] });
+	vi.mocked(getDogVerdictsForOwner).mockResolvedValue({ ok: true, data: [] });
 });
 
 describe('profile [handle] load', () => {
@@ -168,7 +191,10 @@ describe('profile [handle] load', () => {
 			wallMessages: [],
 			// The viewer is not the target profile, so they do not own this wall.
 			viewerId: VIEWER_ID,
-			isWallOwner: false
+			isWallOwner: false,
+			// No LIAR brands and no confirmed-hamburger dog -> both banners off.
+			liarBrand: { active: false, brandCount: 0, intensity: 0 },
+			isHeretic: false
 		});
 		// No avatar_path => no public-URL resolution.
 		expect(getPublicUrl).not.toHaveBeenCalled();
@@ -287,6 +313,107 @@ describe('profile [handle] load', () => {
 
 			expect(result.sprays).toEqual([]);
 			// The rest of the page is intact — only the mustard layer degraded.
+			expect(result.profile).toEqual(TARGET_PROFILE);
+			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
+	// 🍔 Hamburger Court profile banners (TASK-073). Both are cosmetic / ranking-inert
+	// and computed at render time. The LIAR banner is DECAYING (from the reporter's
+	// brand timestamps); the HERETIC banner is PERSISTENT (from the verdicts on the
+	// profile owner's dogs). Each read is keyed on the TARGET profile id and degrades
+	// to "no banner" (page not blanked) on failure — mirroring the spray/wall
+	// degradation. The pure summarizeLiarBrand / isHamburgerHeretic stay REAL.
+	describe('HAMBURGER LIAR banner (decaying)', () => {
+		it('reads the liar brand timestamps for the TARGET profile id', async () => {
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			await callLoad(event);
+
+			expect(getLiarBrandTimestamps).toHaveBeenCalledWith(event.locals.supabase, TARGET_PROFILE.id);
+		});
+
+		it('surfaces an ACTIVE, decaying liar brand from a fresh in-window timestamp', async () => {
+			// A brand minted ~halfway through the 7-day window -> active, ~0.5 intensity.
+			const halfAgeMs = LIAR_BRAND_WINDOW_MS / 2;
+			const brandTs = new Date(Date.now() - halfAgeMs).toISOString();
+			vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: true, data: [brandTs] });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.liarBrand.active).toBe(true);
+			expect(result.liarBrand.brandCount).toBe(1);
+			// Decaying: intensity is a fraction in (0,1), roughly half-faded here.
+			expect(result.liarBrand.intensity).toBeGreaterThan(0);
+			expect(result.liarBrand.intensity).toBeLessThan(1);
+		});
+
+		it('an expired (out-of-window) brand does not light the banner', async () => {
+			// Older than the 7-day window -> no active brand.
+			const expiredTs = new Date(Date.now() - LIAR_BRAND_WINDOW_MS - 60_000).toISOString();
+			vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: true, data: [expiredTs] });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.liarBrand.active).toBe(false);
+			expect(result.liarBrand.intensity).toBe(0);
+		});
+
+		it('degrades to no liar banner (page not blanked) when the brand read fails', async () => {
+			vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: false, error: 'liar read boom' });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			// The banner degrades to off; the rest of the page is intact.
+			expect(result.liarBrand).toEqual({ active: false, brandCount: 0, intensity: 0 });
+			expect(result.profile).toEqual(TARGET_PROFILE);
+			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
+	describe('HAMBURGER HERETIC banner (persistent)', () => {
+		it('reads the dog verdicts for the TARGET profile (owner) id', async () => {
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			await callLoad(event);
+
+			expect(getDogVerdictsForOwner).toHaveBeenCalledWith(event.locals.supabase, TARGET_PROFILE.id);
+		});
+
+		it('marks the owner a HERETIC when ANY of their dogs is confirmed_hamburger', async () => {
+			vi.mocked(getDogVerdictsForOwner).mockResolvedValue({
+				ok: true,
+				data: ['not_a_hamburger', 'confirmed_hamburger']
+			});
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.isHeretic).toBe(true);
+		});
+
+		it('is NOT a heretic when no dog is confirmed_hamburger', async () => {
+			vi.mocked(getDogVerdictsForOwner).mockResolvedValue({
+				ok: true,
+				data: ['not_a_hamburger', 'not_a_hamburger']
+			});
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.isHeretic).toBe(false);
+		});
+
+		it('degrades to NOT-a-heretic (page not blanked) when the verdict read fails', async () => {
+			vi.mocked(getDogVerdictsForOwner).mockResolvedValue({ ok: false, error: 'heresy read boom' });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.isHeretic).toBe(false);
 			expect(result.profile).toEqual(TARGET_PROFILE);
 			expect(console.error).toHaveBeenCalled();
 		});

@@ -24,6 +24,8 @@ import { selectTopDog, type RankableDog } from '$lib/features/voting/ranking';
 import { getServiceClient } from '$lib/server/supabase';
 import { getBurgerAlarmCounts } from '$lib/features/reports/reports';
 import { summarizeBurgerAlarm } from '$lib/features/reports/alarm';
+import { getVerdictsForDogs } from '$lib/features/reports/verdictStore';
+import { dogAlarmState, type BurgerVerdict } from '$lib/features/reports/verdict';
 
 // Hot dog upload + display (TASK-013) — the M1 vertical slice. This page shows
 // the signed-in user's hot dogs in a grid (each rendered via a short-lived
@@ -82,11 +84,28 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		alarmTimestampsByDog = alarmCountsResult.data;
 	}
 
+	// 🍔 Hamburger Court verdicts on the owner's OWN dogs (TASK-073). A verdict resolves
+	// the render-time alarm: 'cleared' (not_a_hamburger -> suppress) or 'confirmed'
+	// (-> persistent CONFIRMED HAMBURGER stamp on your own dog). No verdict -> the
+	// decaying alarm stands. Public read on the RLS-scoped client; a failure degrades
+	// to "no verdict".
+	const verdictsResult = await getVerdictsForDogs(supabase, ownDogIds);
+	let verdictsByDog = new Map<string, BurgerVerdict>();
+	if (!verdictsResult.ok) {
+		console.error('[hotdogs] failed to load verdicts', {
+			userId: user.id,
+			error: verdictsResult.error
+		});
+	} else {
+		verdictsByDog = verdictsResult.data;
+	}
+
 	// Mint a signed URL per dog (private bucket). A single failed URL shouldn't
 	// blank the whole grid, so we surface null for that one and log it.
 	const dogs = await Promise.all(
 		dogsResult.data.map(async (dog) => {
 			const alarm = summarizeBurgerAlarm(alarmTimestampsByDog.get(dog.id) ?? [], now);
+			const alarmState = dogAlarmState(verdictsByDog.get(dog.id) ?? null);
 			const signed = await getSignedUrl(supabase, dog.image_path);
 			if (!signed.ok) {
 				console.error('[hotdogs] failed to sign url', {
@@ -94,9 +113,9 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 					path: dog.image_path,
 					error: signed.error.message
 				});
-				return { ...dog, signedUrl: null, alarm };
+				return { ...dog, signedUrl: null, alarm, alarmState };
 			}
-			return { ...dog, signedUrl: signed.data.signedUrl, alarm };
+			return { ...dog, signedUrl: signed.data.signedUrl, alarm, alarmState };
 		})
 	);
 

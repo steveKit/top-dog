@@ -24,6 +24,8 @@ import {
 	getBurgerAlarmCounts
 } from '$lib/features/reports/reports';
 import { summarizeBurgerAlarm } from '$lib/features/reports/alarm';
+import { getVerdictsForDogs } from '$lib/features/reports/verdictStore';
+import { dogAlarmState, type BurgerVerdict } from '$lib/features/reports/verdict';
 
 // Global vote feed (TASK-024) — the surface that closes DW-009. It lists every
 // OTHER member's hot dog (sorted by vote_count desc, so it doubles as the live
@@ -143,13 +145,30 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		myReportedDogIds = myReportsResult.data;
 	}
 
+	// 🍔 Hamburger Court verdicts (TASK-073). A verdict RESOLVES the render-time alarm:
+	// 'cleared' (not_a_hamburger -> suppress) or 'confirmed' (-> persistent CONFIRMED
+	// HAMBURGER stamp). No verdict -> the decaying report alarm stands. Public read on
+	// the RLS-scoped client; a failure degrades to "no verdict".
+	const verdictsResult = await getVerdictsForDogs(supabase, dogIds);
+	let verdictsByDog = new Map<string, BurgerVerdict>();
+	if (!verdictsResult.ok) {
+		console.error('[feed] failed to load verdicts', {
+			userId: user.id,
+			error: verdictsResult.error
+		});
+	} else {
+		verdictsByDog = verdictsResult.data;
+	}
+
 	// A single failed URL shouldn't blank the whole grid, so we surface null for
 	// that one and log it. Attach the per-dog reaction summary (viewer-relative),
-	// the render-time burger alarm, and the viewer's own report toggle state.
+	// the render-time burger alarm + verdict-resolved alarm state, and the viewer's
+	// own report toggle state.
 	const dogs = await Promise.all(
 		dogsResult.data.map(async (dog) => {
 			const reactions = summarizeReactions(reactionRowsByDog.get(dog.id) ?? [], user.id);
 			const alarm = summarizeBurgerAlarm(alarmTimestampsByDog.get(dog.id) ?? [], now);
+			const alarmState = dogAlarmState(verdictsByDog.get(dog.id) ?? null);
 			const iReported = myReportedDogIds.has(dog.id);
 			const signed = await getSignedUrl(serviceClient, dog.image_path);
 			if (!signed.ok) {
@@ -158,9 +177,9 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 					path: dog.image_path,
 					error: signed.error.message
 				});
-				return { ...dog, signedUrl: null, reactions, alarm, iReported };
+				return { ...dog, signedUrl: null, reactions, alarm, alarmState, iReported };
 			}
-			return { ...dog, signedUrl: signed.data.signedUrl, reactions, alarm, iReported };
+			return { ...dog, signedUrl: signed.data.signedUrl, reactions, alarm, alarmState, iReported };
 		})
 	);
 

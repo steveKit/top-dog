@@ -9,6 +9,8 @@ import {
 	type WallMessageRow
 } from '$lib/features/walls/walls';
 import { getPublicUrl } from '$lib/storage';
+import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
+import { summarizeLiarBrand, isHamburgerHeretic } from '$lib/features/reports/verdict';
 
 // Profile view (TASK-011) + mustard spray/render (TASK-041) + message wall
 // (TASK-050). Fetches a profile by its (case-insensitive) handle and renders
@@ -102,7 +104,46 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 	const viewerId = user.id;
 	const isWallOwner = viewerId === profile.id;
 
-	return { profile, avatarUrl, sprays, canSpray, wallMessages, viewerId, isWallOwner };
+	// 🍔 Hamburger Court brands (TASK-073, decision #12/#15 — cosmetic, ranking-inert,
+	// computed at RENDER time). Two profile banners:
+	//   - HAMBURGER LIAR: this member reported a dog the Top Dog ruled NOT a hamburger.
+	//     Decaying over ~7 days from the brand timestamp (summarizeLiarBrand). A read
+	//     failure degrades to "no banner" rather than failing the page.
+	//   - HAMBURGER HERETIC: this member owns a dog confirmed to BE a hamburger.
+	//     Persistent, derived from the verdicts on their dogs (isHamburgerHeretic).
+	const liarResult = await getLiarBrandTimestamps(supabase, profile.id);
+	let liarBrand = summarizeLiarBrand([], new Date());
+	if (!liarResult.ok) {
+		console.error('[profiles] failed to load liar brand', {
+			profileId: profile.id,
+			error: liarResult.error
+		});
+	} else {
+		liarBrand = summarizeLiarBrand(liarResult.data, new Date());
+	}
+
+	const heresyResult = await getDogVerdictsForOwner(supabase, profile.id);
+	let isHeretic = false;
+	if (!heresyResult.ok) {
+		console.error('[profiles] failed to load heretic state', {
+			profileId: profile.id,
+			error: heresyResult.error
+		});
+	} else {
+		isHeretic = isHamburgerHeretic(heresyResult.data);
+	}
+
+	return {
+		profile,
+		avatarUrl,
+		sprays,
+		canSpray,
+		wallMessages,
+		viewerId,
+		isWallOwner,
+		liarBrand,
+		isHeretic
+	};
 };
 
 export const actions: Actions = {

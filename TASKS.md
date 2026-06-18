@@ -20,16 +20,31 @@
 
 ## Active Milestones
 
-**No active milestone.** **Milestone M7 — Safety & Polish completed 2026-06-18** (all 6
-tasks; tag `milestone-07-safety-polish`) — see § Completed Milestones. With it, **all
-pre-specified plenary milestones (M0–M7) are complete.** Future work is tracked in
-[[tasks/discovered]] and would open a new milestone (planner-exploded on user
-activation).
+**Milestone M8 — Snacktum Snacktorum: Rebrand & Redesign** — [[tasks/milestone-08-snacktum-snacktorum-rebrand]]
+(planner-exploded 2026-06-18 on user activation). A **user-facing rebrand + UI/UX
+redesign**: "Top Dog" → the hot-dog **cult** app "Snacktum Snacktorum"; champion title
+"Top Dog" → **"The Anointed Wiener"** (copy swap only — code identifiers unchanged); a
+global app shell + nav, the auth cluster (real `/sign-in` form, forgot/reset password,
+ritual sign-up), a profile redesign + display-name surfacing, an error/404 page, the
+"Anoint" mustard re-theme, and a base cult visual/theme layer. **Reuses the locked
+PROJECT.md stack/architecture/paradigm and all decisions #1–#28 + L2 — no re-plenary, no
+new infra, no new deps expected.** 9 tasks (TASK-080…TASK-088).
 
-> **Open ops action (user):** the two M7 migrations
+> **⛔ EXECUTION BLOCKED PENDING FINAL PAGE DESIGNS.** The milestone is exploded with full
+> task detail, but **every task is `blocked`** on the shared `DESIGNS` dependency (final
+> page designs from the user) — and **seven Open Questions** (ritual-signup scope OQ-1;
+> the four Anoint sub-decisions OQ-2a–d; the overall visual theme OQ-3; a possible
+> ceremonial font OQ-4) must be resolved **with** the designs. **Do not dispatch any M8
+> task until the user delivers designs and activates.** A `design-light` trio (TASK-080
+> app shell, TASK-082 sign-in, TASK-083 password reset) is the most design-independent and
+> could be unblocked early **at the user's discretion** — not on agent initiative. See the
+> milestone file's ⛔ Execution Block + Open Questions sections.
+
+> **Open ops action (user) — unrelated to M8:** the two M7 migrations
 > (`20260617205453_burger_alarms.sql`, `20260618120000_burger_verdicts.sql`) still need a
 > hosted `supabase db push` before the report→verdict flow works on hosted. No
-> keep-alive / auto-pause risk (no scheduled job touches these tables).
+> keep-alive / auto-pause risk (no scheduled job touches these tables). M8 adds no
+> migration under its recommended scope, so it does not extend this gate.
 
 ## Planned Milestones
 

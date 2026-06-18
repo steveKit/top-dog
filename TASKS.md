@@ -28,7 +28,9 @@ global app shell + nav, the auth cluster (real `/sign-in` form, forgot/reset pas
 ritual sign-up), a profile redesign + display-name surfacing, an error/404 page, the
 "Anoint" mustard re-theme, and a base cult visual/theme layer. **Reuses the locked
 PROJECT.md stack/architecture/paradigm and all decisions #1–#28 + L2 — no re-plenary, no
-new infra, no new deps expected.** 9 tasks (TASK-080…TASK-088).
+new infra, no new deps expected.** 10 tasks (TASK-080…TASK-089; TASK-089 = the derived
+badge "Reliquary", a purely-derived read-only addition — no schema/migration/dependency,
+un-forgeable by construction).
 
 > **⛔ EXECUTION BLOCKED PENDING FINAL PAGE DESIGNS.** The milestone is exploded with full
 > task detail, but **every task is `blocked`** on the shared `DESIGNS` dependency (final

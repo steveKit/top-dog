@@ -531,8 +531,13 @@ invite-redemption + onboarding sequence as an **initiation "ritual"** into the c
 **Owner:** unassigned
 **Dependencies:** `DESIGNS` (the profile design — the user's screenshot is the
 "before"); TASK-080 (shell), TASK-081 (copy/title swap), TASK-087 (theme tokens).
-Touches `(protected)/app/profile/[handle]/+page.svelte` (and its `+page.server.ts`
-only if a new field needs surfacing — both `display_name` and `handle` already load).
+**Soft-couples with TASK-089** (the derived badge reliquary renders on this page —
+this task lays out the shelf slot; TASK-089 owns the badge module/logic; neither
+hard-blocks the other). Touches `(protected)/app/profile/[handle]/+page.svelte` and
+its `+page.server.ts` — the redesign surfaces `display_name` (already loaded) and
+**adds read-only aggregate queries for the derived stat ledger** (counts/sums over
+`top_dog_days` / `hot_dogs` / `invites` / `mustard_sprays` / `hotdog_reactions` —
+all existing tables, no schema change).
 
 **Problem:** the profile page is cramped — avatar + an inline/squeezed wall
 composer, with **`display_name` barely surfaced** even though it exists (free-form,
@@ -552,6 +557,44 @@ current page is the "before."
       exist and already load. Where a name is shown to humans, prefer `display_name`
       (falling back to `@handle` if display name is blank — note onboarding defaults
       `display_name` to the handle, so it's rarely empty).
+- [ ] **Derived profile stat ledger** — surface the member's standing as a stat
+      block, **every value DERIVED from data the app already keeps** (no new schema,
+      no new tracking, no new write path; the load gains read-only aggregate queries
+      only). Show:
+  - **Days as The Anointed Wiener** — already shown (`profiles.days_as_top_dog`).
+  - **Times Crowned** — distinct crowned-day count (`top_dog_days`, `profile_id` =
+    this member).
+  - **Franks Offered** — count of this member's `hot_dogs`.
+  - **Total Devotion** — sum of `vote_count` across this member's `hot_dogs`.
+  - **Highest Blessing** — `max(peak_votes)` across this member's `hot_dogs`.
+  - **Disciples Summoned** — count of `invites` they minted that were redeemed
+    (`inviter_id` = this member AND `consumed_at is not null`).
+  - **Anointings Received** — count of `mustard_sprays` where
+    `target_profile_id` = this member.
+  - **Reactions Received** — count of reactions across this member's dogs
+    (`hotdog_reactions` joined via `hot_dogs.owner_id`).
+  - the **HERETIC / LIAR** shame marks — already surfaced as the
+    `ProfilePoliceBanner` brands (`isHeretic` / `liarBrand`); keep those, do not
+    duplicate them as a "stat".
+  - **‼️ Reports are ANONYMOUS — do NOT surface the reporter side on a public
+    profile.** Never show "heresies you've called", a count of reports this member
+    _made_, or any reporter-side tally. Reporter ids are deliberately never exposed
+    (decision #27 / TASK-071 anonymity). Only the _consequences a member bears_
+    (HERETIC, LIAR, anointings received) are public — the accusations they _make_
+    are not. This is a hard constraint, not a preference.
+  - Prefer adding these as small read-only count/sum queries to the existing
+    `event.locals.supabase` (RLS-scoped) load. Where a render-time pure summary
+    already exists for a value, **reuse it** (e.g. the HERETIC/LIAR brands via
+    `verdict.ts`); do not recompute. If TASK-089 (the derived badge module) lands
+    first, these same aggregates can feed both — coordinate to avoid duplicate
+    queries, but neither task is a hard dependency of the other.
+- [ ] **Reliquary (badge shelf) placement** — the profile is where the derived
+      **badge reliquary** renders (TASK-089). This task lays out the **section/shelf
+      slot** on the redesigned profile per the design (see the Reliquary prompt in
+      `design/page-design-prompts.md` #12); **TASK-089 owns the badge module + the
+      shelf component's earned/locked logic.** If TASK-089 has not landed when this
+      task builds, leave a clearly-marked placeholder slot for the shelf and wire it
+      when TASK-089 is in. (Soft-coupled, not a hard blocker either direction.)
 - [ ] **All existing profile features keep working** and stay correctly wired:
   - the **mustard overlay** (now "Anoint" per TASK-086) — render-time decay via
     `mustardOpacity`, positioned in the spray area (decision #15)
@@ -584,8 +627,14 @@ current page is the "before."
 - This page composes the **most** features (mustard/Anoint, wall+emoji, LIAR/HERETIC
   banners, badge, canSpray) — the redesign must preserve every one of those wirings.
   Treat it as a re-skin + re-layout, not a rewrite of the data flow.
-- No new dependency; no schema change (display-name already exists); no new
-  architecture-decision row.
+- **The derived stat ledger + the badge reliquary are both pure reads of EXISTING
+  data** — no new schema, no migration, no new write path, no new dependency. The
+  ledger is small aggregate queries on the RLS-scoped load; the reliquary is
+  TASK-089's derived module. **The hard constraint:** reports are anonymous —
+  never surface a reporter-side count on a public profile (only consequences borne,
+  not accusations made). See decision #27 / TASK-071 anonymity.
+- No new dependency; no schema change (display-name + every stat source already
+  exists); no new architecture-decision row.
 
 ---
 
@@ -756,6 +805,170 @@ SvelteKit's default unstyled boundary page.
 
 ---
 
+### TASK-089: The Reliquary — derived badge / honors system [`blocked`] [`P3`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** `DESIGNS` (the **Reliquary** design mock — `design/page-design-prompts.md`
+#12); **soft-couples with TASK-085** (the profile redesign hosts the reliquary shelf —
+TASK-085 lays out the slot, this task owns the badge module + the earned/locked shelf
+component; neither hard-blocks the other), TASK-081 (badge name copy/voice), TASK-087
+(theme tokens for the relic medallions).
+
+**Problem / opportunity:** the app already stores everything needed to award members
+**honors** — a first frank, a long reign, a 100-vote frank, redeemed invites, anointings
+received, a heresy verdict, an inquisitor's rulings, early membership — but nothing
+surfaces them. Add a **badge / honors "Reliquary"** on the profile (The Shrine),
+computed **DERIVED at render (Option A)** from data the app **already has**.
+
+**Scope / posture (read first — this is what keeps it inside M8's skin-not-skeleton
+constraint):**
+
+- This is a **purely DERIVED, read-only** feature: pure functions over **EXISTING**
+  tables, surfaced on the profile load. **NO new schema, NO migration, NO new write
+  path, NO new dependency, NO new RPC.**
+- Because a badge is computed at render from existing records, it is **un-forgeable by
+  construction** — there is **no client-settable badge state** anywhere (nothing to
+  POST, nothing to write, no "badge" row). A member cannot grant themselves a badge any
+  more than they can forge the underlying record (votes/crown/verdicts are already
+  server-maintained and non-client-writable per decisions #13/#24/#25/#28).
+- It **mirrors the project's existing pure render-time modules** — `voting/ranking.ts`
+  (`selectTopDog`), `mustard/decay.ts` (`mustardOpacity`), `reports/alarm.ts`
+  (`summarizeBurgerAlarm`), `reports/verdict.ts` (`isHamburgerHeretic` /
+  `summarizeLiarBrand`): a dependency-free `.ts` module with co-located `*.test.ts`,
+  no SvelteKit/Supabase imports in the pure part.
+- **NOT a new numbered architecture-decision row.** This composes existing decisions
+  (#12 cosmetic/ranking-inert, #13 crown, #15 render-time derivation, #27 anonymity)
+  with no new invariant — record it as a **design/scope note** (derived, read-only,
+  composes existing data), exactly as TASK-071/073 recorded their compositions.
+
+**Acceptance Criteria:**
+
+- [ ] **New pure feature module `src/lib/features/badges/`** — a dependency-free
+      `.ts` module (e.g. `badges.ts`) with **no SvelteKit and no Supabase imports in
+      the pure part**, following the `ranking.ts` / `decay.ts` / `alarm.ts` shape. It
+      takes a plain **`BadgeInputs`** value object (the already-loaded member facts —
+      counts/maxes/flags/timestamps) and returns the member's **earned + locked badge
+      state** (each badge: id, earned boolean, and for tiered badges the current tier +
+      the next-tier threshold). The route load assembles `BadgeInputs` from the
+      member's existing data and passes it in; the module computes, the load does I/O.
+- [ ] **Co-located unit tests** `src/lib/features/badges/badges.test.ts` — TDD-first
+      (this is pure threshold logic, exactly the CLAUDE.md "what to test TDD-first"
+      category). Cover: each badge's earned/not-earned boundary (at, just-below,
+      just-above the threshold), every tier boundary for tiered badges, the
+      all-locked (new member) case, the all-earned case, and defensive handling of
+      missing/zero inputs. No live DB — pure value-in / value-out.
+- [ ] **The v1 badge set — EXACTLY these, each VERIFIED derivable from existing
+      schema** (do **not** add any that need tracking the app does not keep):
+  - **First Frank** — member has **≥1** hot dog. _Source:_ count of `hot_dogs` where
+    `owner_id` = member.
+  - **Crowned** — _tiered_ **1 / 7 / 30**. _Source:_ `profiles.days_as_top_dog`
+    (already loaded).
+  - **Centurion** — a frank ever reached **≥100** votes. _Source:_ `max(peak_votes)`
+    over the member's `hot_dogs`. (Tiers optional, designer's call.)
+  - **The Summoner** — _tiered_ — **N** invites the member minted that were redeemed.
+    _Source:_ count of `invites` where `inviter_id` = member **AND `consumed_at is not
+null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable by
+    FK; see the single-use-guard gotcha in [[CLAUDE]]).
+  - **The Drenched** — _tiered_ — anointed **N** times. _Source:_ count of
+    `mustard_sprays` where `target_profile_id` = member.
+  - **Heretic** — owns a frank with a `confirmed_hamburger` verdict. _Source:_
+    `burger_verdicts` joined via `hot_dogs.owner_id` = member — **reuse the existing
+    `isHamburgerHeretic` / `getDogVerdictsForOwner`** (`reports/verdict.ts` /
+    `reports/verdictStore.ts`); do not re-derive. (A shame-mark, not a gilded honor —
+    see the design.)
+  - **False Witness / Liar** — has a `hamburger_liars` brand. _Source:_
+    `hamburger_liars` where `reporter_id` = member — **reuse the existing
+    `getLiarBrandTimestamps`**. (Decide with the designer whether this badge keys on
+    _ever branded_ (any row) or _currently branded_ (within the ~7-day
+    `summarizeLiarBrand` window); a relic/honor shelf usually wants _ever_, while the
+    existing profile banner uses _currently_. A shame-mark.)
+  - **The Inquisitor** — _tiered_ — rendered **N** verdicts as champion. _Source:_
+    count of `burger_verdicts` where `decided_by` = member.
+  - **Elder** — early member by `profiles.joined_at` (or a member-№ threshold derived
+    by ordering `profiles.joined_at` ascending). _Source:_ `profiles.joined_at`. Pick
+    a concrete, documented threshold (e.g. "sworn before {date}" or "among the first N
+    sworn") — record it in the module so it's a single source of truth, not a magic
+    number scattered in markup.
+- [ ] **Out of v1 — flag, do NOT build** (badges needing data the app does NOT track):
+      a **total-votes-ever-cast** honor (the `votes` table stores only the **one
+      current** vote per member — `UNIQUE(voter_id)`, re-casting MOVES the row — so
+      there is no lifetime vote-cast history) and **reign-streak** honors (`top_dog_days`
+      records discrete held days, not contiguous-streak metadata). These are **future /
+      out of v1**; note them in the module doc-comment + log them as Discovered Work so
+      the decision is durable, not lost.
+- [ ] **Rendered as a reliquary / relic-shelf on the profile (The Shrine)** — a new
+      presentational shelf component (e.g. `src/lib/components/Reliquary.svelte` /
+      `BadgeShelf.svelte`) shows **earned** relics (lit gold) vs **locked** ones (dim
+      silhouettes), with **tier** indicators for tiered badges, per the Reliquary design
+      (`design/page-design-prompts.md` #12). The component is **presentational only** —
+      it takes the computed badge state as a prop and renders; **no badge logic in the
+      component** (mirrors the `TopDogBadge` / `ProfilePoliceBanner` pattern: logic in
+      the pure module + load, rendering in the component).
+- [ ] **Wired into the profile load** (`(protected)/app/profile/[handle]/+page.server.ts`)
+      — the load gathers the badge inputs via **read-only** queries on the **RLS-scoped**
+      `event.locals.supabase` (counts/maxes over existing tables; reuse the existing
+      verdict/liar helpers), builds `BadgeInputs`, runs the pure `badges` module, and
+      passes the result to the page. **No service client needed** (no anonymity-sensitive
+      reads — see below); **no new write path; no mutation.** A read failure on any input
+      **degrades that badge to locked** rather than failing the page (the established
+      per-feature graceful-degradation pattern in this load).
+- [ ] **‼️ Reporter anonymity preserved (decision #27 / TASK-071).** **No badge keys on
+      the reporter side of a report.** "Heretic" keys on the member's OWN dogs' verdicts
+      (a consequence they bear); "Liar" keys on the member's OWN `hamburger_liars` brand
+      (a consequence they bear); "Inquisitor" keys on `decided_by` = the member (their
+      own rulings as champion). **None** surfaces "who reported whom" or a report-count a
+      member _made_. Do **not** add a "number of heresies you've called" badge — that
+      would leak the anonymous reporter side. This is a hard constraint.
+- [ ] **Un-themed code identifiers preserved (HARD SCOPE CONSTRAINT).** New code uses
+      neutral internal names (`badges`, `Reliquary`/`BadgeShelf`, `BadgeInputs`, badge
+      ids like `first_frank` / `crowned` / `centurion` / `summoner` / `drenched` /
+      `heretic` / `liar` / `inquisitor` / `elder`). The **cult display names** (e.g. "The
+      Anointed", "The Drenched", "Elder", "False Witness") are **copy/labels only**
+      (props/strings, TASK-081 voice), never code identifiers. Existing identifiers
+      (`is_current_top_dog`, `days_as_top_dog`, `selectTopDog`, table/RPC names) stay
+      untouched.
+- [ ] **Purely derived / read-only — restated as an explicit AC:** **no migration, no
+      new write path, no new dependency, no new RPC, no new schema.** Un-forgeable by
+      construction (no client-settable badge state — nothing to POST/insert). Grep check
+      at the end: no new `create table` / `supabase migration`, no package-manifest
+      change, no new `.rpc(` call.
+- [ ] **Keep the M1 `@smoke` vertical slice GREEN.** The badge shelf renders on the
+      profile, which the smoke slice walks (invite → profile → upload → see dog) — adding
+      a derived shelf must not break that flow. If the smoke test asserts on profile
+      content, update it in lockstep; otherwise it must remain 4/4.
+- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (the new
+      `badges.test.ts` cases included), **`@smoke` 4/4**, `@security` green. **No
+      migration.**
+
+**Notes (for the implementer):**
+
+- **This is the textbook pure-render-time seam for this codebase.** Read
+  `voting/ranking.ts`, `mustard/decay.ts`, `reports/alarm.ts`, and `reports/verdict.ts`
+  first — copy their shape exactly: a self-contained, import-free `.ts` module with a
+  doc-comment explaining the derivation, co-located TDD tests, and the live wiring done
+  by the route load (the module never does I/O). The reliquary component mirrors
+  `TopDogBadge.svelte` / `ProfilePoliceBanner.svelte` (presentational, logic-free).
+- **Reuse, don't re-derive, where a helper exists.** HERETIC → `isHamburgerHeretic` +
+  `getDogVerdictsForOwner`; LIAR → `getLiarBrandTimestamps` (+ optionally
+  `summarizeLiarBrand` if keying on _currently_ branded). Only the new
+  count/max/threshold logic is genuinely new.
+- **Coordinate with TASK-085's stat ledger** — several badge inputs (franks-offered
+  count, max peak_votes, redeemed-invite count, anointings-received count, crowned-day
+  count) are the **same aggregates** the TASK-085 stat ledger needs. If both land,
+  assemble the inputs once and feed both the ledger and the badges to avoid duplicate
+  queries. Neither task hard-blocks the other; whichever lands second reuses the first's
+  query helpers.
+- **Design-gated like the rest of M8** — `blocked` pending the Reliquary mock. The pure
+  module + tests are design-independent (the thresholds + derivation are real-data
+  facts, not visual), but the shelf component's earned/locked/tier visual treatment
+  needs the mock; treat the module as buildable-first and the component as design-led, as
+  the milestone does elsewhere.
+- **No new dependency; no schema; no migration; no new architecture-decision row** —
+  recorded as a derived/no-schema **design/scope note** (composes decisions
+  #12/#13/#15/#27).
+
+---
+
 ## Open Questions (REQUIRED — resolve WITH the designs before/at activation)
 
 These are the undecided items the build must not guess. Resolve each **with the
@@ -847,9 +1060,10 @@ Chrome.dc.html`.
 **Still NOT design-ready** (need the remaining in-app designs and/or the OPEN OQs):
 TASK-081 (copy — blocked on OQ-5's six page names), TASK-085 (profile redesign — needs
 the profile mockup), TASK-086 (Anoint — blocked on OQ-2's four sub-decisions),
-TASK-088 (error/404 — has a prompt, "The Lost Pilgrim", but no mockup yet). Per § Next
-Steps in the handoff, build order on the user's "go" is theme → shell → sign-in →
-reset → ritual.
+TASK-088 (error/404 — has a prompt, "The Lost Pilgrim", but no mockup yet), TASK-089
+(the derived badge reliquary — has a prompt, "The Reliquary" #12, but no mockup yet; the
+pure module + tests are design-independent and buildable first). Per § Next Steps in the
+handoff, build order on the user's "go" is theme → shell → sign-in → reset → ritual.
 
 **OQ-5 — suggested options (NON-BINDING prompts; the user chooses the final names):**
 
@@ -906,6 +1120,7 @@ DESIGNS (the gate) ──▶ resolve Open Questions (OQ-1..OQ-5) ──▶ flip 
      TASK-084  ritual sign-up       │   ← size set by OQ-1; sits on the invite/auth critical path
      TASK-086  Anoint re-theme      │   ← gated by OQ-2; default = pure re-skin
      TASK-088  error / 404 page     │   ← small; needs copy + theme
+     TASK-089  badge reliquary      │   ← derived/read-only; pure module buildable first, shelf needs the mock; soft-pairs with TASK-085 (same profile page)
 ```
 
 - **Lead with the `design-light` trio** (TASK-080 shell, TASK-082 sign-in,
@@ -921,12 +1136,16 @@ DESIGNS (the gate) ──▶ resolve Open Questions (OQ-1..OQ-5) ──▶ flip 
   are set.
 
 **Parallel-dispatch collision warning ([[workflow]] § Parallelism):** TASK-081
-(copy), TASK-085 (profile), TASK-086 (Anoint), and TASK-087 (theme) **all edit
-overlapping `+page.svelte` / component files** (especially the profile page, which
-TASK-081/085/086/087 all touch). These **cannot run in parallel on the same files**
-— sequence them, or split a page's copy vs. layout vs. style into separate prereq
-edits. The director must build the file-scope matrix before any parallel batch and
-fail-closed on every overlap.
+(copy), TASK-085 (profile), TASK-086 (Anoint), TASK-087 (theme), and **TASK-089
+(badge reliquary)** **all edit overlapping `+page.svelte` / component files**
+(especially the profile page + its `+page.server.ts`, which TASK-081/085/086/089 all
+touch — TASK-089 adds the reliquary shelf + its input queries to the same load
+TASK-085 redesigns). These **cannot run in parallel on the same files** — sequence
+them, or split a page's copy vs. layout vs. style vs. badge-shelf into separate prereq
+edits. **TASK-089's pure module (`src/lib/features/badges/`) + its tests are a
+separate file with no overlap** and can be built in parallel with anything; only its
+profile-load wiring + shelf component collide with TASK-085. The director must build
+the file-scope matrix before any parallel batch and fail-closed on every overlap.
 
 **Keep the M1 `@smoke` vertical slice GREEN throughout.** The slice (invite →
 profile → upload → see dog) crosses sign-up/onboarding (TASK-084), the app shell

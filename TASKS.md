@@ -20,22 +20,16 @@
 
 ## Active Milestones
 
-**Milestone M7 — Safety & Polish is `active`** (activated 2026-06-17) — server-side
-upload limits, the 🍔 **Hamburger Court** (report → HAMBURGER ALARM → Top-Dog verdict →
-HAMBURGER LIAR / HERETIC) + a Top-Dog-privileges notice, an in-app help page, and a
-final polish pass. Full task detail: [[tasks/milestone-07-safety-polish]].
-**Progress: 5/6** — TASK-070 (upload limits, P1) `complete` (PR #74, hosted-push done),
-TASK-071 (🍔 report + HAMBURGER ALARM banners, P2) `complete` (PR #78), TASK-073
-(Top-Dog verdict + HAMBURGER LIAR / HERETIC, P2) `complete` (PR #80), TASK-074 (Top-Dog
-privileges notice, P3) `complete` (PR #82), and TASK-075 (in-app help page, P3)
-`complete` (PR #84) — **the two new migrations (`20260617205453_burger_alarms.sql`,
-`20260618120000_burger_verdicts.sql`) still need a hosted `supabase db push`**; TASK-072
-(polish pass, P3) `pending` (last M7 task).
+**No active milestone.** **Milestone M7 — Safety & Polish completed 2026-06-18** (all 6
+tasks; tag `milestone-07-safety-polish`) — see § Completed Milestones. With it, **all
+pre-specified plenary milestones (M0–M7) are complete.** Future work is tracked in
+[[tasks/discovered]] and would open a new milestone (planner-exploded on user
+activation).
 
-Prior: **Milestone M6 — Emoji Library completed** 2026-06-17 (TASK-060/061; tag
-`milestone-06-emoji-library`). The deferred M5 hosted-push follow-up (TASK-054) is
-**done** — walls & DMs now work on hosted. See § Completed Milestones for the full
-history.
+> **Open ops action (user):** the two M7 migrations
+> (`20260617205453_burger_alarms.sql`, `20260618120000_burger_verdicts.sql`) still need a
+> hosted `supabase db push` before the report→verdict flow works on hosted. No
+> keep-alive / auto-pause risk (no scheduled job touches these tables).
 
 ## Planned Milestones
 
@@ -44,7 +38,7 @@ carry **full task files now** rather than header-only stubs. (The new-model
 default is a one-line stub the planner explodes on activation; here the detail
 was already written, so it is preserved.) Depends-on is kept coarse.
 
-None — M7 (the last pre-specified milestone) is now `active`. Future work is tracked
+None — M7 (the last pre-specified milestone) is now **complete**. Future work is tracked
 in [[tasks/discovered]] and feeds any post-M7 milestone stubs.
 
 ## Deferred Milestones
@@ -62,6 +56,7 @@ None.
 | Milestone 04: Mustard Mechanic          | 2026-06-16 | `milestone-04-mustard-mechanic`        | [[tasks/milestone-04-mustard-mechanic]]        |
 | Milestone 05: Walls & DMs               | 2026-06-17 | `milestone-05-walls-dms`               | [[tasks/milestone-05-walls-dms]]               |
 | Milestone 06: Emoji Library             | 2026-06-17 | `milestone-06-emoji-library`           | [[tasks/milestone-06-emoji-library]]           |
+| Milestone 07: Safety & Polish           | 2026-06-18 | `milestone-07-safety-polish`           | [[tasks/milestone-07-safety-polish]]           |
 
 ## Logs
 

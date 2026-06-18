@@ -10,7 +10,8 @@ architecture decisions, and [TASKS.md](./TASKS.md) for the work queue.
 ## Features
 
 The end-to-end slice, the full voting engine, the mustard mechanic, the social
-surfaces (walls + DMs), and hot-dog emoji rendering are in place and demoable:
+surfaces (walls + DMs), hot-dog emoji rendering, and the 🍔 Hamburger Court are in
+place and demoable:
 
 - **Invite-only sign-up** — an existing member mints a single-use invite link;
   the public sign-up flow redeems it (used/invalid tokens are rejected).
@@ -44,6 +45,17 @@ surfaces (walls + DMs), and hot-dog emoji rendering are in place and demoable:
   every emoji becomes a hot-dog-themed one, and wall messages get a deterministic
   random hot-dog sprinkle. The original message text is always stored unchanged — the
   transform is purely cosmetic and applied only when rendering.
+- **🍔 Hamburger Court** — report another member's dog as a hamburger; enough fresh
+  reports trip a render-time **HAMBURGER ALARM** banner across the image (reporters
+  stay anonymous). The current Top Dog adjudicates at `/app/court`: a "not a hamburger"
+  verdict brands the reporters **HAMBURGER LIAR** (fades over ~7 days), a "confirmed
+  hamburger" verdict brands the uploader a persistent **HAMBURGER HERETIC**. Reporting
+  and verdicts are cosmetic only — they never affect votes or the Top Dog ranking.
+- **Upload limits** — hot-dog and avatar uploads are hard-capped server-side (2 MiB
+  per file at the Storage API, 100 hot dogs per member, plus a global storage guard),
+  so the limits hold even against a direct API call, not just the upload form.
+- **In-app help** — a static "How Top Dog works" page at `/app/help` explains the
+  mechanics (with the vote system emphasized) for anyone who needs a refresher.
 
 ## Stack
 

@@ -9,13 +9,25 @@
 	const inviteLink = $derived(
 		form?.token ? `${page.url.origin}/sign-up?token=${form.token}` : null
 	);
+
+	let minting = $state(false);
+
+	const submitCreate = () => {
+		minting = true;
+		return async ({ update }: { update: () => Promise<void> }) => {
+			await update();
+			minting = false;
+		};
+	};
 </script>
 
 <h1>Invite a friend</h1>
 <p>Top Dog is invite-only. Mint a single-use link and share it with someone you trust.</p>
 
-<form method="POST" action="?/create" use:enhance>
-	<button type="submit">Generate invite link</button>
+<form method="POST" action="?/create" use:enhance={submitCreate}>
+	<button type="submit" disabled={minting}>
+		{minting ? 'Generating…' : 'Generate invite link'}
+	</button>
 </form>
 
 {#if form?.error}

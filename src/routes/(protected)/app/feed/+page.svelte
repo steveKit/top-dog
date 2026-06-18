@@ -71,7 +71,15 @@
 				{:else}
 					<span>Image unavailable</span>
 				{/if}
-				<BurgerReportControl dogId={dog.id} iReported={dog.iReported} />
+				<!-- DW-022: once the Hamburger Court has adjudicated this dog (verdict
+				     'cleared' or 'confirmed'), the report toggle would be stale — the
+				     verdict, not the live report, drives the display. Hide the control and
+				     show a small adjudicated note instead of a misleading active toggle. -->
+				{#if dog.alarmState === 'alarm'}
+					<BurgerReportControl dogId={dog.id} iReported={dog.iReported} />
+				{:else}
+					<p class="adjudicated-note">🍔 The Hamburger Court has ruled.</p>
+				{/if}
 				{#if dog.caption}
 					<p>{dog.caption}</p>
 				{/if}

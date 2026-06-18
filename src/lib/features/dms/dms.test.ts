@@ -46,28 +46,36 @@ function makeInsertClient(result: { error: unknown }) {
 }
 
 /**
- * Fake client for the inbox path: `.from(...).select(...).order(...)` resolves
- * `{ data, error }`. The terminal `.order()` is awaited.
+ * Fake client for the inbox path:
+ * `.from(...).select(...).order(...).limit(...)` resolves `{ data, error }`.
+ * The terminal `.limit()` is what the wrapper awaits (the DW-018 bound), so it
+ * resolves the result; `.order()` returns an object exposing `.limit`. The
+ * intermediate chainable spies are exposed so tests can assert the arguments.
  */
 function makeListConversationsClient(result: { data: unknown; error: unknown }) {
-	const order = vi.fn().mockResolvedValue(result);
+	const limit = vi.fn().mockResolvedValue(result);
+	const order = vi.fn(() => ({ limit }));
 	const select = vi.fn(() => ({ order }));
 	const from = vi.fn(() => ({ select }));
 	const client = { from } as unknown as SupabaseClient;
-	return { client, from, select, order };
+	return { client, from, select, order, limit };
 }
 
 /**
- * Fake client for the thread path: `.from(...).select(...).or(...).order(...)`
- * resolves `{ data, error }`. The terminal `.order()` is awaited.
+ * Fake client for the thread path:
+ * `.from(...).select(...).or(...).order(...).limit(...)` resolves
+ * `{ data, error }`. The terminal `.limit()` is what the wrapper awaits (the
+ * DW-018 bound), so it resolves the result; `.order()` returns an object
+ * exposing `.limit`.
  */
 function makeListThreadClient(result: { data: unknown; error: unknown }) {
-	const order = vi.fn().mockResolvedValue(result);
+	const limit = vi.fn().mockResolvedValue(result);
+	const order = vi.fn(() => ({ limit }));
 	const or = vi.fn(() => ({ order }));
 	const select = vi.fn(() => ({ or }));
 	const from = vi.fn(() => ({ select }));
 	const client = { from } as unknown as SupabaseClient;
-	return { client, from, select, or, order };
+	return { client, from, select, or, order, limit };
 }
 
 /**
@@ -235,6 +243,22 @@ describe('listConversations', () => {
 		expect(result).toEqual({ ok: true, data: [] });
 	});
 
+	it('bounds the inbox to the latest 50 conversations by default (DW-018)', async () => {
+		const { client, limit } = makeListConversationsClient({ data: [], error: null });
+
+		await listConversations(client, VIEWER);
+
+		expect(limit).toHaveBeenCalledWith(50);
+	});
+
+	it('forwards an explicit limit override to the terminal .limit()', async () => {
+		const { client, limit } = makeListConversationsClient({ data: [], error: null });
+
+		await listConversations(client, VIEWER, 10);
+
+		expect(limit).toHaveBeenCalledWith(10);
+	});
+
 	it('picks the RECIPIENT embed as the counterparty when the viewer is the SENDER', async () => {
 		const rows = [
 			{
@@ -353,6 +377,22 @@ describe('listThread', () => {
 		expect(orArg).toContain(`and(sender_id.eq.${VIEWER},recipient_id.eq.${ALICE})`);
 		expect(orArg).toContain(`and(sender_id.eq.${ALICE},recipient_id.eq.${VIEWER})`);
 		expect(order).toHaveBeenCalledWith('created_at', { ascending: true });
+	});
+
+	it('bounds the thread to the latest 50 messages by default (DW-018)', async () => {
+		const { client, limit } = makeListThreadClient({ data: [], error: null });
+
+		await listThread(client, VIEWER, ALICE);
+
+		expect(limit).toHaveBeenCalledWith(50);
+	});
+
+	it('forwards an explicit limit override to the terminal .limit()', async () => {
+		const { client, limit } = makeListThreadClient({ data: [], error: null });
+
+		await listThread(client, VIEWER, ALICE, 10);
+
+		expect(limit).toHaveBeenCalledWith(10);
 	});
 
 	it('returns the thread rows on success', async () => {

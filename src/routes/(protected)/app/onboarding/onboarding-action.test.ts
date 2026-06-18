@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { isActionFailure, isRedirect } from '@sveltejs/kit';
 import { actions, load } from './+page.server';
 import { HANDLE_TAKEN } from '$lib/features/profiles/profiles';
+import { MAX_UPLOAD_BYTES } from '$lib/features/hotdogs/hotdogs';
 
 // Test-after coverage for the onboarding load + default action. The action is
 // exercised with a fake `event` exposing `locals.supabase` (a `from()` query
@@ -239,6 +240,32 @@ describe('onboarding default action', () => {
 		expect(insert).toHaveBeenCalledWith(
 			expect.objectContaining({ avatar_path: `${A_USER.id}/avatar.webp` })
 		);
+	});
+
+	it('rejects an oversized avatar with a friendly "too big" 400 BEFORE any upload/insert (DW-021)', async () => {
+		// A direct PostgREST upload is bounded by the Storage bucket file_size_limit
+		// (TASK-070); this early action check is the friendly UX layer (mirrors the
+		// hot-dog upload action) — an avatar over MAX_UPLOAD_BYTES fails with a size
+		// message and never reaches storage upload or the profile insert.
+		const oversized = new File([new Uint8Array(MAX_UPLOAD_BYTES + 1)], 'big.webp', {
+			type: 'image/webp'
+		});
+		const { event, insert, storageUpload } = makeEvent({
+			fields: { handle: 'ChefDog', display_name: 'Chef Dog', avatar: oversized }
+		});
+
+		const result = await onboard(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		const failure = result as { status: number; data: { error: string; handle: string } };
+		expect(failure.status).toBe(400);
+		expect(failure.data.error).toMatch(/too big/i);
+		expect(failure.data.error).toMatch(/2 ?MB/i);
+		// Entered state is preserved so the user doesn't retype.
+		expect(failure.data.handle).toBe('ChefDog');
+		// Hard guarantee: an oversized avatar never reaches storage upload or the insert.
+		expect(storageUpload).not.toHaveBeenCalled();
+		expect(insert).not.toHaveBeenCalled();
 	});
 
 	it('fails closed (no insert) when the avatar upload errors', async () => {

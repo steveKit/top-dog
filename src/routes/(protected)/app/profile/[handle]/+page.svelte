@@ -32,10 +32,14 @@
 		});
 	}
 
+	let posting = $state(false);
+
 	const submitWallPost = () => {
+		posting = true;
 		return async ({ update }: { update: () => Promise<void> }) => {
 			await update();
 			wallBody = '';
+			posting = false;
 			await invalidateAll();
 		};
 	};
@@ -208,7 +212,9 @@
 				bind:value={wallBody}
 				placeholder="Say something nice…"
 			></textarea>
-			<button type="submit" disabled={wallBody.trim().length === 0}>Post</button>
+			<button type="submit" disabled={posting || wallBody.trim().length === 0}>
+				{posting ? 'Posting…' : 'Post'}
+			</button>
 		</form>
 
 		{#if wallMessages.length === 0}

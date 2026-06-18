@@ -21,10 +21,14 @@
 		});
 	}
 
+	let sending = $state(false);
+
 	const submitSend = () => {
+		sending = true;
 		return async ({ update }: { update: () => Promise<void> }) => {
 			await update();
 			body = '';
+			sending = false;
 			await invalidateAll();
 		};
 	};
@@ -78,6 +82,8 @@
 			bind:value={body}
 			placeholder="Write a message…"
 		></textarea>
-		<button type="submit" disabled={body.trim().length === 0}>Send</button>
+		<button type="submit" disabled={sending || body.trim().length === 0}>
+			{sending ? 'Sending…' : 'Send'}
+		</button>
 	</form>
 </section>

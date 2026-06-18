@@ -38,8 +38,16 @@
 	<p>Image unavailable</p>
 {/if}
 
+<!-- DW-022: hide the report toggle on a dog the viewer doesn't own ONLY while it's
+     still unadjudicated ('alarm'). Once the Hamburger Court rules ('cleared' /
+     'confirmed'), the verdict drives the display, so a live report toggle would be
+     stale — show a small adjudicated note instead. -->
 {#if !data.isOwnDog}
-	<BurgerReportControl dogId={dog.id} iReported={data.iReported} />
+	{#if data.alarmState === 'alarm'}
+		<BurgerReportControl dogId={dog.id} iReported={data.iReported} />
+	{:else}
+		<p class="adjudicated-note">🍔 The Hamburger Court has ruled.</p>
+	{/if}
 {/if}
 
 {#if dog.caption}

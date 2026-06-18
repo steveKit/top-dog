@@ -113,10 +113,13 @@ export async function sendDm(
  * explicitly so the query is intention-revealing), embeds BOTH parties' profiles
  * so the pure aggregator can pick the counterparty, then derives the
  * per-counterparty list (latest message + unread count) via summarizeConversations.
+ * Bounded to the latest `limit` rows (default 50, parity with listWallMessages) so
+ * a long history can't trigger an unbounded read (DW-018).
  */
 export async function listConversations(
 	supabase: SupabaseClient,
-	viewerId: string
+	viewerId: string,
+	limit = 50
 ): Promise<DmResult<ConversationSummary[]>> {
 	const { data, error } = await supabase
 		.from('dms')
@@ -125,7 +128,8 @@ export async function listConversations(
 				'sender:profiles!sender_id (id, handle, display_name), ' +
 				'recipient:profiles!recipient_id (id, handle, display_name)'
 		)
-		.order('created_at', { ascending: false });
+		.order('created_at', { ascending: false })
+		.limit(limit);
 
 	if (error) {
 		console.error('[dms] listConversations failed', {
@@ -168,12 +172,15 @@ export async function listConversations(
  * Lists the messages between the viewer and one other member, oldest-first (the
  * natural thread reading order). The SELECT RLS limits visibility to the viewer's
  * own conversations; we additionally scope to the two parties (both directions)
- * via an .or filter so only this thread's rows return.
+ * via an .or filter so only this thread's rows return. Bounded to `limit` rows
+ * (default 50, parity with listWallMessages) so a long thread can't trigger an
+ * unbounded read (DW-018).
  */
 export async function listThread(
 	supabase: SupabaseClient,
 	viewerId: string,
-	counterpartyId: string
+	counterpartyId: string,
+	limit = 50
 ): Promise<DmResult<ThreadMessage[]>> {
 	const { data, error } = await supabase
 		.from('dms')
@@ -182,7 +189,8 @@ export async function listThread(
 			`and(sender_id.eq.${viewerId},recipient_id.eq.${counterpartyId}),` +
 				`and(sender_id.eq.${counterpartyId},recipient_id.eq.${viewerId})`
 		)
-		.order('created_at', { ascending: true });
+		.order('created_at', { ascending: true })
+		.limit(limit);
 
 	if (error) {
 		console.error('[dms] listThread failed', {

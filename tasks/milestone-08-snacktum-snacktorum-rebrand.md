@@ -364,7 +364,7 @@ stub is the destination of every bounce — a real gap.
 
 ---
 
-### TASK-083: Forgot-password + reset-password flow [`blocked`] [`P1`] [`M`] (`design-light`)
+### TASK-083: Forgot-password + reset-password flow [`in_progress`] [`P1`] [`M`] (`design-light`)
 
 **Owner:** unassigned
 **Dependencies:** `DESIGNS` (both page designs); soft-depends on TASK-082 (sign-in

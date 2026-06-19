@@ -118,12 +118,12 @@ There are **twelve** page prompts below:
 
 1. App shell + global nav (the temple chrome)
 2. The Procession — the feed (default landing)
-3. Profile — _name user-decides (OQ-5)_
+3. The Shrine — profile
 4. Your Litter — your own franks gallery + upload
 5. Dog detail — _name user-decides (OQ-5)_
 6. The Tribunal of the Holy Tube — the Court (champion-only)
-7. Messages inbox — _name user-decides (OQ-5)_
-8. Message thread — _name user-decides (OQ-5)_
+7. Epistles — messages inbox
+8. Whispers — message thread
 9. Summon a Frank — invite
 10. The Catechism — help / how-it-works
 11. The Lost Pilgrim — error / 404
@@ -265,10 +265,10 @@ votes; where the Faithful cast their single vote and pass judgment.
 
 ---
 
-## 3. Profile — _name: user decides (OQ-5)_
+## 3. Profile — The Shrine
 
-> **OQ-5 (user decides the cult name).** Suggested options: **The Shrine** /
-> **Reliquary of the Faithful**. Used below as a placeholder.
+> **OQ-5 RESOLVED — the page name is "The Shrine"** (confirmed 2026-06-18 from the
+> user's mockup filenames).
 > **This is the redesign target of the user's bare "before" screenshot** — the
 > current profile page is cramped; this prompt is its replacement.
 
@@ -308,7 +308,10 @@ wall; the surface the champion **Anoints**.
 - The **message wall**: a proper **composer** (a real compose area, not a
   cramped inline box) + the list of wall messages (each with author Casing Name,
   timestamp, and a **delete** affordance shown to the message's author or the
-  wall owner).
+  wall owner). Woven into that feed, a **derived, coalesced "anointing" notice**
+  — **"The Anointed Wiener anointed you ×N"** — rendered from the anointing
+  records (not a posted message; no composer/delete), styled as a distinct
+  liturgical event marker.
 - The **Anoint (mustard) overlay**: decaying golden splotches over the sigil
   area; **when the viewer is the champion**, the whole sigil area is a
   click-target to **Anoint** (drop a blessing at the clicked point), with a hint
@@ -321,7 +324,7 @@ wall; the surface the champion **Anoints**.
 **PROMPT:**
 
 > Design a member's **profile / shrine** for **Snacktum Snacktorum** (the
-> hot-dog cult app) — _working title **The Shrine** (user to finalize)_. This is
+> hot-dog cult app) — **The Shrine**. This is
 > the redesign of a currently cramped page: give it air and ceremony. Dark temple
 > aesthetic: `#17120e` background, soft radial gold glow, parchment text
 > `#f3e9d2`, accent **Mustard Gold `#E0A82E`**. Type: **Cinzel** (ALL-CAPS,
@@ -366,10 +369,17 @@ wall; the surface the champion **Anoints**.
 > compose area — "Leave word upon {name}'s shrine" — with a gold post button and
 > a posting state), then a list of wall messages, each showing the author's
 > **Casing Name** (linked), a timestamp, and — for the author or the shrine's
-> owner — a small **Delete** control. Include a **wall empty state** ("No word
-> yet upon this shrine — be the first of the Faithful"). When viewing **another**
-> member's shrine, show a **"Send an epistle →"** message link. Keep AA contrast;
-> the heresy brands must read by text + tape, not color alone.
+> owner — a small **Delete** control. **Among the wall messages, also show a
+> derived "anointing" notice** when the champion has anointed this member —
+> a distinct gold-accented entry reading **"The Anointed Wiener anointed you ×N"**
+> (rapid successive anointings coalesce into one ×N notice), woven chronologically
+> into the wall feed. (This notice is **derived at render** from the anointing
+> records — it is not a posted message and has no composer/delete; style it as a
+> liturgical event marker distinct from a member's written word.) Include a **wall
+> empty state** ("No word yet upon this shrine — be the first of the Faithful").
+> When viewing **another** member's shrine, show a **"Send an epistle →"** message
+> link. Keep AA contrast; the heresy brands must read by text + tape, not color
+> alone.
 
 ---
 
@@ -533,10 +543,10 @@ verdicts that brand HERETICS and FALSE WITNESSES.
 
 ---
 
-## 7. Messages inbox — _name: user decides (OQ-5)_
+## 7. Messages inbox — Epistles
 
-> **OQ-5 (user decides the cult name).** Suggested options: **Epistles** /
-> **Whispers in the Sanctum**. Used below as a placeholder.
+> **OQ-5 RESOLVED — the page name is "Epistles"** (confirmed 2026-06-18 from the
+> user's mockup filenames).
 
 **Route:** `/app/messages`.
 **Purpose:** the member's private-message inbox — a list of conversations with
@@ -554,8 +564,8 @@ other members.
 **PROMPT:**
 
 > Design the **private-message inbox** for **Snacktum Snacktorum** (the hot-dog
-> cult app) — _working title **Epistles** / **Whispers in the Sanctum** (user to
-> finalize)_. Dark temple aesthetic: `#17120e` background, soft radial gold glow,
+> cult app) — **Epistles**. Dark temple aesthetic: `#17120e` background, soft
+> radial gold glow,
 > parchment text `#f3e9d2`, accent **Mustard Gold `#E0A82E`**. Type: **Cinzel**
 > (ALL-CAPS, letter-spaced) for the **EPISTLES** h1 and the counterparty names;
 > **Cormorant Garamond** for message previews and dates. Brand header lockup on
@@ -574,10 +584,10 @@ other members.
 
 ---
 
-## 8. Message thread — _name: user decides (OQ-5)_
+## 8. Message thread — Whispers
 
-> **OQ-5 (user decides the cult name).** Same family as the inbox: **Epistles** /
-> **Whispers in the Sanctum**.
+> **OQ-5 RESOLVED — the page name is "Whispers"** (confirmed 2026-06-18 from the
+> user's mockup filenames).
 
 **Route:** `/app/messages/[handle]`.
 **Purpose:** a one-to-one direct-message conversation with another member.
@@ -597,8 +607,8 @@ other members.
 **PROMPT:**
 
 > Design a **direct-message conversation thread** for **Snacktum Snacktorum**
-> (the hot-dog cult app) — _working title **Whispers in the Sanctum** (user to
-> finalize)_. Dark temple aesthetic: `#17120e` background, soft radial gold glow,
+> (the hot-dog cult app) — **Whispers**. Dark temple aesthetic: `#17120e`
+> background, soft radial gold glow,
 > parchment text `#f3e9d2`, accent **Mustard Gold `#E0A82E`**. Type: **Cinzel**
 > (ALL-CAPS, letter-spaced) for the header name and labels; **Cormorant
 > Garamond** for the message bodies and timestamps. Brand header lockup on top;
@@ -866,22 +876,24 @@ showing their current tier.
 
 ---
 
-## Appendix — OQ-5 page-name decisions (user decides)
+## Appendix — OQ-5 page-name decisions
 
-Six pages still need a confirmed cult display name. Non-binding suggestions used
-as placeholders above — **the user chooses the final names**:
+**OQ-5 is now mostly resolved** (2026-06-18, confirmed from the user's mockup
+filenames). **Only the dog-detail name remains open** — the user chooses it:
 
-| Page                                   | Route                    | Suggested (non-binding)                        |
-| -------------------------------------- | ------------------------ | ---------------------------------------------- |
-| Profile                                | `/app/profile/[handle]`  | **The Shrine** / **Reliquary of the Faithful** |
-| Dog detail                             | `/app/dogs/[id]`         | **Veneration** / **The Relic**                 |
-| Messages inbox                         | `/app/messages`          | **Epistles** / **Whispers in the Sanctum**     |
-| Message thread                         | `/app/messages/[handle]` | **Whispers in the Sanctum** (same family)      |
-| `/sign-in` (auth, designed separately) | `/sign-in`               | **Return to the Fold**                         |
-| `/app` home/hub                        | `/app`                   | being retired → redirects to The Procession    |
+| Page                                   | Route                    | Cult name                                   |
+| -------------------------------------- | ------------------------ | ------------------------------------------- |
+| Profile                                | `/app/profile/[handle]`  | **The Shrine** ✅ RESOLVED                  |
+| Messages inbox                         | `/app/messages`          | **Epistles** ✅ RESOLVED                    |
+| Message thread                         | `/app/messages/[handle]` | **Whispers** ✅ RESOLVED                    |
+| `/sign-in` (heading)                   | `/sign-in`               | **Enter the Snacktum** ✅ RESOLVED          |
+| `/app` home/hub                        | `/app`                   | **N/A** — retired → redirects to Procession |
+| Dog detail                             | `/app/dogs/[id]`         | _OPEN_ — **Veneration** / **The Relic**     |
 
-> The seven **confirmed** page names (the Page Naming Map) are already decided:
-> `/sign-up` → Take the Casing, `/app/onboarding` → Choose Your Frank Name,
-> `/app/dogs` → Your Litter, `/app/feed` → The Procession: Standings of the
-> Blessed, `/app/court` → The Tribunal of the Holy Tube, `/app/invite` → Summon a
-> Frank, `/app/help` → The Catechism.
+> The **confirmed** page names in the Page Naming Map:
+> `/sign-up` → Take the Casing, `/sign-in` (heading) → Enter the Snacktum,
+> `/app/onboarding` → Choose Your Frank Name, `/app/dogs` → Your Litter,
+> `/app/feed` → The Procession: Standings of the Blessed,
+> `/app/profile/[handle]` → The Shrine, `/app/messages` → Epistles,
+> `/app/messages/[handle]` → Whispers, `/app/court` → The Tribunal of the Holy
+> Tube, `/app/invite` → Summon a Frank, `/app/help` → The Catechism.

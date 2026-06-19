@@ -92,13 +92,13 @@
       </sc-if>
       <sc-if value="{{ isLiar }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute; top:50%; left:-22%; width:144%; transform:translateY(-50%) rotate(-13deg); background:repeating-linear-gradient(45deg,rgba(224,168,46,0.55) 0 13px,rgba(26,18,11,0.55) 13px 26px); padding:7px 0; text-align:center; pointer-events:none; box-shadow:0 4px 14px rgba(0,0,0,0.5); z-index:6; opacity:0.62;">
-          <span style="display:inline-block; font:700 14px/1 'Cinzel',serif; letter-spacing:4px; color:#1a120b; background:rgba(224,168,46,0.85); padding:3px 13px;">✕ LIAR</span>
+          <span style="display:inline-block; font:700 14px/1 'Cinzel',serif; letter-spacing:4px; color:#1a120b; background:rgba(224,168,46,0.85); padding:3px 13px;">✕ FALSE WITNESS</span>
         </div>
       </sc-if>
     </div>
 
     <sc-if value="{{ anointMode }}" hint-placeholder-val="{{ true }}">
-      <p style="font:400 16px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.85); margin:18px 0 0; text-align:center; max-width:420px; text-wrap:pretty;">Thou art The Anointed Wiener — touch the sigil to anoint this disciple.</p>
+      <p style="font:400 16px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.85); margin:18px 0 0; text-align:center; max-width:420px; text-wrap:pretty;">Thou art The Anointed Wiener — touch the sigil to anoint this disciple in mustard.</p>
     </sc-if>
 
     <h1 style="font:600 clamp(34px,5.5vw,48px)/1.05 'Cinzel',serif; letter-spacing:1px; margin:26px 0 0; color:#f6ecd2; text-align:center; text-shadow:0 2px 30px rgba(224,168,46,0.16);">{{ displayName }}</h1>
@@ -129,40 +129,103 @@
         <div style="grid-column:1 / -1; background:rgba(210,74,54,0.14); padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:10px; text-align:center;"><span style="font:700 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:#ef8a72; border:1px solid #d24a36; padding:4px 10px; border-radius:2px;">⚠ Heretic</span><span style="font:400 15px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.85);">Marked by the Tribunal — confirmed hamburger.</span></div>
       </sc-if>
       <sc-if value="{{ isLiar }}" hint-placeholder-val="{{ false }}">
-        <div style="grid-column:1 / -1; background:rgba(210,74,54,0.1); padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:10px; text-align:center;"><span style="font:700 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:#ef8a72; border:1px solid rgba(210,74,54,0.6); padding:4px 10px; border-radius:2px;">✕ Liar</span><span style="font:400 15px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.75);">Bore false witness — the mark shall fade in time.</span></div>
+        <div style="grid-column:1 / -1; background:rgba(210,74,54,0.1); padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:10px; text-align:center;"><span style="font:700 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:#ef8a72; border:1px solid rgba(210,74,54,0.6); padding:4px 10px; border-radius:2px;">✕ False Witness</span><span style="font:400 15px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.75);">Bore false witness — the mark shall fade in time.</span></div>
       </sc-if>
     </div>
 
     <section style="width:100%; max-width:600px; margin-top:50px; display:flex; flex-direction:column; gap:18px;">
       <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+        <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Honors of the Order</span>
         <h2 style="font:600 14px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E); margin:0;">The Reliquary</h2>
-        <span style="font:400 16px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.55);">Honors earned in service of the Tube</span>
+        <span style="font:400 16px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.55);">Thou hast earned {{ relicEarned }} of {{ relicTotal }} relics.</span>
       </div>
-      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:22px 16px; padding:16px 8px 18px; border-bottom:2px solid rgba(224,168,46,0.22);">
-        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
-          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="3" fill="currentColor"></rect></svg></div>
-          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">First Frank</span>
+      <sc-if value="{{ noRelics }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:16px; padding:40px 20px;">
+          <svg viewBox="0 0 200 200" width="84" height="84" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;"><ellipse cx="100" cy="58" rx="42" ry="11"></ellipse><rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.1)"></rect><path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path><path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.04)"></path></svg>
+          <p style="font:400 18px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.65); margin:0; text-align:center;">No relics yet — earn thy first honor in the service of the Tube.</p>
         </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
-          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M3 18 L3 7 L8 11 L12 4 L16 11 L21 7 L21 18 Z" fill="currentColor"></path></svg></div>
-          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">The Crowned</span>
+      </sc-if>
+
+      <sc-if value="{{ hasRelics }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:22px 14px; padding:14px 4px 6px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.22), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.28); color:var(--accent,#E0A82E);"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="3" fill="currentColor"></rect></svg></div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">First Frank</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; color:rgba(243,233,210,0.5); text-align:center;">Offered thy first sacred link.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="position:relative;">
+              <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.22), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.28); color:var(--accent,#E0A82E);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M3 18 L3 7 L8 11 L12 4 L16 11 L21 7 L21 18 Z" fill="currentColor"></path></svg></div>
+              <div style="position:absolute; bottom:-4px; right:-4px; min-width:22px; height:22px; padding:0 5px; border-radius:11px; background:var(--accent,#E0A82E); color:#17120e; border:2px solid #1c140d; display:flex; align-items:center; justify-content:center; font:700 9px/1 'Cinzel',serif;">III</div>
+            </div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">The Anointed</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; color:rgba(243,233,210,0.5); text-align:center;">Reigned thirty days — the crown's longest shadow. The highest rank.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.22), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.28); color:var(--accent,#E0A82E);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" fill="currentColor"></path></svg></div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">Centurion</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; color:rgba(243,233,210,0.5); text-align:center;">A frank that bore a hundred blessings.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="position:relative;">
+              <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.22), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.28); color:var(--accent,#E0A82E);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M5 21 V12 a7 7 0 0 1 14 0 V21" fill="none" stroke="currentColor" stroke-width="2.2"></path><line x1="3.5" y1="21" x2="20.5" y2="21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></line></svg></div>
+              <div style="position:absolute; bottom:-4px; right:-4px; min-width:22px; height:22px; padding:0 5px; border-radius:11px; background:var(--accent,#E0A82E); color:#17120e; border:2px solid #1c140d; display:flex; align-items:center; justify-content:center; font:700 9px/1 'Cinzel',serif;">II</div>
+            </div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">The Summoner</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; color:rgba(243,233,210,0.5); text-align:center;">Five disciples summoned. The next rank at twenty-five.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="position:relative;">
+              <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.22), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.28); color:var(--accent,#E0A82E);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 3 C12 3 5 12 5 16 a7 7 0 0 0 14 0 C19 12 12 3 12 3 Z" fill="currentColor"></path></svg></div>
+              <div style="position:absolute; bottom:-4px; right:-4px; min-width:22px; height:22px; padding:0 5px; border-radius:11px; background:var(--accent,#E0A82E); color:#17120e; border:2px solid #1c140d; display:flex; align-items:center; justify-content:center; font:700 9px/1 'Cinzel',serif;">II</div>
+            </div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">The Drenched</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; color:rgba(243,233,210,0.5); text-align:center;">Anointed ten times over. The next rank at fifty.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(243,233,210,0.14); background:#15100b; display:flex; align-items:center; justify-content:center; color:rgba(243,233,210,0.16);"><svg width="30" height="30" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="18"></line><line x1="6" y1="8" x2="18" y2="8"></line></g><path d="M9 18 H15 L12 22 Z" fill="currentColor"></path></svg></div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(243,233,210,0.4); text-align:center;">The Inquisitor</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.3); text-align:center;">Unearned — judge a heresy as the Anointed Wiener.</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:108px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.22), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.28); color:var(--accent,#E0A82E);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M7 4 H17 L12 12 L17 20 H7 L12 12 Z" fill="currentColor"></path><line x1="6" y1="4" x2="18" y2="4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line><line x1="6" y1="20" x2="18" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line></svg></div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">Elder</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; color:rgba(243,233,210,0.5); text-align:center;">Among the first sworn to the Tube.</span>
+          </div>
         </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
-          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" fill="currentColor"></path></svg></div>
-          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">Centurion</span>
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
-          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="9" fill="none" stroke="currentColor" stroke-width="2"></ellipse><ellipse cx="12" cy="12" rx="4" ry="4" fill="none" stroke="currentColor" stroke-width="2"></ellipse></svg></div>
-          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">Thousandfold</span>
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:rgba(243,233,210,0.2);">
-          <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(224,168,46,0.15); background:#15100b; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 3 C12 3 5 12 5 16 a7 7 0 0 0 14 0 C19 12 12 3 12 3 Z" fill="currentColor"></path></svg></div>
-          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(243,233,210,0.32); text-align:center;">The Anointer</span>
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:rgba(243,233,210,0.2);">
-          <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(224,168,46,0.15); background:#15100b; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 3 C14 8 19 9 16 15 a4 4 0 0 1 -8 0 C6 11 10 9 12 3 Z" fill="currentColor"></path></svg></div>
-          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(243,233,210,0.32); text-align:center;">Apostle</span>
-        </div>
+      </sc-if>
+
+      <div style="display:flex; align-items:center; gap:14px; width:100%; margin-top:16px; color:rgba(239,138,114,0.65);"><span style="flex:1; height:1px; background:rgba(210,74,54,0.28);"></span><span style="font:600 10px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase;">Marks of Disgrace</span><span style="flex:1; height:1px; background:rgba(210,74,54,0.28);"></span></div>
+
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:22px 16px; padding:10px 4px 18px; border-bottom:2px solid rgba(224,168,46,0.18);">
+        <sc-if value="{{ isHeretic }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:124px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid #d24a36; background:rgba(140,47,31,0.32); display:flex; align-items:center; justify-content:center; color:#ef8a72; box-shadow:0 0 16px rgba(210,74,54,0.3);"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="4.5" rx="2.25" fill="currentColor"></rect><rect x="5.5" y="11.3" width="13" height="2" rx="1" fill="currentColor" opacity="0.6"></rect><rect x="4" y="14.5" width="16" height="4.5" rx="2.25" fill="currentColor"></rect></svg></div>
+            <span style="font:700 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#ef8a72; text-align:center;">⚠ Heretic</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.8); text-align:center;">Keepeth a frank the Tribunal confirmed a hamburger — a lasting mark.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notHeretic }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:124px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(210,74,54,0.22); background:#190f0b; display:flex; align-items:center; justify-content:center; color:rgba(239,138,114,0.22);"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="4.5" rx="2.25" fill="currentColor"></rect><rect x="5.5" y="11.3" width="13" height="2" rx="1" fill="currentColor" opacity="0.6"></rect><rect x="4" y="14.5" width="16" height="4.5" rx="2.25" fill="currentColor"></rect></svg></div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(239,138,114,0.4); text-align:center;">Heretic</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.3); text-align:center;">Unmarked — keep thy links pure.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isLiar }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:124px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid #d24a36; background:rgba(140,47,31,0.28); display:flex; align-items:center; justify-content:center; color:#ef8a72; box-shadow:0 0 14px rgba(210,74,54,0.26);"><svg width="30" height="30" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="2"></ellipse><circle cx="12" cy="12" r="2.5" fill="currentColor"></circle><line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></line></svg></div>
+            <span style="font:700 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#ef8a72; text-align:center;">✕ False Witness</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.78); text-align:center;">Bore false witness against a clean link — a mark that fades.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notLiar }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:124px;">
+            <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(210,74,54,0.22); background:#190f0b; display:flex; align-items:center; justify-content:center; color:rgba(239,138,114,0.22);"><svg width="30" height="30" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6" fill="none" stroke="currentColor" stroke-width="2"></ellipse><circle cx="12" cy="12" r="2.5" fill="currentColor"></circle><line x1="4" y1="20" x2="20" y2="4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></line></svg></div>
+            <span style="font:600 9.5px/1.2 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(239,138,114,0.4); text-align:center;">False Witness</span>
+            <span style="font:400 13px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.3); text-align:center;">Unmarked — bear no false witness.</span>
+          </div>
+        </sc-if>
       </div>
     </section>
 
@@ -258,7 +321,7 @@
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;reigns&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;viewerIsAnointed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;brand&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;None&quot;,&quot;Heretic&quot;,&quot;Liar&quot;],&quot;default&quot;:&quot;None&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewingOwnShrine&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;reigns&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;viewerIsAnointed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;brand&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;None&quot;,&quot;Heretic&quot;,&quot;False Witness&quot;],&quot;default&quot;:&quot;None&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewingOwnShrine&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   state = {
     litterActive: 0,
@@ -374,7 +437,10 @@ class Component extends DCLogic {
       reigns, showChampionBadge: reigns,
       anointMode,
       isHeretic: brand === 'Heretic',
-      isLiar: brand === 'Liar',
+      isLiar: brand === 'False Witness',
+      notHeretic: brand !== 'Heretic',
+      notLiar: brand !== 'False Witness',
+      relicEarned: 6, relicTotal: 7, hasRelics: true, noRelics: false,
       showEpistle: !viewingOwn,
       marks,
       messages,

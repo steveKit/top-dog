@@ -32,15 +32,24 @@ new infra, no new deps expected.** 10 tasks (TASK-080…TASK-089; TASK-089 = the
 badge "Reliquary", a purely-derived read-only addition — no schema/migration/dependency,
 un-forgeable by construction).
 
-> **⛔ EXECUTION BLOCKED PENDING FINAL PAGE DESIGNS.** The milestone is exploded with full
-> task detail, but **every task is `blocked`** on the shared `DESIGNS` dependency (final
-> page designs from the user) — and **seven Open Questions** (ritual-signup scope OQ-1;
-> the four Anoint sub-decisions OQ-2a–d; the overall visual theme OQ-3; a possible
-> ceremonial font OQ-4) must be resolved **with** the designs. **Do not dispatch any M8
-> task until the user delivers designs and activates.** A `design-light` trio (TASK-080
-> app shell, TASK-082 sign-in, TASK-083 password reset) is the most design-independent and
-> could be unblocked early **at the user's discretion** — not on agent initiative. See the
-> milestone file's ⛔ Execution Block + Open Questions sections.
+> **⛔ EXECUTION BLOCKED — designs are landing; no build until the user's "go".** The
+> milestone is exploded with full task detail and **designs are now arriving**: almost
+> every page is mocked — the app shell, the auth cluster (Log In, Reset Password,
+> Onboarding), The Procession, The Shrine (profile), Your Litter, the Tribunal, Epistles
+> (DM inbox), Whispers (DM thread), Summon a Frank (invite), The Catechism (help), and The
+> Lost Pilgrim (error/404) — **only the dog-detail page remains to be mocked.** **Most Open
+> Questions are RESOLVED:** OQ-1 (ritual sign-up → a multi-step rite that absorbs
+> onboarding), OQ-3 (the dark-temple visual theme), and OQ-4 (Cinzel + Cormorant Garamond,
+> self-hosted woff2) are decided. \*\*The open set is now just OQ-2 (the Anoint specifics —
+> sub-decisions OQ-2a–e, including a new derived "anoint → wall notice" sub-decision OQ-2e)
+>
+> - OQ-5 (only the dog-detail page name; The Shrine / Epistles / Whispers / the "Enter the
+>   Snacktum" sign-in heading are now confirmed).** Every task nonetheless stays **`blocked`**
+>   until the user delivers the remaining design + activates — **do not dispatch any M8 task
+>   on agent initiative.** A `design-light` trio (TASK-080 app shell, TASK-082 sign-in,
+>   TASK-083 password reset) is the most design-independent and could be unblocked early **at
+>   the user's discretion\*\*. See the milestone file's ⛔ Execution Block + Open Questions
+>   sections.
 
 > **Open ops action (user) — unrelated to M8:** the two M7 migrations
 > (`20260617205453_burger_alarms.sql`, `20260618120000_burger_verdicts.sql`) still need a

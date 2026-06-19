@@ -2,8 +2,14 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
+	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
+	import { errorSlideFade } from '$lib/motion/reducedMotion';
 
 	let { data, form } = $props();
+
+	// Themed inline client-side validation (replaces the native bubble). The
+	// server still validates authoritatively; this is purely the UX layer.
+	const validation = createFormValidation();
 
 	// A 6-digit numeric pattern for the code input. Built as a JS string so the
 	// `{6}` quantifier isn't parsed as a Svelte mustache in the markup.
@@ -50,13 +56,14 @@
 
 		<form
 			method="POST"
-			use:enhance={() => {
+			novalidate
+			use:enhance={validation.enhance(() => {
 				submitting = true;
 				return async ({ update }) => {
 					await update();
 					submitting = false;
 				};
-			}}
+			})}
 		>
 			<!-- Email carried from /forgot-password; verifyOtp needs it alongside the code. -->
 			<input type="hidden" name="email" value={initialEmail} />
@@ -74,7 +81,20 @@
 					pattern={codePattern}
 					placeholder="••••••"
 					required
+					aria-invalid={validation.invalid('code')}
+					aria-describedby={validation.describedBy('code')}
+					oninput={validation.clearOnInput}
 				/>
+				{#if validation.errors.code}
+					<p
+						class="field-error"
+						role="alert"
+						id={validation.errorId('code')}
+						transition:errorSlideFade
+					>
+						{validation.errors.code}
+					</p>
+				{/if}
 			</label>
 
 			<label>
@@ -87,7 +107,20 @@
 					minlength="8"
 					placeholder="at least eight marks"
 					required
+					aria-invalid={validation.invalid('password')}
+					aria-describedby={validation.describedBy('password')}
+					oninput={validation.clearOnInput}
 				/>
+				{#if validation.errors.password}
+					<p
+						class="field-error"
+						role="alert"
+						id={validation.errorId('password')}
+						transition:errorSlideFade
+					>
+						{validation.errors.password}
+					</p>
+				{/if}
 			</label>
 
 			<label>
@@ -100,7 +133,20 @@
 					minlength="8"
 					placeholder="speak it once more"
 					required
+					aria-invalid={validation.invalid('confirmPassword')}
+					aria-describedby={validation.describedBy('confirmPassword')}
+					oninput={validation.clearOnInput}
 				/>
+				{#if validation.errors.confirmPassword}
+					<p
+						class="field-error"
+						role="alert"
+						id={validation.errorId('confirmPassword')}
+						transition:errorSlideFade
+					>
+						{validation.errors.confirmPassword}
+					</p>
+				{/if}
 			</label>
 
 			{#if mismatch}

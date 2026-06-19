@@ -216,6 +216,19 @@ input:autofill:active {
 	font-style: italic;
 }
 
+/* Per-field inline validation message (the themed replacement for the browser's
+   native validation bubble). Sits directly under the offending field inside its
+   <label>; small, warm-rust, italic — paired with role="alert" so screen readers
+   announce it and aria-describedby links it to its field. Shared across all four
+   gate forms (sign-in, sign-up, forgot-password, reset-password) so the styling
+   lives in one place rather than four scoped copies. */
+.field-error {
+	margin: 0;
+	color: var(--color-error);
+	font-style: italic;
+	font-size: var(--text-sm);
+}
+
 /* Images never overflow their column on small screens. */
 img {
 	max-width: 100%;

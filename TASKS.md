@@ -20,11 +20,11 @@
 
 ## Active Milestones
 
-**Milestone M8 — Snacktum Snacktorum: Rebrand & Redesign** — [[tasks/milestone-08-snacktum-snacktorum-rebrand]]
-(planner-exploded 2026-06-18 on user activation). A **user-facing rebrand + UI/UX
-redesign**: "Top Dog" → the hot-dog **cult** app "Snacktum Snacktorum"; champion title
-"Top Dog" → **"The Anointed Wiener"** (copy swap only — code identifiers unchanged); a
-global app shell + nav, the auth cluster (real `/sign-in` form, forgot/reset password,
+**Milestone M8 — Snacktum Snacktorum: Rebrand & Redesign** `active` — [[tasks/milestone-08-snacktum-snacktorum-rebrand]]
+(planner-exploded 2026-06-18; **BUILD activated 2026-06-19**). A **user-facing rebrand +
+UI/UX redesign**: "Top Dog" → the hot-dog **cult** app "Snacktum Snacktorum"; champion
+title "Top Dog" → **"The Anointed Wiener"** (copy swap only — code identifiers unchanged);
+a global app shell + nav, the auth cluster (real `/sign-in` form, forgot/reset password,
 ritual sign-up), a profile redesign + display-name surfacing, an error/404 page, the
 "Anoint" mustard re-theme, and a base cult visual/theme layer. **Reuses the locked
 PROJECT.md stack/architecture/paradigm and all decisions #1–#28 + L2 — no re-plenary, no
@@ -32,24 +32,27 @@ new infra, no new deps expected.** 10 tasks (TASK-080…TASK-089; TASK-089 = the
 badge "Reliquary", a purely-derived read-only addition — no schema/migration/dependency,
 un-forgeable by construction).
 
-> **⛔ EXECUTION BLOCKED — designs are landing; no build until the user's "go".** The
-> milestone is exploded with full task detail and **designs are now arriving**: almost
-> every page is mocked — the app shell, the auth cluster (Log In, Reset Password,
-> Onboarding), The Procession, The Shrine (profile), Your Litter, the Tribunal, Epistles
-> (DM inbox), Whispers (DM thread), Summon a Frank (invite), The Catechism (help), and The
-> Lost Pilgrim (error/404) — **only the dog-detail page remains to be mocked.** **Most Open
-> Questions are RESOLVED:** OQ-1 (ritual sign-up → a multi-step rite that absorbs
-> onboarding), OQ-3 (the dark-temple visual theme), and OQ-4 (Cinzel + Cormorant Garamond,
-> self-hosted woff2) are decided. \*\*The open set is now just OQ-2 (the Anoint specifics —
-> sub-decisions OQ-2a–e, including a new derived "anoint → wall notice" sub-decision OQ-2e)
+> **🔨 BUILDING — activated 2026-06-19. TASK-087 complete (1/10); next: TASK-080.**
+> TASK-087 (base cult visual / theme layer, PR #99 `dcce8c3`) landed the M8 FOUNDATION:
+> a tokenized dark-temple CSS layer (`src/lib/styles/tokens.css`, imported by
+> `src/app.css`) every downstream task consumes via `var(--…)` tokens (accents switch via
+> `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` fonts under
+> `static/fonts/` (no CDN, no npm package), and themed flair-component styling — **no
+> migration, no new dependency, no new architecture-decision row** (decision table stays
+> #28). 1 fix cycle (a WCAG 2.4.7 focus-ring regression on the wall textarea). Next up is
+> **TASK-080 (global app shell + nav)**, then the copy + per-page redesign passes.
 >
-> - OQ-5 (only the dog-detail page name; The Shrine / Epistles / Whispers / the "Enter the
->   Snacktum" sign-in heading are now confirmed).** Every task nonetheless stays **`blocked`**
->   until the user delivers the remaining design + activates — **do not dispatch any M8 task
->   on agent initiative.** A `design-light` trio (TASK-080 app shell, TASK-082 sign-in,
->   TASK-083 password reset) is the most design-independent and could be unblocked early **at
->   the user's discretion\*\*. See the milestone file's ⛔ Execution Block + Open Questions
->   sections.
+> **Designs are mostly in:** almost every page is mocked — the app shell, the auth cluster
+> (Log In, Reset Password, Onboarding), The Procession, The Shrine (profile), Your Litter,
+> the Tribunal, Epistles (DM inbox), Whispers (DM thread), Summon a Frank (invite), The
+> Catechism (help), and The Lost Pilgrim (error/404) — **only the dog-detail page remains
+> to be mocked.** **Open items still to resolve as their tasks come up:** **OQ-2** (the
+> Anoint specifics — sub-decisions OQ-2a–e, including the derived "anoint → wall notice"
+> OQ-2e) and the **dog-detail page name** (the last open part of OQ-5; The Shrine /
+> Epistles / Whispers / the "Enter the Snacktum" sign-in heading are confirmed). Dispatch
+> M8 tasks **only on explicit user instruction**, in the milestone file's sequence — do
+> not auto-chain. See the milestone file's Open Questions + Dependencies & Sequencing
+> sections.
 
 > **Open ops action (user) — unrelated to M8:** the two M7 migrations
 > (`20260617205453_burger_alarms.sql`, `20260618120000_burger_verdicts.sql`) still need a

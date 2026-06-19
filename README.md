@@ -117,6 +117,24 @@ The test harness bootstraps its own invite and reads local credentials from
 oversized-caption, RLS, and column-grant violations are rejected); run it with
 `pnpm test:e2e --grep @security`.
 
+### Testing the password-recovery flow locally
+
+Recovery uses a **6-digit OTP code** (not a magic link). With the local stack up and
+the dev server running:
+
+1. Go to `/forgot-password` and submit the account's email (the page always returns the
+   same neutral message, whether or not the email exists).
+2. Open **Mailpit** at <http://localhost:54324> and read the **6-digit code** from the
+   "recovery rite" email. It is code-only — `supabase/config.toml` sets `otp_length = 6`
+   and points the recovery template at `supabase/templates/recovery.html`. (Supabase's
+   default email sends a link, so this template must be present — and the same template
+   must be set on the hosted project, via the dashboard or `supabase config push`, or
+   production will send a link instead of a code.)
+3. Go to `/reset-password`, enter the code plus a new password (at least 8 characters,
+   confirmed) to set it.
+
+A `supabase db reset` wipes any seeded/test user, so re-seed or re-redeem an invite first.
+
 ## Commands
 
 | Command                       | Description                     |

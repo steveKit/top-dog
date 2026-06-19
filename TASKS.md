@@ -32,8 +32,8 @@ new infra, no new deps expected.** 10 tasks (TASK-080…TASK-089; TASK-089 = the
 badge "Reliquary", a purely-derived read-only addition — no schema/migration/dependency,
 un-forgeable by construction).
 
-> **🔨 BUILDING — activated 2026-06-19. TASK-087 + TASK-080 complete (2/10); next: the
-> auth cluster (TASK-082 sign-in / TASK-083 reset) or TASK-081 (copy).**
+> **🔨 BUILDING — activated 2026-06-19. TASK-087 + TASK-080 + TASK-083 complete (3/10);
+> next: TASK-082 (sign-in) or TASK-081 (copy).**
 > TASK-087 (base cult visual / theme layer, PR #99 `dcce8c3`) landed the M8 FOUNDATION:
 > a tokenized dark-temple CSS layer (`src/lib/styles/tokens.css`, imported by
 > `src/app.css`) every downstream task consumes via `var(--…)` tokens (accents switch via
@@ -47,7 +47,16 @@ un-forgeable by construction).
 > `/app` → `/app/feed`, and retired the bare `/app` hub (`redirect(307,'/app/feed')`).
 > **`TopDogPrivilegesNotice` (TASK-074) was intentionally RETIRED** (Top Dog powers now in
 > The Catechism + the crown-gated Tribunal link) — `pnpm test` 783 → 775; 1 fix cycle; no
-> migration / no new dependency / no new decision row.
+> migration / no new dependency / no new decision row. **TASK-083 (forgot/reset password,
+> PR #103 `3e236be`)** then landed the recovery cluster: `/forgot-password`
+> (`resetPasswordForEmail`, neutral non-enumerating) + `/reset-password` (**6-digit OTP**
+> → `verifyOtp(type:'recovery')` → `updateUser`; `MIN_PASSWORD_LENGTH` 8 + confirm). 1 fix
+> cycle added a code-emitting recovery email template
+> (`supabase/templates/recovery.html` `{{ .Token }}` + `[auth.email.template.recovery]` /
+> `otp_length = 6`), director-verified by a live Mailpit round-trip; `pnpm test` 793; **no
+> migration / no new dependency / no new decision row** (the template + `otp_length` are
+> config). Adds a hosted CONFIG item to the standing ops gate (below) + DW-029
+> (`MIN_PASSWORD_LENGTH` duplication).
 >
 > **Designs are mostly in:** almost every page is mocked — the app shell, the auth cluster
 > (Log In, Reset Password, Onboarding), The Procession, The Shrine (profile), Your Litter,
@@ -75,7 +84,14 @@ un-forgeable by construction).
 > daily prune step). **Batch TASK-086's hosted push with the two M7 migrations** (one
 > `supabase db push`) and drop the prune step from `.github/workflows/keepalive.yml` in
 > lockstep so the workflow doesn't keep calling a retired RPC (which would 404). No other
-> M8 task adds a migration.
+> M8 task adds a migration. **ALSO (TASK-083, 2026-06-19) — a hosted CONFIG item on the
+> same gate (no migration):** the hosted Supabase project's **recovery email template must
+> be set to the code-emitting `{{ .Token }}` template** (the cult-themed
+> `supabase/templates/recovery.html` + `[auth.email.template.recovery]` / `otp_length = 6`
+> in `config.toml`), via the dashboard or `supabase config push` — **or production sends a
+> recovery LINK instead of a CODE**, breaking the `/reset-password` page. No DB migration,
+> no auto-pause risk; batch it with the burger migrations + the TASK-086 prune migration as
+> one hosted bring-up step.
 
 ## Planned Milestones
 

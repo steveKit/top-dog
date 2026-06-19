@@ -1,6 +1,6 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme) + TASK-080 (app shell) **complete** — 2/10. Next: the auth cluster (TASK-082 sign-in / TASK-083 reset) or TASK-081 (copy). **OQ-2 + OQ-5 now FULLY RESOLVED (2026-06-19); dog-detail page = "The Relic"; TASK-086 adopts Option A — it WILL carry one migration (retire `prune_mustard_sprays`) + a likely decision #29.**
+> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme) + TASK-080 (app shell) + TASK-083 (password reset) **complete** — 3/10. Next: TASK-082 (sign-in). **OQ-2 + OQ-5 FULLY RESOLVED (2026-06-19); dog-detail page = "The Relic"; TASK-086 adopts Option A — it WILL carry one migration (retire `prune_mustard_sprays`) + a likely decision #29.**
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum", and
 > redesign the user-facing surface — a global app shell + nav, the auth cluster
@@ -361,62 +361,6 @@ stub is the destination of every bounce — a real gap.
   `signInWithPassword` returns a generic invalid-credentials error; surface a single
   friendly message for all failure modes.
 - No new dependency; no schema; no new architecture-decision row.
-
----
-
-### TASK-083: Forgot-password + reset-password flow [`in_progress`] [`P1`] [`M`] (`design-light`)
-
-**Owner:** unassigned
-**Dependencies:** `DESIGNS` (both page designs); soft-depends on TASK-082 (sign-in
-links to forgot-password).
-
-**Problem:** there is **no password-recovery path** — neither `/forgot-password`
-nor `/reset-password` exists. A member who forgets their password is locked out.
-
-**Acceptance Criteria:**
-
-- [ ] **`/forgot-password`** (`forgot-password/+page.svelte` + `+page.server.ts`):
-      a form that takes an email and calls
-      **`supabase.auth.resetPasswordForEmail(email, { redirectTo: <reset URL> })`**.
-      Always returns the **same neutral, non-enumerating** success message
-      ("If that email is registered, a reset link is on its way.") whether or not the
-      email exists. Boundary-validate the email; `use:enhance` + loading affordance.
-- [ ] **`/reset-password`** (`reset-password/+page.svelte` + `+page.server.ts`):
-      reached from the emailed recovery link (Supabase establishes a recovery
-      session). A form takes the **new password** (with confirm) and calls
-      **`supabase.auth.updateUser({ password })`** on `event.locals.supabase`.
-      Enforce the **same `MIN_PASSWORD_LENGTH` (8)** as sign-up. On success, friendly
-      confirmation and a link/redirect to `/sign-in` (or `/app` if a full session is
-      present). On failure (expired/invalid recovery link), a friendly message.
-- [ ] **Recovery-session handling** done correctly for `@supabase/ssr` — verify the
-      current SSR recovery flow against Supabase docs (the recovery token arrives via
-      the URL; the session must be picked up server-side via the per-request client /
-      hooks). **This is the one task that needs a quick doc check** — confirm the
-      current `resetPasswordForEmail` + `updateUser` SSR pattern before building.
-- [ ] **Local email testing documented:** local reset emails land in **Mailpit**
-      (`http://localhost:54324`). Add a note (task Notes + a line for the README /
-      [[CLAUDE]] testing section via the documenter) so the flow is testable locally.
-- [ ] **Security (L2):** non-enumerating forgot-password response; password length
-      enforced; raw errors logged server-side only; the recovery session is the
-      authoritative gate for `updateUser` (a user cannot reset another account's
-      password). No secret key on the client.
-- [ ] **Tests:** action coverage for both pages (valid/invalid email → neutral
-      success; short/blank/mismatched new password → `fail(400)`; success →
-      confirmation/redirect). An E2E that exercises the local Mailpit round-trip is
-      **optional/stretch** (Mailpit message-fetch); at minimum the action logic is
-      unit-tested. If an E2E is added it uses the **local stack only** (never hosted),
-      per the harness guardrail.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      4/4, `@security` green. No migration.
-
-**Notes (for the implementer):**
-
-- **`design-light`:** logic is design-independent; only markup/styling waits.
-- **Doc check required** (the SSR recovery-session handshake) — do this before
-  coding. Everything else reuses the established `event.locals.supabase` +
-  `safeGetSession()` boundary.
-- No new dependency expected (Supabase Auth covers reset natively); no schema; no
-  new architecture-decision row.
 
 ---
 
@@ -1125,6 +1069,86 @@ APPROVE).
 
 ---
 
+### TASK-083: Forgot-password + reset-password flow [`complete`] [`P1`] [`M`] (`design-light`)
+
+**Owner:** implementer — PR #103 (squash `3e236be`), merged 2026-06-19. Reviewer
+APPROVE, 1 fix cycle (the recovery email template was missing, so the default email
+sent a link not a code — added a cult-themed `{{ .Token }}` template + config wiring).
+
+**Problem:** there was no password-recovery path; a member who forgot their password
+was locked out.
+
+**Acceptance Criteria:**
+
+- [x] **`/forgot-password`** — email form → `resetPasswordForEmail`; always returns
+      the same neutral, non-enumerating message; boundary-validated; `use:enhance`.
+- [x] **`/reset-password`** — **6-digit OTP code** + new password (confirm) →
+      `verifyOtp({ email, token, type: 'recovery' })` → `updateUser({ password })`.
+      `MIN_PASSWORD_LENGTH` (8) + confirm-match enforced; friendly fail on
+      wrong/expired code. (Code flow per the resolved OQ — not magic-link.)
+- [x] **Recovery handshake** doc-checked (director-run, agent web tools were denied):
+      the `resetPasswordForEmail` → `verifyOtp(type:'recovery')` → `updateUser` flow is
+      the correct supabase-js v2 code-recovery pattern; `type:'recovery'` is TS-valid.
+- [x] **Local email testing:** recovery emails land in Mailpit (`http://localhost:54324`);
+      director ran a **live round-trip** — a real 6-digit code was delivered (code-only).
+- [x] **Security (L2):** non-enumerating (forgot + reset error paths); password length + confirm at the boundary; recovery session is the authoritative `updateUser`
+      gate; raw errors logged server-side only; no secret key on the client.
+- [x] **Tests:** action coverage for both pages (incl. verify-before-update order,
+      no-auth-on-bad-input, no raw-error leakage). 793 total.
+- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 793. No migration.
+      (Recovery template config added — `otp_length = 6`.)
+
+**Notes:**
+
+The password-recovery cluster — the third M8 task (3/10) and the first half of the
+auth cluster. PR #103, squash `3e236be`, merged 2026-06-19. Reviewer APPROVE after
+**1 fix cycle**. **No migration, no new dependency, no new architecture-decision row**
+(the recovery email template + `otp_length` are config; the decision table stays at #28).
+
+- **6-digit OTP code recovery (not magic-link).** Two new public routes realize the
+  resolved OQ reset flow as a code handshake: `/forgot-password` posts an email to
+  **`resetPasswordForEmail`** and **always returns the same neutral message**
+  (non-enumerating — no signal whether the email exists); `/reset-password` takes the
+  **6-digit code** + a new password (with confirm) and runs
+  **`verifyOtp({ email, token, type: 'recovery' })` → `updateUser({ password })`**. The
+  recovery session minted by `verifyOtp` is the authoritative gate on `updateUser` — the
+  password is never changed without a verified code. `MIN_PASSWORD_LENGTH` (8) and the
+  confirm-match are enforced at the boundary; a wrong/expired code surfaces a friendly
+  failure. The user chose **6 digits over the design's 4-mark** sigil (`otp_length = 6`).
+- **The 1 fix cycle — missing recovery email template (the load-bearing fix).** As first
+  built, Supabase fell back to its **default** recovery email, which sends a magic
+  **link**, not a **code** — incompatible with the code-entry `/reset-password` page. The
+  fix added a cult-themed **`supabase/templates/recovery.html`** that emits the 6-digit
+  `{{ .Token }}` (code-only, no link) and wired **`[auth.email.template.recovery]`** in
+  `supabase/config.toml` (with `otp_length = 6`). This is the **hosted ops consequence**
+  below: hosted production must carry the same code-emitting template or it will send a
+  link instead of a code.
+- **Live Mailpit verification (director-run).** The agent's web tools were denied, so the
+  director doc-checked the `resetPasswordForEmail` → `verifyOtp(type:'recovery')` →
+  `updateUser` handshake against supabase-js v2 (`type:'recovery'` is TS-valid) **and**
+  ran a **live Mailpit round-trip** (`http://localhost:54324`) confirming a real 6-digit,
+  **code-only** email was delivered — subject "Your recovery rite — Snacktum Snacktorum",
+  1h expiry.
+- **Security posture (L2).** Non-enumeration on both the forgot **and** reset error paths
+  (a single neutral message; failures never distinguish "no such email" from "wrong
+  code"); password length + confirm enforced at the boundary; the recovery session is the
+  `updateUser` gate; raw Supabase errors logged **server-side only**, never surfaced to
+  the client; no secret key on the client.
+- **Gates (director-run):** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` **793**. No
+  migration. (Recovery template + `otp_length = 6` config added.)
+- **Hosted ops gate (carried forward).** The hosted Supabase project's **recovery email
+  template must be set to the code-emitting `{{ .Token }}` template** (via the dashboard
+  or `supabase config push`) — otherwise production will send a recovery **link** instead
+  of a **code**, breaking the `/reset-password` code-entry page. Added to the standing
+  hosted-push/ops gate alongside the two M7 burger migrations and the TASK-086 prune
+  migration (see § Standing ops note, [[PROJECT]] Process notes, and [[TASKS]]).
+
+**Discovered during this task:** DW-029 (`MIN_PASSWORD_LENGTH` + the email pattern are
+duplicated across the auth pages — extract a shared `$lib/features/auth` validation
+module; see [[tasks/discovered]]).
+
+---
+
 ## Open Questions (REQUIRED — resolve WITH the designs before/at activation)
 
 These are the undecided items the build must not guess. Resolve each **with the
@@ -1401,6 +1425,15 @@ non-functional on hosted until they're pushed (user's hand).
 > calling a retired/neutered RPC (which would 404 → the hosted-schema-drift failure
 > mode in [[CLAUDE]]). Follow the per-milestone hosted-push discipline ([[PROJECT]]
 > Process notes). No other M8 task adds a migration.
+
+> **‼️ ALSO (2026-06-19) — TASK-083 adds a hosted CONFIG item to this same gate (no
+> migration).** The password-recovery flow ships a code-emitting recovery email
+> template (`supabase/templates/recovery.html` + `[auth.email.template.recovery]` /
+> `otp_length = 6` in `config.toml`). **Hosted production must carry the same template**
+> — set the recovery email to the `{{ .Token }}` (code-only) template via the Supabase
+> dashboard **or** `supabase config push`, **or production will send a recovery LINK
+> instead of a CODE**, breaking the `/reset-password` code-entry page. Batch this with
+> the M7 burger migrations + the TASK-086 prune migration as one hosted bring-up step.
 
 ---
 

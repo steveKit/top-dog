@@ -57,9 +57,16 @@ supabase db reset            # re-apply all migrations to local DB
 pnpm dev
 # Local dev on WSL: `pnpm dev` binds inside WSL, so a Windows-native browser cannot
 # reach the default bind. Use `pnpm dev --host` and open http://localhost:5173 (or the
-# WSL IP) from Windows. (Reset emails for the password-recovery flow land in Mailpit:
-# http://localhost:54324.)
+# WSL IP) from Windows.
 pnpm dev --host              # expose the dev server to a Windows-native browser
+
+# Password-recovery flow (local test, TASK-083): the reset is a 6-digit OTP CODE, not a
+# magic link. (1) go to /forgot-password and submit the account email; (2) open Mailpit at
+# http://localhost:54324 and read the 6-digit code from the "recovery rite" email
+# (code-only — config.toml sets otp_length=6 + the supabase/templates/recovery.html
+# template; the Supabase default sends a LINK, so the template must be present locally AND
+# on hosted); (3) go to /reset-password and enter the code + a new password (>= 8 chars,
+# confirmed) to set it. A `supabase db reset` wipes any test user — re-seed / re-redeem.
 
 # Run tests (CI mode — no watch)
 pnpm test                    # vitest run

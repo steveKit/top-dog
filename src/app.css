@@ -188,6 +188,28 @@ img {
 	padding: var(--space-xl) var(--space-lg) var(--space-3xl);
 }
 
+/* Gate-center: vertically + horizontally center a short single-form page in
+   the viewport (the classic login-screen look). Applied by the root auth/gate
+   pages (sign-in, sign-up, forgot-password, reset-password) to their top-level
+   <main>. Not for in-app pages, which scroll and stay top-anchored.
+
+   The page renders inside .page-container, which adds --space-xl top /
+   --space-3xl bottom padding; negative margins cancel that vertical padding so
+   the centering math spans the full viewport height. min-height (never a fixed
+   height) plus no overflow clamp keeps it scroll-safe on short viewports — the
+   content overflows downward and scrolls instead of clipping. */
+.gate-center {
+	min-height: 100svh;
+	margin-top: calc(-1 * var(--space-xl));
+	margin-bottom: calc(-1 * var(--space-3xl));
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	/* Breathing room so the form never butts against the viewport edges on
+	   short screens before scrolling kicks in. */
+	padding-block: var(--space-xl);
+}
+
 /* ===================================================================== */
 /* Animation utilities — ported from the mockups' @keyframes                  */
 /* ===================================================================== */
@@ -218,6 +240,25 @@ img {
 	pointer-events: none;
 	z-index: 0;
 	animation: glowPulse var(--motion-glow-pulse) var(--ease-in-out) infinite;
+}
+
+/* Gate-page glow alignment: the gate pages (.gate-center) vertically center
+   their content in the viewport, so the default top-anchored .glow-orb reads
+   as mismatched. Scope ONLY to a .page-container that holds a .gate-center
+   (the four auth/gate pages) and halo the decorative glow behind the UPPER
+   TEXT — the the-holy-tube mark + heading at the top of the centered content
+   block — rather than the form middle. The vertically-centered content begins
+   above the viewport midline, so anchor the glow's center near the upper third
+   (28%); the token nudge lifts it onto the mark itself. In-app pages wrap their
+   glow in .shell-glow with their own positioning context and are untouched by
+   this scope. */
+.page-container:has(> .gate-center) {
+	position: relative;
+}
+
+.page-container:has(> .gate-center) .glow-orb {
+	top: 28%;
+	transform: translate(-50%, calc(-50% - var(--space-xl)));
 }
 
 /* Entrance: content rises and fades in. */

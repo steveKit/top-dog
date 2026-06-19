@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
 
 	let { form } = $props();
 
@@ -17,7 +18,8 @@
 
 <div class="glow-orb" aria-hidden="true"></div>
 
-<main class="recovery fade-up">
+<main class="recovery fade-up gate-center">
+	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
 	{#if form?.success}
 		<span class="eyebrow">A Rite Dispatched</span>
 		<h1>Check Thy Mustard</h1>
@@ -28,7 +30,7 @@
 				>Enter thy recovery code →</a
 			>
 		</p>
-		<a class="btn-text" href={resolve('/sign-in')}>← Back to the gates</a>
+		<a class="btn-text" href={resolve('/sign-in')}>← Back to the grill</a>
 	{:else}
 		<span class="eyebrow">The Lost Seal</span>
 		<h1>Restore Thy Seal</h1>
@@ -55,7 +57,7 @@
 					name="email"
 					value={initialEmail}
 					autocomplete="email"
-					placeholder="you@parish.com"
+					placeholder="you@mustard.condiment"
 					required
 				/>
 			</label>
@@ -69,7 +71,7 @@
 			<p role="alert">{form.error}</p>
 		{/if}
 
-		<a class="btn-text" href={resolve('/sign-in')}>← Thy memory returns? Back to the gates</a>
+		<a class="btn-text" href={resolve('/sign-in')}>← Thy memory returns? Back to the grill</a>
 	{/if}
 </main>
 
@@ -82,6 +84,15 @@
 		text-align: center;
 		max-width: var(--measure-form);
 		margin: 0 auto;
+	}
+
+	/* The Holy Tube — a decorative brand mark crowning the page, sized as a
+	   tasteful relic above the title. Token-sized for a consistent treatment
+	   across all four gate pages. */
+	.gate-mark {
+		width: var(--space-3xl);
+		height: var(--space-3xl);
+		display: block;
 	}
 
 	form {

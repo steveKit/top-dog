@@ -117,6 +117,89 @@
       </sc-if>
     </div>
 
+    <div style="width:100%; max-width:600px; margin-top:22px; display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:rgba(224,168,46,0.2); border:1px solid rgba(224,168,46,0.25); border-radius:3px; overflow:hidden;">
+      <div style="background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ timesCrowned }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Times Crowned</span></div>
+      <div style="background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ franksOffered }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Franks Offered</span></div>
+      <div style="background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ totalDevotion }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Total Devotion</span></div>
+      <div style="background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ highestBlessing }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Highest Blessing</span></div>
+      <div style="background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ disciplesSummoned }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Disciples Summoned</span></div>
+      <div style="background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ anointingsReceived }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Anointings Received</span></div>
+      <div style="grid-column:1 / -1; background:#1c140d; padding:18px 14px; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;"><span style="font:700 30px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ reactionsReceived }}</span><span style="font:600 9.5px/1.3 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Reactions Received</span></div>
+      <sc-if value="{{ isHeretic }}" hint-placeholder-val="{{ false }}">
+        <div style="grid-column:1 / -1; background:rgba(210,74,54,0.14); padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:10px; text-align:center;"><span style="font:700 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:#ef8a72; border:1px solid #d24a36; padding:4px 10px; border-radius:2px;">⚠ Heretic</span><span style="font:400 15px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.85);">Marked by the Tribunal — confirmed hamburger.</span></div>
+      </sc-if>
+      <sc-if value="{{ isLiar }}" hint-placeholder-val="{{ false }}">
+        <div style="grid-column:1 / -1; background:rgba(210,74,54,0.1); padding:14px 16px; display:flex; align-items:center; justify-content:center; gap:10px; text-align:center;"><span style="font:700 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:#ef8a72; border:1px solid rgba(210,74,54,0.6); padding:4px 10px; border-radius:2px;">✕ Liar</span><span style="font:400 15px/1.3 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.75);">Bore false witness — the mark shall fade in time.</span></div>
+      </sc-if>
+    </div>
+
+    <section style="width:100%; max-width:600px; margin-top:50px; display:flex; flex-direction:column; gap:18px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+        <h2 style="font:600 14px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E); margin:0;">The Reliquary</h2>
+        <span style="font:400 16px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.55);">Honors earned in service of the Tube</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:22px 16px; padding:16px 8px 18px; border-bottom:2px solid rgba(224,168,46,0.22);">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
+          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="6" rx="3" fill="currentColor"></rect></svg></div>
+          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">First Frank</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
+          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M3 18 L3 7 L8 11 L12 4 L16 11 L21 7 L21 18 Z" fill="currentColor"></path></svg></div>
+          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">The Crowned</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
+          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 2 L14 10 L22 12 L14 14 L12 22 L10 14 L2 12 L10 10 Z" fill="currentColor"></path></svg></div>
+          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">Centurion</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:var(--accent,#E0A82E);">
+          <div style="width:72px; height:72px; border-radius:50%; border:2px solid var(--accent,#E0A82E); background:radial-gradient(circle at 50% 35%, rgba(224,168,46,0.2), #1a120b 70%); display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(224,168,46,0.25);"><svg width="30" height="30" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="9" fill="none" stroke="currentColor" stroke-width="2"></ellipse><ellipse cx="12" cy="12" rx="4" ry="4" fill="none" stroke="currentColor" stroke-width="2"></ellipse></svg></div>
+          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#e9d9b3; text-align:center;">Thousandfold</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:rgba(243,233,210,0.2);">
+          <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(224,168,46,0.15); background:#15100b; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 3 C12 3 5 12 5 16 a7 7 0 0 0 14 0 C19 12 12 3 12 3 Z" fill="currentColor"></path></svg></div>
+          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(243,233,210,0.32); text-align:center;">The Anointer</span>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:9px; width:92px; color:rgba(243,233,210,0.2);">
+          <div style="width:72px; height:72px; border-radius:50%; border:2px solid rgba(224,168,46,0.15); background:#15100b; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24"><path d="M12 3 C14 8 19 9 16 15 a4 4 0 0 1 -8 0 C6 11 10 9 12 3 Z" fill="currentColor"></path></svg></div>
+          <span style="font:600 9px/1.25 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:rgba(243,233,210,0.32); text-align:center;">Apostle</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="width:100%; max-width:600px; margin-top:52px; display:flex; flex-direction:column; gap:22px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+        <h2 style="font:600 14px/1 'Cinzel',serif; letter-spacing:4px; text-transform:uppercase; color:var(--accent,#E0A82E); margin:0;">The Litter</h2>
+        <span style="font:400 16px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.55);">{{ litterCount }} sacred links offered to the Tube</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <sc-if value="{{ litterCanPrev }}" hint-placeholder-val="{{ false }}"><button onClick="{{ litterPrev }}" aria-label="Previous link" style="flex:none; width:42px; height:42px; border-radius:50%; border:1.5px solid var(--accent,#E0A82E); background:#1a120b; display:flex; align-items:center; justify-content:center; font:400 22px/1 'Cinzel',serif; color:var(--accent,#E0A82E); cursor:pointer;" style-hover="background:rgba(224,168,46,0.14);" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;">‹</button></sc-if>
+        <sc-if value="{{ litterAtStart }}" hint-placeholder-val="{{ true }}"><span aria-hidden="true" style="flex:none; width:42px; height:42px; border-radius:50%; border:1.5px solid rgba(224,168,46,0.18); display:flex; align-items:center; justify-content:center; font:400 22px/1 'Cinzel',serif; color:rgba(224,168,46,0.28);">‹</span></sc-if>
+        <div ref="{{ litterViewport }}" style="flex:1; min-width:0; overflow:hidden; padding:14px 0 18px;">
+          <div ref="{{ litterTrack }}" style="display:flex; gap:26px; transition:transform .4s ease; will-change:transform;">
+            <sc-for list="{{ litter }}" as="link" hint-placeholder-count="4">
+              <div style="flex:none; width:188px; display:flex; flex-direction:column; gap:9px; transform-origin:center center;">
+            <div style="position:relative; aspect-ratio:1; border:2px solid rgba(224,168,46,0.45); border-radius:3px; overflow:hidden; background:#0f0b07;">
+              <image-slot id="litter-{{ link.id }}" shape="rounded" radius="0" placeholder="a sacred link" style="width:100%; height:100%; display:block;"></image-slot>
+              <sc-if value="{{ link.top }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; top:8px; left:8px; display:flex; align-items:center; gap:5px; padding:4px 9px; background:linear-gradient(#f0c45a,#d2972a); border:1px solid #8a6a24; border-radius:2px; box-shadow:0 3px 10px rgba(0,0,0,0.45);">
+                  <svg viewBox="0 0 24 16" width="12" height="8" aria-hidden="true"><path d="M2 14 L2 5 L7 9 L12 2 L17 9 L22 5 L22 14 Z" fill="#17120e" stroke="#17120e" stroke-width="1" stroke-linejoin="round"></path></svg>
+                  <span style="font:700 8px/1 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#17120e;">Top Link</span>
+                </div>
+              </sc-if>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+              <span style="font:400 16px/1.2 'Cormorant Garamond',serif; color:rgba(243,233,210,0.85); min-width:0;">{{ link.name }}</span>
+              <span style="flex:none; display:flex; align-items:baseline; gap:5px;"><span style="font:700 16px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ link.displayVotes }}</span><span style="font:600 8px/1 'Cinzel',serif; letter-spacing:1.5px; color:rgba(243,233,210,0.5);">VOTES</span></span>
+            </div>
+          </div>
+            </sc-for>
+          </div>
+        </div>
+        <sc-if value="{{ litterCanNext }}" hint-placeholder-val="{{ true }}"><button onClick="{{ litterNext }}" aria-label="Next link" style="flex:none; width:42px; height:42px; border-radius:50%; border:1.5px solid var(--accent,#E0A82E); background:#1a120b; display:flex; align-items:center; justify-content:center; font:400 22px/1 'Cinzel',serif; color:var(--accent,#E0A82E); cursor:pointer;" style-hover="background:rgba(224,168,46,0.14);" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;">›</button></sc-if>
+        <sc-if value="{{ litterAtEnd }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="flex:none; width:42px; height:42px; border-radius:50%; border:1.5px solid rgba(224,168,46,0.18); display:flex; align-items:center; justify-content:center; font:400 22px/1 'Cinzel',serif; color:rgba(224,168,46,0.28);">›</span></sc-if>
+      </div>
+    </section>
+
     <div style="display:flex; align-items:center; gap:14px; color:var(--accent,#E0A82E); font-size:14px; margin:48px 0 0; width:100%; justify-content:center;"><span style="width:80px; height:1px; background:var(--accent,#E0A82E); opacity:.4;"></span>✦<span style="width:80px; height:1px; background:var(--accent,#E0A82E); opacity:.4;"></span></div>
 
     <!-- ===== MESSAGE WALL ===== -->
@@ -178,6 +261,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;reigns&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;viewerIsAnointed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;brand&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;None&quot;,&quot;Heretic&quot;,&quot;Liar&quot;],&quot;default&quot;:&quot;None&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewingOwnShrine&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   state = {
+    litterActive: 0,
     text: '',
     posting: false,
     messages: [
@@ -194,6 +278,28 @@ class Component extends DCLogic {
   };
 
   VIEWER = '@CassiusTheCased';
+  LITTER_COUNT = 4;
+  litterViewport = React.createRef();
+  litterTrack = React.createRef();
+
+  layoutLitter = () => {
+    const vp = this.litterViewport.current, tr = this.litterTrack.current;
+    if (!vp || !tr) return;
+    const W = 188, G = 26, vw = vp.clientWidth, a = this.state.litterActive;
+    tr.style.transform = 'translateX(' + (vw / 2 - (a * (W + G) + W / 2)) + 'px)';
+    Array.prototype.forEach.call(tr.children, (t, i) => {
+      const d = Math.abs(i - a);
+      t.style.transition = 'transform .4s ease, opacity .4s ease';
+      t.style.transform = 'scale(' + (d === 0 ? 1 : d === 1 ? 0.82 : 0.64) + ')';
+      t.style.opacity = d === 0 ? 1 : d === 1 ? 0.5 : 0.2;
+      t.style.pointerEvents = d === 0 ? 'auto' : 'none';
+    });
+  };
+  componentDidMount() { this.layoutLitter(); this._lr = () => this.layoutLitter(); window.addEventListener('resize', this._lr); }
+  componentDidUpdate() { this.layoutLitter(); }
+  componentWillUnmount() { window.removeEventListener('resize', this._lr); }
+  litterPrev = () => this.setState((s) => ({ litterActive: Math.max(0, s.litterActive - 1) }));
+  litterNext = () => this.setState((s) => ({ litterActive: Math.min(this.LITTER_COUNT - 1, s.litterActive + 1) }));
 
   onText = (e) => this.setState({ text: e.target.value });
 
@@ -240,6 +346,15 @@ class Component extends DCLogic {
       onDelete: () => this.setState((s) => ({ messages: s.messages.filter((x) => x.id !== m.id) }))
     }));
 
+    const LITTER = [
+      { id: 'dawn', name: 'The Dawn Vienna', votes: 1204, top: true },
+      { id: 'coalfire', name: 'Coalfire Brat', votes: 612 },
+      { id: 'humble', name: 'The Humble Tube', votes: 340 },
+      { id: 'martyr', name: 'Mustard Martyr', votes: 198 }
+    ];
+    const litter = LITTER.map((l) => ({ id: l.id, name: l.name, top: !!l.top, displayVotes: l.votes.toLocaleString('en-US') }));
+    const totalDevotion = LITTER.reduce((n, l) => n + l.votes, 0);
+
     const hasText = this.state.text.trim().length > 0;
 
     return {
@@ -249,6 +364,13 @@ class Component extends DCLogic {
       handle: '@FrankfurterTheFaithful',
       swornDate: '12 March 2024',
       daysAnointed: 47,
+      timesCrowned: '3',
+      franksOffered: String(litter.length),
+      totalDevotion: totalDevotion.toLocaleString('en-US'),
+      highestBlessing: '1,400',
+      disciplesSummoned: '6',
+      anointingsReceived: '12',
+      reactionsReceived: '488',
       reigns, showChampionBadge: reigns,
       anointMode,
       isHeretic: brand === 'Heretic',
@@ -256,6 +378,16 @@ class Component extends DCLogic {
       showEpistle: !viewingOwn,
       marks,
       messages,
+      litter,
+      litterCount: litter.length,
+      litterViewport: this.litterViewport,
+      litterTrack: this.litterTrack,
+      litterPrev: this.litterPrev,
+      litterNext: this.litterNext,
+      litterCanPrev: this.state.litterActive > 0,
+      litterAtStart: this.state.litterActive <= 0,
+      litterCanNext: this.state.litterActive < litter.length - 1,
+      litterAtEnd: this.state.litterActive >= litter.length - 1,
       hasMessages: messages.length > 0,
       noMessages: messages.length === 0,
       text: this.state.text,

@@ -83,9 +83,19 @@ error/404, app-shell nav), and **rendered labels** that today read "Top Dog".
 - **Champion title:** "Top Dog" → **"The Anointed Wiener"** — user-facing copy swap
   everywhere the crown is shown. Code identifiers unchanged (see scope box).
 - **Theme:** a hot-dog **CULT / temple** aesthetic and lore pass across all pages.
-  The Hamburger Court / HAMBURGER LIAR / HAMBURGER HERETIC mechanics **already** fit
-  the cult/heresy theme — lean into them (heresy, excommunication, the unclean
-  hamburger) rather than reinventing.
+  The Hamburger Court / false-accuser brand (display label **FALSE WITNESS**, see the
+  cult naming-map below) / HAMBURGER HERETIC mechanics **already** fit the cult/heresy
+  theme — lean into them (heresy, excommunication, the unclean hamburger) rather than
+  reinventing.
+- **False-accuser brand display label:** **HAMBURGER LIAR → FALSE WITNESS** — the
+  consequence a `not_a_hamburger` verdict inflicts on false accusers is shown to users
+  as **FALSE WITNESS** (it pairs with HERETIC in the cult voice). This is a
+  **DISPLAY-LABEL change only**: every code/data identifier is UNCHANGED — the
+  `hamburger_liars` table, the `not_a_hamburger` verdict value, the
+  `getLiarBrandTimestamps` / `summarizeLiarBrand` helpers, the `liarBrand` /
+  `ProfilePoliceBanner` symbols, and the badge id `liar` all stay exactly as they are.
+  The copy pass (TASK-081) and badge/profile/Tribunal tasks (TASK-085, TASK-089) apply
+  the FALSE WITNESS label; the design prompts already use it (`design/page-design-prompts.md`).
 - **Default landing route = The Procession (`/app/feed`).** The post-auth home is
   **The Procession** (the feed / "Standings of the Blessed"), not the old `/app`
   "kennel" hub. This is a **CONFIRMED decision** (NOT an open question). Two
@@ -165,6 +175,28 @@ already-decided routes.
 > `/app/dogs/[id]`, `/app/profile/[handle]`, `/app/messages`, `/app/messages/[handle]`.
 > Their names are tracked as **OQ-5** (with non-binding suggested options) and must
 > be resolved with the user before TASK-081 finalizes their copy.
+
+### Confirmed cult copy beyond page names (verdict / brand labels)
+
+These are CONFIRMED user-facing label decisions the copy pass (TASK-081) and the
+brand-bearing tasks (TASK-085 Tribunal/profile, TASK-089 Reliquary badge) MUST apply
+verbatim — like the page names above, they are decided, not open:
+
+| User-facing label (CONFIRMED)            | Replaces                  | Code/data identifier (UNCHANGED)                                                                                        |
+| ---------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **The Anointed Wiener** (champion title) | "Top Dog"                 | `is_current_top_dog` / `TopDogBadge` / `selectTopDog` / `days_as_top_dog`                                               |
+| **FALSE WITNESS** (false-accuser brand)  | "HAMBURGER LIAR" / "LIAR" | `hamburger_liars` / `not_a_hamburger` / `getLiarBrandTimestamps` / `summarizeLiarBrand` / `liarBrand` / badge id `liar` |
+
+> **FALSE WITNESS is a DISPLAY-LABEL change only.** Wherever a user reads "HAMBURGER
+> LIAR" or (in the verdict-consequence context) "LIAR" — the Tribunal verdict copy,
+> the profile police-tape brand, the Reliquary shame-relic — show **FALSE WITNESS**
+> (it pairs naturally with HERETIC). **PRESERVE every code/data identifier unchanged**
+> (the `hamburger_liars` table, the `not_a_hamburger` verdict value, the
+> `getLiarBrandTimestamps` / `summarizeLiarBrand` wrappers, the `liarBrand` /
+> `ProfilePoliceBanner` symbols, the `liar` badge id, and any `*Liar*` / `*liar*`
+> symbol). The Reliquary shame-relic badge reads **FALSE WITNESS** (not "False
+> Witness / Liar"). The design prompts already use the FALSE WITNESS wording
+> (`design/page-design-prompts.md`).
 
 ---
 
@@ -312,10 +344,12 @@ no infra names.**
   - the **help page** crown/vote explanation
 - [ ] **Cult/temple lore voice** applied to headings + microcopy across the pages,
       consistent with the designs. Lean into the **existing** heresy theme: the
-      Hamburger Court, **HAMBURGER LIAR**, **HAMBURGER HERETIC** already fit
-      (excommunication / the unclean hamburger / heresy) — re-theme their copy to
+      Hamburger Court, the false-accuser brand (display label **FALSE WITNESS** — see
+      the cult naming-map; the old "HAMBURGER LIAR" wording is renamed in display copy,
+      the `hamburger_liars` code/data is unchanged), and **HAMBURGER HERETIC** already
+      fit (excommunication / the unclean hamburger / heresy) — re-theme their copy to
       match, but **keep the underlying mechanic labels recognizable** (a user who saw
-      "HAMBURGER HERETIC" should still understand the consequence).
+      the brand should still understand the consequence).
 - [ ] **Help page (`/app/help`) accuracy preserved.** It describes live mechanics;
       the copy re-theme must **not** change any _described behavior_ — only the voice.
       Re-verify every mechanic-bearing line still matches source
@@ -573,19 +607,20 @@ current page is the "before."
     `target_profile_id` = this member.
   - **Reactions Received** — count of reactions across this member's dogs
     (`hotdog_reactions` joined via `hot_dogs.owner_id`).
-  - the **HERETIC / LIAR** shame marks — already surfaced as the
-    `ProfilePoliceBanner` brands (`isHeretic` / `liarBrand`); keep those, do not
+  - the **HERETIC / FALSE WITNESS** shame marks — already surfaced as the
+    `ProfilePoliceBanner` brands (`isHeretic` / `liarBrand` — code symbols
+    UNCHANGED; "FALSE WITNESS" is a display-label rename only); keep those, do not
     duplicate them as a "stat".
   - **‼️ Reports are ANONYMOUS — do NOT surface the reporter side on a public
     profile.** Never show "heresies you've called", a count of reports this member
     _made_, or any reporter-side tally. Reporter ids are deliberately never exposed
     (decision #27 / TASK-071 anonymity). Only the _consequences a member bears_
-    (HERETIC, LIAR, anointings received) are public — the accusations they _make_
-    are not. This is a hard constraint, not a preference.
+    (HERETIC, FALSE WITNESS, anointings received) are public — the accusations they
+    _make_ are not. This is a hard constraint, not a preference.
   - Prefer adding these as small read-only count/sum queries to the existing
     `event.locals.supabase` (RLS-scoped) load. Where a render-time pure summary
-    already exists for a value, **reuse it** (e.g. the HERETIC/LIAR brands via
-    `verdict.ts`); do not recompute. If TASK-089 (the derived badge module) lands
+    already exists for a value, **reuse it** (e.g. the HERETIC / FALSE WITNESS brands
+    via `verdict.ts`); do not recompute. If TASK-089 (the derived badge module) lands
     first, these same aggregates can feed both — coordinate to avoid duplicate
     queries, but neither task is a hard dependency of the other.
 - [ ] **Reliquary (badge shelf) placement** — the profile is where the derived
@@ -600,8 +635,8 @@ current page is the "before."
     `mustardOpacity`, positioned in the spray area (decision #15)
   - the **wall** — `renderWallBody` (emoji filter at render, decision #16), post +
     delete actions, `invalidateAll` after mutation
-  - the **🍔 LIAR / HERETIC profile banners** (`ProfilePoliceBanner`) — render-time
-    LIAR decay + persistent HERETIC (decision #15, TASK-073)
+  - the **🍔 FALSE WITNESS / HERETIC profile banners** (`ProfilePoliceBanner`) —
+    render-time FALSE WITNESS decay + persistent HERETIC (decision #15, TASK-073)
   - the **`TopDogBadge`** (label re-copied to "The Anointed Wiener" per TASK-081)
   - the **canSpray** gate (Top-Dog-only) — unchanged authorization (decision #25)
 - [ ] **Title swap** "Top Dog" → "The Anointed Wiener" anywhere the profile shows the
@@ -624,8 +659,9 @@ current page is the "before."
 
 - **Highly design-dependent** — the layout comes from the designs; do not redesign
   ahead of them.
-- This page composes the **most** features (mustard/Anoint, wall+emoji, LIAR/HERETIC
-  banners, badge, canSpray) — the redesign must preserve every one of those wirings.
+- This page composes the **most** features (mustard/Anoint, wall+emoji,
+  FALSE WITNESS/HERETIC banners, badge, canSpray) — the redesign must preserve every
+  one of those wirings.
   Treat it as a re-skin + re-layout, not a rewrite of the data flow.
 - **The derived stat ledger + the badge reliquary are both pure reads of EXISTING
   data** — no new schema, no migration, no new write path, no new dependency. The
@@ -876,7 +912,8 @@ null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable
     `isHamburgerHeretic` / `getDogVerdictsForOwner`** (`reports/verdict.ts` /
     `reports/verdictStore.ts`); do not re-derive. (A shame-mark, not a gilded honor —
     see the design.)
-  - **False Witness / Liar** — has a `hamburger_liars` brand. _Source:_
+  - **False Witness** (display label; internal badge id `liar` — unchanged) — has a
+    `hamburger_liars` brand. _Source:_
     `hamburger_liars` where `reporter_id` = member — **reuse the existing
     `getLiarBrandTimestamps`**. (Decide with the designer whether this badge keys on
     _ever branded_ (any row) or _currently branded_ (within the ~7-day
@@ -914,7 +951,8 @@ null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable
       per-feature graceful-degradation pattern in this load).
 - [ ] **‼️ Reporter anonymity preserved (decision #27 / TASK-071).** **No badge keys on
       the reporter side of a report.** "Heretic" keys on the member's OWN dogs' verdicts
-      (a consequence they bear); "Liar" keys on the member's OWN `hamburger_liars` brand
+      (a consequence they bear); "False Witness" keys on the member's OWN
+      `hamburger_liars` brand
       (a consequence they bear); "Inquisitor" keys on `decided_by` = the member (their
       own rulings as champion). **None** surfaces "who reported whom" or a report-count a
       member _made_. Do **not** add a "number of heresies you've called" badge — that
@@ -949,7 +987,7 @@ null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable
   by the route load (the module never does I/O). The reliquary component mirrors
   `TopDogBadge.svelte` / `ProfilePoliceBanner.svelte` (presentational, logic-free).
 - **Reuse, don't re-derive, where a helper exists.** HERETIC → `isHamburgerHeretic` +
-  `getDogVerdictsForOwner`; LIAR → `getLiarBrandTimestamps` (+ optionally
+  `getDogVerdictsForOwner`; FALSE WITNESS → `getLiarBrandTimestamps` (+ optionally
   `summarizeLiarBrand` if keying on _currently_ branded). Only the new
   count/max/threshold logic is genuinely new.
 - **Coordinate with TASK-085's stat ledger** — several badge inputs (franks-offered

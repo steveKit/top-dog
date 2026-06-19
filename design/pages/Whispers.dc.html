@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#17120e}
+  @keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:.8}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  textarea::placeholder{color:rgba(243,233,210,.3)}
+  ::selection{background:rgba(224,168,46,.3)}
+</style>
+</helmet>
+<div style="--accent:{{ accentVar }}; --glow:{{ glowVar }}; min-height:100vh; background:radial-gradient(120% 55% at 50% -5%, #271c12 0%, #1a130d 45%, #15100b 100%); color:#f3e9d2; font-family:'Cormorant Garamond',serif; position:relative; overflow:hidden;">
+
+  <sc-if value="{{ glow }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute; top:-200px; left:50%; transform:translateX(-50%); width:760px; height:600px; background:radial-gradient(circle, var(--glow,rgba(224,168,46,0.4)) 0%, transparent 64%); filter:blur(30px); pointer-events:none; z-index:0;"></div>
+  </sc-if>
+
+  <header style="position:relative; z-index:2; display:flex; align-items:center; gap:30px; padding:17px 32px; background:rgba(23,18,14,0.86); border-bottom:1px solid rgba(224,168,46,0.18);">
+    <a href="#" style="display:flex; align-items:center; gap:11px; flex:none; text-decoration:none; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">
+      <svg viewBox="0 0 200 200" width="30" height="30" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="100" cy="56" rx="40" ry="11"></ellipse><rect x="50" y="96" width="100" height="28" rx="14" fill="rgba(224,168,46,0.2)"></rect><rect x="40" y="120" width="120" height="34" rx="17"></rect></svg>
+      <span style="display:flex; flex-direction:column; gap:3px;">
+        <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:3px; color:#f3e9d2; white-space:nowrap;">SNACKTUM SNACKTORUM</span>
+        <span style="font:400 10px/1 'Cinzel',serif; letter-spacing:3px; color:var(--accent,#E0A82E); white-space:nowrap;">ORDER OF THE HOLY TUBE</span>
+      </span>
+    </a>
+    <nav style="display:flex; align-items:center; gap:24px; margin-left:6px;">
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Procession</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Your Litter</a>
+      <a href="#" style="position:relative; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:var(--accent,#E0A82E); text-decoration:none; padding:4px 0; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Messages<span style="position:absolute; left:0; right:0; bottom:-7px; height:2px; background:var(--accent,#E0A82E);"></span></a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Catechism</a>
+    </nav>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:18px;">
+      <button style="display:inline-flex; align-items:center; gap:9px; flex:none; white-space:nowrap; padding:12px 22px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 6px 20px rgba(224,168,46,0.28);" style-hover="filter:brightness(1.08);" style-focus="outline:2px solid #f3e9d2; outline-offset:3px;">＋ Offer a Frank →</button>
+      <span style="width:1px; height:30px; background:rgba(224,168,46,0.22);"></span>
+      <button style="width:42px; height:42px; border-radius:50%; padding:0; border:1.5px solid var(--accent,#E0A82E); overflow:hidden; cursor:pointer; background:#1a120b; display:block;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;"><dc-import name="SigilCowled" hint-size="40px,40px" style="width:40px; height:40px; display:block;"></dc-import></button>
+    </div>
+  </header>
+
+  <main style="position:relative; z-index:1; max-width:660px; margin:0 auto; padding:30px 24px 70px; display:flex; flex-direction:column;">
+
+    <a href="#" style="align-self:flex-start; font:400 16px/1 'Cormorant Garamond',serif; color:rgba(243,233,210,0.55); text-decoration:none; border-radius:2px; padding:4px 2px;" style-hover="color:var(--accent,#E0A82E);" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">← Epistles</a>
+
+    <div style="display:flex; align-items:center; gap:14px; margin-top:18px; padding-bottom:20px; border-bottom:1px solid rgba(224,168,46,0.18);">
+      <span style="flex:none; width:54px; height:54px; border-radius:50%; overflow:hidden; border:1.5px solid var(--accent,#E0A82E); display:block; background:#1a120b;"><dc-import name="SigilCowled" hint-size="52px,52px" style="width:52px; height:52px; display:block;"></dc-import></span>
+      <div style="display:flex; flex-direction:column; gap:3px; min-width:0;">
+        <span style="font:600 20px/1.1 'Cinzel',serif; letter-spacing:1px; color:#f3e9d2;">{{ name }}</span>
+        <a href="#" style="font:400 15px/1 'Cormorant Garamond',serif; font-style:italic; color:var(--accent,#E0A82E); text-decoration:none;" style-hover="text-decoration:underline; text-underline-offset:3px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">@{{ handle }}</a>
+      </div>
+    </div>
+
+    <sc-if value="{{ showThread }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; gap:18px; padding:30px 0 8px;">
+        <sc-for list="{{ messages }}" as="m" hint-placeholder-count="5">
+          <sc-if value="{{ m.isThem }}" hint-placeholder-val="{{ true }}">
+            <div style="align-self:flex-start; max-width:78%; display:flex; flex-direction:column; gap:5px; animation:fadeUp .35s ease both;">
+              <span style="font:600 10px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.5);">{{ m.sender }} · {{ m.time }}</span>
+              <div style="padding:13px 16px; background:rgba(243,233,210,0.07); border:1px solid rgba(243,233,210,0.12); border-radius:3px 14px 14px 14px; font:400 18px/1.45 'Cormorant Garamond',serif; color:#f3e9d2;">{{ m.text }}</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ m.isMe }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self:flex-end; max-width:78%; display:flex; flex-direction:column; gap:5px; align-items:flex-end; animation:fadeUp .35s ease both;">
+              <span style="font:600 10px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(224,168,46,0.75);">Thee · {{ m.time }}</span>
+              <div style="padding:13px 16px; background:rgba(224,168,46,0.16); border:1px solid rgba(224,168,46,0.45); border-radius:14px 3px 14px 14px; font:400 18px/1.45 'Cormorant Garamond',serif; color:#f6ecd2;">{{ m.text }}</div>
+            </div>
+          </sc-if>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:18px; padding:54px 24px; margin:30px 0 8px; border:1px dashed rgba(224,168,46,0.25); border-radius:4px; background:rgba(224,168,46,0.02);">
+        <svg viewBox="0 0 200 200" width="96" height="96" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.8;">
+          <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+          <rect x="52" y="98" width="96" height="26" rx="13" fill="rgba(224,168,46,0.12)"></rect>
+          <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+          <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.05)"></path>
+        </svg>
+        <p style="font:400 20px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.7); margin:0; text-align:center;">No whispers yet. Greet this disciple.</p>
+      </div>
+    </sc-if>
+
+    <div style="display:flex; flex-direction:column; gap:11px; margin-top:22px; padding-top:22px; border-top:1px solid rgba(224,168,46,0.18);">
+      <label style="font:600 11px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(224,168,46,0.85);">Whisper unto {{ name }}…</label>
+      <textarea value="{{ text }}" onChange="{{ onText }}" placeholder="Speak softly, faithful one…" style="width:100%; min-height:84px; resize:vertical; background:rgba(243,233,210,0.04); border:1px solid rgba(224,168,46,0.22); border-bottom:1.5px solid var(--accent,#E0A82E); border-radius:3px; padding:13px 15px; color:#f3e9d2; font:400 18px/1.45 'Cormorant Garamond',serif; outline:none;" style-focus="background:rgba(243,233,210,0.07);"></textarea>
+      <div style="display:flex; justify-content:flex-end;">
+        <sc-if value="{{ sending }}" hint-placeholder-val="{{ false }}">
+          <span style="display:inline-flex; align-items:center; gap:8px; padding:13px 32px; background:var(--accent,#E0A82E); color:#17120e; border-radius:2px; font:600 13px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; opacity:0.7;">Sending…</span>
+        </sc-if>
+        <sc-if value="{{ canSend }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ onSend }}" style="display:inline-flex; align-items:center; gap:8px; padding:13px 32px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 13px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 6px 18px rgba(224,168,46,0.26);" style-hover="filter:brightness(1.08);" style-focus="outline:2px solid #f3e9d2; outline-offset:3px;">Send →</button>
+        </sc-if>
+        <sc-if value="{{ cantSend }}" hint-placeholder-val="{{ true }}">
+          <span style="display:inline-flex; align-items:center; gap:8px; padding:13px 32px; background:var(--accent,#E0A82E); color:#17120e; border-radius:2px; font:600 13px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; opacity:0.32; cursor:not-allowed;">Send →</span>
+        </sc-if>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;empty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = {
+    text: '',
+    sending: false,
+    messages: [
+      { id: 1, who: 'them', text: 'Brother — thy snap at the Procession was blessed. The casing held true.', time: '2d' },
+      { id: 2, who: 'me', text: 'Thou art kind. The coals did the holy work, not I.', time: '2d' },
+      { id: 3, who: 'them', text: 'Modesty becomes the faithful. Wilt thou cast thy vote upon my Coalfire Brat?', time: '1d' },
+      { id: 4, who: 'me', text: 'Already done. Glory to the holy tube.', time: '1d' },
+      { id: 5, who: 'them', text: 'A blessing upon thy casing, brother — until the next Procession.', time: '2h' }
+    ]
+  };
+
+  NAME = 'Augustin Vane';
+
+  onText = (e) => this.setState({ text: e.target.value });
+
+  onSend = () => {
+    if (this.state.sending || !this.state.text.trim()) return;
+    this.setState({ sending: true });
+    setTimeout(() => {
+      this.setState((s) => ({
+        messages: [...s.messages, { id: Date.now(), who: 'me', text: s.text.trim(), time: 'now' }],
+        text: '', sending: false
+      }));
+    }, 650);
+  };
+
+  renderVals() {
+    const acc = this.props.accent || 'Mustard Gold';
+    const PAL = {
+      'Mustard Gold':  ['#E0A82E', 'rgba(224,168,46,0.4)'],
+      'Relic Crimson': ['#cf4636', 'rgba(207,70,54,0.4)'],
+      'Verdigris':     ['#57b59a', 'rgba(87,181,154,0.4)']
+    };
+    const [accentVar, glowVar] = PAL[acc] || PAL['Mustard Gold'];
+    const empty = this.props.empty === true;
+
+    const messages = this.state.messages.map((m) => ({
+      id: m.id, text: m.text, time: m.time,
+      isMe: m.who === 'me', isThem: m.who === 'them', sender: this.NAME
+    }));
+
+    const showEmpty = empty || messages.length === 0;
+    const hasText = this.state.text.trim().length > 0;
+    return {
+      accentVar, glowVar,
+      glow: this.props.glow !== false,
+      name: this.NAME,
+      handle: 'FrankfurterTheFaithful',
+      messages,
+      showThread: !showEmpty,
+      showEmpty,
+      text: this.state.text,
+      onText: this.onText,
+      onSend: this.onSend,
+      sending: this.state.sending,
+      canSend: !this.state.sending && hasText,
+      cantSend: !this.state.sending && !hasText
+    };
+  }
+}
+</script>
+</body>
+</html>

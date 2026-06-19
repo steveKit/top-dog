@@ -56,7 +56,7 @@ Cult lexicon — use these terms, not the literal app terms:
 | avatar                    | **sigil**                                                            |
 | the champion (crown)      | **The Anointed Wiener** (internal code name: "Top Dog")              |
 | spraying mustard          | **Anoint** (the champion bestows a blessing)                         |
-| the report verdicts       | **HERETIC** (owner) / **LIAR** (false accuser) — the Tribunal brands |
+| the report verdicts       | **HERETIC** (owner) / **FALSE WITNESS** (false accuser) — the Tribunal brands |
 | a hamburger / patty       | **heresy** · the unclean, flattened patty                            |
 | the hot dogs              | **the sacred links** · a single dog = a **frank**                    |
 | the @handle               | **Casing Name**                                                      |
@@ -105,7 +105,7 @@ Cult lexicon — use these terms, not the literal app terms:
 > **Police-tape brands (heresy mechanics) — reuse across feed / profile / detail
 > / court / dog gallery.** A flagged frank wears a **HAMBURGER ALARM** strip; an
 > adjudicated-guilty one a persistent **CONFIRMED HAMBURGER** wax-stamp; a member
-> branded by the Tribunal wears **HERETIC** (owner, permanent) or **LIAR** (false
+> branded by the Tribunal wears **HERETIC** (owner, permanent) or **FALSE WITNESS** (false
 > accuser, fading) police-tape across their head. Lean fully into the cult/heresy
 > framing — these are excommunication marks of the Order, slapped over the
 > unclean. The visuals already exist as components; the designs re-skin them.
@@ -295,10 +295,10 @@ wall; the surface the champion **Anoints**.
   - **Disciples Summoned** — invites they minted that were redeemed (consumed `invites`)
   - **Anointings Received** — times the champion anointed them (`mustard_sprays` on them)
   - **Reactions Received** — cosmetic reactions across their franks
-  - the **HERETIC / LIAR** shame marks (see the heresy brands below) when branded.
+  - the **HERETIC / FALSE WITNESS** shame marks (see the heresy brands below) when branded.
   - **Caution — reports are ANONYMOUS.** Do **NOT** show "heresies you've called",
     a reporter/accusation count the member made, or any reporter-side tally on a
-    public profile. Only the _consequences_ a member bears (HERETIC/LIAR, anointings
+    public profile. Only the _consequences_ a member bears (HERETIC / FALSE WITNESS, anointings
     received) are public; the accusations they _make_ are never surfaced here.
 - The **joined date** ("Sworn since …").
 - **The Anointed Wiener badge** when this member currently holds the crown.
@@ -313,7 +313,7 @@ wall; the surface the champion **Anoints**.
   area; **when the viewer is the champion**, the whole sigil area is a
   click-target to **Anoint** (drop a blessing at the clicked point), with a hint
   line; the splotches **fade over ~24h** (render-time decay).
-- **HERETIC** (persistent) and **LIAR** (fading) police-tape brands slapped
+- **HERETIC** (persistent) and **FALSE WITNESS** (fading) police-tape brands slapped
   across the head when the Tribunal has branded this member.
 - A **"Message"** link (start / open a DM) when viewing **another** member's
   shrine.
@@ -358,7 +358,7 @@ wall; the surface the champion **Anoints**.
 > read-only.
 >
 > Design the **heresy brands**: a persistent **HERETIC** police-tape strip (this
-> member owns a link the Tribunal confirmed a hamburger) and a fading **LIAR**
+> member owns a link the Tribunal confirmed a hamburger) and a fading **FALSE WITNESS**
 > strip (this member falsely accused), each slapped across the sigil/head as an
 > excommunication mark of the Order. Lean into the cult/heresy framing.
 >
@@ -486,7 +486,7 @@ owner, stats, reactions, and any heresy state.
 **Route:** `/app/court` — **only the reigning Anointed Wiener may enter;**
 everyone else is redirected away and never sees the nav link.
 **Purpose:** the champion's heresy docket — review flagged franks and deliver
-verdicts that brand HERETICS and LIARS.
+verdicts that brand HERETICS and FALSE WITNESSES.
 
 **Must include (real functionality / states):**
 
@@ -498,7 +498,7 @@ verdicts that brand HERETICS and LIARS.
 - Two **verdict controls** per case:
   - **"Confirmed hamburger"** → brands the owner a **HAMBURGER HERETIC**
     (permanent);
-  - **"Not a hamburger"** → brands every reporter a **HAMBURGER LIAR** (fading).
+  - **"Not a hamburger"** → brands every reporter a **FALSE WITNESS** (fading).
   - each with a **"Ruling…"** pending state.
 - An **empty state** — "no flagged links; the Order is honest."
 
@@ -516,7 +516,7 @@ verdicts that brand HERETICS and LIARS.
 > Open with an eyebrow ("THE ANOINTED WIENER ADJUDICATES") over the h1, an **✦**
 > divider, and a liturgical framing: "Thou alone holdest the crown, and thine is
 > the verdict. Confirm a heresy to brand its maker a **HAMBURGER HERETIC**;
-> absolve it to brand every false accuser a **HAMBURGER LIAR**."
+> absolve it to brand every false accuser a **FALSE WITNESS**."
 >
 > Render a **docket** — a vertical list of flagged cases, each a gold-bordered
 > plaque. A case shows: the accused frank's photo, **"made by @casing-name"**
@@ -524,7 +524,7 @@ verdicts that brand HERETICS and LIARS.
 > and a bold **verdict-state line** (Cinzel) — "AWAITING THY RULING", "RULED:
 > CONFIRMED HAMBURGER 🍔", or "RULED: NOT A HAMBURGER 🌭". Give each case two
 > verdict buttons: a stern **"CONFIRMED HAMBURGER →"** (brands the owner a
-> HERETIC) and **"NOT A HAMBURGER →"** (brands the reporters LIARs), each with a
+> HERETIC) and **"NOT A HAMBURGER →"** (brands the reporters FALSE WITNESSES), each with a
 > **"Ruling…"** pending state and disabled-while-settling treatment.
 >
 > Design the **empty state**: "No links stand accused. The Order is honest." Keep
@@ -681,7 +681,7 @@ summoning. Must stay **accurate to real mechanics**.
 - **Walls & messages:** every member has a public wall; private DMs too.
 - **The Tribunal (heresy court):** any member may **report** a frank as a
   hamburger → raises a **HAMBURGER ALARM** → the champion **rules**: **not a
-  hamburger** brands the reporters **HAMBURGER LIAR** (fades over ~7 days);
+  hamburger** brands the reporters **FALSE WITNESS** (fades over ~7 days);
   **confirmed hamburger** brands the owner **HAMBURGER HERETIC** (permanent).
 
 **PROMPT:**
@@ -715,8 +715,8 @@ summoning. Must stay **accurate to real mechanics**.
 >    and may send private epistles (DMs) to another.
 > 6. **Of the Tribunal of the Holy Tube:** any disciple may **report** a link as a
 >    hidden hamburger, raising a **HAMBURGER ALARM** for all to see; then **The
->    Anointed Wiener rules** — **"not a hamburger"** brands the accusers **HAMBURGER
->    LIAR** (a mark that fades over ~7 days), while **"confirmed hamburger"** brands
+>    Anointed Wiener rules** — **"not a hamburger"** brands the accusers **FALSE
+>    WITNESS** (a mark that fades over ~7 days), while **"confirmed hamburger"** brands
 >    the maker a **HAMBURGER HERETIC** (a permanent mark of shame). Close with a
 >    warning: "Choose thine accusations wisely — a false report brands thee."
 >
@@ -803,7 +803,7 @@ showing their current tier.
   - **Heretic** — a lasting mark: thou keepest a frank the Tribunal confirmed a
     hamburger (a shame-relic, rendered darker / inverted — an excommunication
     mark, not a gilded honor).
-  - **False Witness (Liar)** — thou borest false witness against a clean link (a
+  - **False Witness** — thou borest false witness against a clean link (a
     fading shame-relic; lean into the cult/heresy framing).
   - **The Inquisitor** — _tiered_: verdicts thou renderedst as The Anointed
     Wiener (heresies judged from the Tribunal).
@@ -812,7 +812,7 @@ showing their current tier.
 - A small **count line** — "Thou hast earned {n} of {total} relics."
 - An **empty state** — when none are earned: the dim shelf with "No relics yet —
   earn thy first honor in the service of the Tube."
-- A clear cue that the **shame-relics (Heretic / Liar) are marks of disgrace**,
+- A clear cue that the **shame-relics (Heretic / False Witness) are marks of disgrace**,
   not gilded honors — visually distinct from the earned-gold honors so the shelf
   doesn't read a heresy brand as a trophy.
 
@@ -854,7 +854,7 @@ showing their current tier.
 > **Elder** (among the first sworn to the Tube). Render two **shame-relics** in a
 > distinct, darker / inverted register — **excommunication marks**, not gilded honors:
 > **HERETIC** (thou keepest a frank the Tribunal confirmed a hamburger — a lasting
-> mark) and **FALSE WITNESS / LIAR** (thou borest false witness against a clean link —
+> mark) and **FALSE WITNESS** (thou borest false witness against a clean link —
 > a fading mark). Lean fully into the cult/heresy framing for these two.
 >
 > Design the **empty state** (no relics earned): the dim shelf with a centered

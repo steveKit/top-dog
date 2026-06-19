@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
 
 	let { data, form } = $props();
 
@@ -9,36 +10,46 @@
 	const initialEmail = $derived(form?.email ?? '');
 </script>
 
-<h1>Sign up</h1>
+<main class="gate-center">
+	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
+	<h1>Sign up</h1>
 
-{#if form?.success && form?.confirmEmail}
-	<p role="status">
-		Almost there — check <strong>{form.email}</strong> for a confirmation link to finish setting up your
-		account.
-	</p>
-{:else}
-	<p>Top Dog is invite-only. Use the invite link a member shared with you.</p>
+	{#if form?.success && form?.confirmEmail}
+		<p role="status">
+			Almost there — check <strong>{form.email}</strong> for a confirmation link to finish setting up
+			your account.
+		</p>
+	{:else}
+		<p>Top Dog is invite-only. Use the invite link a member shared with you.</p>
 
-	<form method="POST" use:enhance>
-		<label>
-			Invite token
-			<input type="text" name="token" value={initialToken} required />
-		</label>
+		<form method="POST" use:enhance>
+			<label>
+				Invite token
+				<input type="text" name="token" value={initialToken} required />
+			</label>
 
-		<label>
-			Email
-			<input type="email" name="email" value={initialEmail} autocomplete="email" required />
-		</label>
+			<label>
+				Email
+				<input type="email" name="email" value={initialEmail} autocomplete="email" required />
+			</label>
 
-		<label>
-			Password
-			<input type="password" name="password" autocomplete="new-password" minlength="8" required />
-		</label>
+			<label>
+				New Seal
+				<input
+					type="password"
+					name="password"
+					autocomplete="new-password"
+					minlength="8"
+					placeholder="at least eight marks"
+					required
+				/>
+			</label>
 
-		<button type="submit">Create account</button>
-	</form>
+			<button type="submit">Create account</button>
+		</form>
 
-	{#if form?.error}
-		<p role="alert">{form.error}</p>
+		{#if form?.error}
+			<p role="alert">{form.error}</p>
+		{/if}
 	{/if}
-{/if}
+</main>

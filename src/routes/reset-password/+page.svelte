@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
 
 	let { data, form } = $props();
 
@@ -28,22 +29,23 @@
 
 <div class="glow-orb" aria-hidden="true"></div>
 
-<main class="recovery fade-up">
+<main class="recovery fade-up gate-center">
+	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
 	{#if form?.success}
 		<span class="eyebrow">Thy Seal Is Restored</span>
 		<h1>The Tube Holds</h1>
 		<p role="status">
-			Thy new seal is forged and blessed. Return to the gates and resume thy righteous judgment of
+			Thy new seal is forged and blessed. Return to the grill and resume thy righteous judgment of
 			the sacred links.
 		</p>
-		<a class="btn-relic" href={resolve('/sign-in')}>Return to the Gates →</a>
+		<a class="btn-relic" href={resolve('/sign-in')}>Return to the Grill →</a>
 	{:else}
 		<span class="eyebrow">Forge Anew</span>
 		<h1>Forge a New Seal</h1>
 		<div class="ornament-divider" aria-hidden="true">✦</div>
 		<p>
-			Inscribe the recovery code sent to your mustard-address, then choose a new secret word — known
-			only to thee and the Tube.
+			Inscribe the recovery code sent to your mustard-address, then forge a new seal — known only to
+			thee and the Tube.
 		</p>
 
 		<form
@@ -76,7 +78,7 @@
 			</label>
 
 			<label>
-				<span class="field-label">New Secret Word</span>
+				<span class="field-label">New Seal</span>
 				<input
 					type="password"
 					name="password"
@@ -89,7 +91,7 @@
 			</label>
 
 			<label>
-				<span class="field-label">Confirm the Word</span>
+				<span class="field-label">Confirm the Seal</span>
 				<input
 					type="password"
 					name="confirmPassword"
@@ -102,7 +104,7 @@
 			</label>
 
 			{#if mismatch}
-				<p role="alert">The two words do not agree. Speak them alike.</p>
+				<p role="alert">The two seals do not agree. Speak them alike.</p>
 			{/if}
 
 			<button class="btn-relic" type="submit" disabled={submitting || mismatch}>
@@ -125,16 +127,24 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--space-lg);
+		/* --space-md (down from --space-lg): this is the tallest gate page (code
+		   input + new-seal + confirm + the 6.5rem mark), so a one-step gap
+		   reduction across its many rows recovers the vertical overflow needed to
+		   fit an 800px viewport without a scrollbar — without touching the mark. */
+		gap: var(--space-md);
 		text-align: center;
 		max-width: var(--measure-form);
-		margin: 0 auto;
+		/* margin-inline (not `margin: 0 auto`) so this scoped wrapper only centers
+		   horizontally and can never clobber .gate-center's vertical layout. */
+		margin-inline: auto;
 	}
 
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-lg);
+		/* --space-md (down from --space-lg) — three fields here, so the tighter
+		   field rhythm reclaims the most space on this page. */
+		gap: var(--space-md);
 		width: 100%;
 		max-width: 25rem;
 		align-items: stretch;

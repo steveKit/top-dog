@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
 
 	let { form } = $props();
 
@@ -18,11 +19,12 @@
 
 <div class="glow-orb" aria-hidden="true"></div>
 
-<main class="sign-in fade-up">
+<main class="sign-in fade-up gate-center">
+	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
 	<span class="eyebrow">The Faithful Return</span>
 	<h1>Enter the Snacktum</h1>
 	<div class="ornament-divider" aria-hidden="true">✦</div>
-	<p>Speak thy mustard-address and secret word to pass once more through the gates.</p>
+	<p>Speak thy mustard-address and seal to pass once more over the grill.</p>
 
 	<form
 		method="POST"
@@ -41,13 +43,13 @@
 				name="email"
 				value={initialEmail}
 				autocomplete="email"
-				placeholder="you@parish.com"
+				placeholder="you@mustard.condiment"
 				required
 			/>
 		</label>
 
 		<label>
-			<span class="field-label">Secret Word</span>
+			<span class="field-label">Seal</span>
 			<input
 				type="password"
 				name="password"
@@ -77,16 +79,21 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--space-lg);
+		/* --space-md (down from --space-lg): a one-step gap reduction clears the
+		   small remaining overflow so the page fits an 800px viewport without a
+		   scrollbar, keeping the rhythm in step with the recovery gate pages. */
+		gap: var(--space-md);
 		text-align: center;
 		max-width: var(--measure-form);
-		margin: 0 auto;
+		/* margin-inline (not `margin: 0 auto`) so this scoped wrapper only centers
+		   horizontally and can never clobber .gate-center's vertical layout. */
+		margin-inline: auto;
 	}
 
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-lg);
+		gap: var(--space-md);
 		width: 100%;
 		max-width: 22.5rem;
 		align-items: stretch;

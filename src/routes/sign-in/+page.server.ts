@@ -36,7 +36,7 @@ export const actions: Actions = {
 			return fail(400, { email, error: 'Please enter a valid email address.' });
 		}
 		if (password.length === 0) {
-			return fail(400, { email, error: 'Please enter your secret word.' });
+			return fail(400, { email, error: 'Please enter your seal.' });
 		}
 
 		const { data, error } = await supabase.auth.signInWithPassword({ email, password });

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { navigating } from '$app/state';
-	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 
 	let { children } = $props();
@@ -11,7 +10,12 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<!-- Brand favicons live in static/ (served at the site root). SVG is the
+	     primary mark; the PNG sizes and apple-touch-icon cover legacy and iOS. -->
+	<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+	<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 </svelte:head>
 
 {#if isNavigating}

@@ -162,6 +162,53 @@ select:focus-visible,
 	border-radius: var(--radius-control);
 }
 
+/* Autofill: keep the dark-temple theme when a password manager fills a field.
+   The UA stylesheet paints :-webkit-autofill with a SOLID white/yellow
+   background and its own text fill + font, overriding our input styling.
+   `background-color` can't win against the UA rule, so we MASK it with an inset
+   box-shadow the full size of the field.
+
+   The mask MUST be opaque. The resting input fill is --accent-fill, a very
+   translucent gold tint (rgba(…, 0.05)) that reads correctly ONLY because it
+   sits over the opaque dark temple surface. A single inset shadow in that
+   translucent color does NOT hide the UA's solid white autofill background — the
+   white bleeds through the ~5%-opaque mask. (The earlier single-shadow version
+   looked fine while the password-manager preview was open, then turned white the
+   instant autofill committed.) We therefore STACK two inset shadows to rebuild
+   the resting appearance from opaque pixels up: an opaque dark base
+   (--color-bg, the sanctuary surface the inputs sit on) first, then the
+   translucent --accent-fill gold tint on top — visually identical to a
+   normally-typed field (--accent-fill over --color-bg), with zero white in BOTH
+   the preview and committed states.
+
+   Text color must go through -webkit-text-fill-color (plain `color` is ignored
+   on autofill); the font is forced back to --font-body. The 9999s
+   background-color transition is a belt-and-suspenders guard against the UA bg
+   flashing back. Spread bumped to 1000px for safety. Global base rule so it
+   covers the gate-page inputs AND any in-app inputs. The mask is INSET (inside
+   the border) so the separate :focus-visible outline ring is unaffected.
+   `input:autofill` (unprefixed standard selector) is added for non-Chromium
+   engines that support it. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill,
+input:autofill:hover,
+input:autofill:focus,
+input:autofill:active {
+	-webkit-text-fill-color: var(--color-text);
+	-webkit-box-shadow:
+		inset 0 0 0 1000px var(--color-bg),
+		inset 0 0 0 1000px var(--accent-fill);
+	box-shadow:
+		inset 0 0 0 1000px var(--color-bg),
+		inset 0 0 0 1000px var(--accent-fill);
+	caret-color: var(--color-text);
+	font-family: var(--font-body);
+	transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Validation / error text reads in warm rust (never color alone — callers pair
    it with role="alert" / explicit copy). */
 [role='alert'] {
@@ -186,6 +233,88 @@ img {
 	max-width: var(--measure-content);
 	margin: 0 auto;
 	padding: var(--space-xl) var(--space-lg) var(--space-3xl);
+}
+
+/* Gate-center: vertically + horizontally center a short single-form page in
+   the viewport (the classic login-screen look). Applied by the root auth/gate
+   pages (sign-in, sign-up, forgot-password, reset-password) to their top-level
+   <main>. Not for in-app pages, which scroll and stay top-anchored.
+
+   The page renders inside .page-container, which adds --space-xl top /
+   --space-3xl bottom padding. We cancel that padding AT THE SOURCE via the
+   `.page-container:has(> .gate-center)` rule below (padding-block: 0), NOT via
+   negative margins on this element. The earlier negative-margin approach was a
+   footgun: each gate page sets `margin-inline: auto` (formerly `margin: 0 auto`)
+   on its own wrapper class, and Svelte's scoped selector (specificity 0,2,0)
+   overrode the global `.gate-center` (0,1,0) — silently zeroing the vertical
+   margins so the parent padding was never cancelled and a stray scrollbar
+   appeared. Cancelling padding at the parent sidesteps that collision entirely.
+
+   min-height (never a fixed height) plus no overflow clamp keeps it scroll-safe
+   on short viewports — the content overflows downward and scrolls instead of
+   clipping.
+
+   box-sizing: border-box is load-bearing: it makes min-height: 100svh INCLUDE
+   this element's own padding-block rather than add to it, so the total rendered
+   height stays exactly the viewport. */
+.gate-center {
+	box-sizing: border-box;
+	min-height: 100svh;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	/* Breathing room so the form never butts against the viewport edges on
+	   short screens before scrolling kicks in. --space-lg (down from --space-xl)
+	   recovers the ~22px the 6.5rem .gate-mark needs to clear an 800px viewport
+	   without a scrollbar. */
+	padding-block: var(--space-lg);
+}
+
+/* Cancel the .page-container vertical padding for gate pages at the source, so
+   .gate-center's min-height: 100svh actually spans the full viewport without a
+   stray scrollbar. Scoped ONLY to a .page-container that holds a .gate-center
+   (the four auth/gate pages) — in-app pages keep their reading-column padding.
+
+   overflow: clip contains the .gate-center main's `fade-up` entrance animation
+   (a translateY rise): during the animation the content sits below its final
+   spot, transiently extending below the viewport and flickering a root
+   scrollbar. clip (NOT hidden) trims that transient transform painting without
+   establishing a scroll container, so it does NOT trap page scrolling. Genuine
+   too-tall content on short viewports still scrolls: .page-container has no
+   fixed height, so its box grows to the (tall) min-height: 100svh content
+   height and the BODY scrolls to reach it — clip only trims painting beyond the
+   container's OWN (= content) box, never hiding real overflow. */
+.page-container:has(> .gate-center) {
+	padding-block: 0;
+	overflow: clip;
+}
+
+/* The Holy Tube — a decorative brand mark crowning each gate page, sized as a
+   tasteful relic above the title. Shared across all four gate pages (sign-in,
+   sign-up, forgot-password, reset-password) so size tweaks are one line.
+   6.5rem (~1.6x the old --space-3xl/4rem) for a bolder presence; no token sits
+   at this size. margin-inline:auto centers it even inside sign-up's
+   .gate-center, which doesn't center its cross axis. max-width keeps it
+   scroll-safe on very narrow viewports. */
+.gate-mark {
+	width: 6.5rem;
+	height: 6.5rem;
+	max-width: 100%;
+	display: block;
+	margin-inline: auto;
+	/* the-holy-tube.svg has a 200x200 viewBox, but the visible relic only
+	   reaches ~y=147.5 (bun bottom + half stroke), leaving ~52.5 of the 200
+	   units (~26%) as transparent padding BELOW the artwork. At the rendered
+	   6.5rem height that dead space is 6.5rem * (52.5/200) ≈ 1.706rem, which
+	   stacks ON TOP of the .gate-center flex gap — so the *visual* icon->eyebrow
+	   gap reads as ~2.7rem while every other row gap (eyebrow->h1, etc.) is the
+	   --space-md (1rem) flex gap. A negative margin-bottom collapses exactly that
+	   intrinsic bottom padding, then ADDS one extra --space-md so the under-icon
+	   spacing is DOUBLE the standard gap — the visible-mark-to-eyebrow spacing
+	   reads as 2 x --space-md (twice every other row gap). (The SVG also has
+	   ~0.4rem top padding, left as-is: the request is the spacing UNDER the
+	   icon.) */
+	margin-bottom: calc(-1.706rem + var(--space-md));
 }
 
 /* ===================================================================== */
@@ -218,6 +347,25 @@ img {
 	pointer-events: none;
 	z-index: 0;
 	animation: glowPulse var(--motion-glow-pulse) var(--ease-in-out) infinite;
+}
+
+/* Gate-page glow alignment: the gate pages (.gate-center) vertically center
+   their content in the viewport, so the default top-anchored .glow-orb reads
+   as mismatched. Scope ONLY to a .page-container that holds a .gate-center
+   (the four auth/gate pages) and halo the decorative glow behind the UPPER
+   TEXT — the the-holy-tube mark + heading at the top of the centered content
+   block — rather than the form middle. The vertically-centered content begins
+   above the viewport midline, so anchor the glow's center near the upper third
+   (28%); the token nudge lifts it onto the mark itself. In-app pages wrap their
+   glow in .shell-glow with their own positioning context and are untouched by
+   this scope. */
+.page-container:has(> .gate-center) {
+	position: relative;
+}
+
+.page-container:has(> .gate-center) .glow-orb {
+	top: 28%;
+	transform: translate(-50%, calc(-50% - var(--space-xl)));
 }
 
 /* Entrance: content rises and fades in. */

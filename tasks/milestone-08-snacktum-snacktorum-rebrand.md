@@ -1,6 +1,6 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **⛔ EXECUTION BLOCKED PENDING FINAL PAGE DESIGNS**
+> **Status:** `active` — **BUILDING** (activated 2026-06-19 on the user's "go"; designs delivered, OQ-2 resolved). Leading with TASK-087 (theme foundation).
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum", and
 > redesign the user-facing surface — a global app shell + nav, the auth cluster
@@ -781,7 +781,7 @@ otherwise):**
 
 ---
 
-### TASK-087: Base cult visual / theme layer [`blocked`] [`P2`] [`L`]
+### TASK-087: Base cult visual / theme layer [`in_progress`] [`P2`] [`L`]
 
 **Owner:** unassigned
 **Dependencies:** `DESIGNS` (**the** design dependency — palette, type, spacing,

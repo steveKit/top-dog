@@ -10,3 +10,25 @@
 </script>
 
 <p class="badge" role="status">👑 {label}</p>
+
+<style>
+	/* Gilded champion crest — the Cinzel/gold "Anointed" pill from the chrome
+	   mockup. Tokenized; the caller still decides WHEN to show it. */
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-xs);
+		margin: 0;
+		padding: var(--space-2xs) var(--space-sm);
+		background: var(--accent-fill-strong);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-control);
+		font-family: var(--font-display);
+		font-size: var(--text-eyebrow);
+		font-weight: 600;
+		letter-spacing: var(--tracking-eyebrow);
+		text-transform: uppercase;
+		color: var(--accent);
+		box-shadow: var(--shadow-button-glow);
+	}
+</style>

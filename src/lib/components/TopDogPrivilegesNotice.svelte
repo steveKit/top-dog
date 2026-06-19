@@ -55,44 +55,51 @@
 <style>
 	.notice {
 		position: relative;
-		border: 2px solid #f5c518;
-		background: #fffbe6;
-		border-radius: 0.5rem;
-		padding: 1rem 1.25rem;
-		margin: 1rem 0;
+		border: 1px solid var(--accent);
+		background: var(--accent-fill-strong);
+		border-radius: var(--radius-card);
+		padding: var(--space-md) var(--space-lg);
+		margin: var(--space-md) 0;
+		box-shadow: var(--shadow-button-glow);
 	}
 
 	.notice h2 {
-		margin: 0 0 0.5rem;
-		font-size: 1.1rem;
+		margin: 0 0 var(--space-xs);
+		font-family: var(--font-display);
+		font-size: var(--text-xl);
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--accent);
 	}
 
 	.notice p {
-		margin: 0 0 0.5rem;
+		margin: 0 0 var(--space-xs);
+		color: var(--color-text);
 	}
 
 	.notice ul {
 		margin: 0;
-		padding-left: 1.25rem;
+		padding-left: var(--space-lg);
+		color: var(--color-text);
 	}
 
 	.notice li + li {
-		margin-top: 0.4rem;
+		margin-top: var(--space-xs);
 	}
 
 	.dismiss {
 		position: absolute;
-		top: 0.4rem;
-		right: 0.5rem;
+		top: var(--space-xs);
+		right: var(--space-sm);
 		border: none;
 		background: transparent;
-		font-size: 1.25rem;
+		font-size: var(--text-xl);
 		line-height: 1;
 		cursor: pointer;
-		color: #555;
+		color: var(--color-text-faint);
 	}
 
 	.dismiss:hover {
-		color: #000;
+		color: var(--color-text);
 	}
 </style>

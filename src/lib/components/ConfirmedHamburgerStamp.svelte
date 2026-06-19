@@ -43,15 +43,23 @@
 		justify-content: space-evenly;
 		pointer-events: none;
 		overflow: hidden;
+		/* A confirmed verdict is a wax-stamp moment — pop it in on render. */
+		animation: confirmedStamp var(--motion-entrance) var(--ease-out) both;
 	}
 
 	.tape {
 		width: 160%;
 		transform: rotate(var(--angle, 0deg));
-		background: repeating-linear-gradient(45deg, #d12 0, #d12 14px, #111 14px, #111 28px);
-		border-top: 2px solid #111;
-		border-bottom: 2px solid #111;
-		padding: 0.5rem 0;
+		background: repeating-linear-gradient(
+			45deg,
+			var(--tape-confirmed) 0,
+			var(--tape-confirmed) 14px,
+			var(--tape-stripe-dark) 14px,
+			var(--tape-stripe-dark) 28px
+		);
+		border-top: 2px solid var(--tape-stripe-dark);
+		border-bottom: 2px solid var(--tape-stripe-dark);
+		padding: var(--space-xs) 0;
 		text-align: center;
 		white-space: nowrap;
 		overflow: hidden;
@@ -59,12 +67,33 @@
 
 	.tape-text {
 		display: inline-block;
-		padding: 0.1rem 0.4rem;
-		font-weight: 800;
+		padding: 0.1rem var(--space-2xs);
+		font-family: var(--font-display);
+		font-weight: 700;
 		letter-spacing: 0.08em;
 		color: #fff;
 		background: rgba(221, 17, 34, 0.92);
 		text-transform: uppercase;
 		font-size: 1.1em;
+	}
+
+	@keyframes confirmedStamp {
+		0% {
+			transform: scale(1.3);
+			opacity: 0;
+		}
+		45% {
+			transform: scale(0.88);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.stamp {
+			animation: none;
+		}
 	}
 </style>

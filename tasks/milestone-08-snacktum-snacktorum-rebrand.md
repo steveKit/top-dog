@@ -1,6 +1,6 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **BUILDING** (activated 2026-06-19 on the user's "go"; designs delivered, OQ-2 resolved). Leading with TASK-087 (theme foundation).
+> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme foundation) **complete** — 1/10. Next: TASK-080 (app shell + nav).
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum", and
 > redesign the user-facing surface — a global app shell + nav, the auth cluster
@@ -781,66 +781,6 @@ otherwise):**
 
 ---
 
-### TASK-087: Base cult visual / theme layer [`in_progress`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** `DESIGNS` (**the** design dependency — palette, type, spacing,
-component styling all come from the designs); soft-pairs with **every** other M8
-task (it styles their markup). Best landed **after** the shell + page structure
-exist (TASK-080/082/083/085) so there is markup to style, but its **tokens** can be
-defined early.
-
-**Problem:** the app is deliberately near-unstyled today — `src/app.css` is ~80
-neutral lines (box-sizing, base type, a centered `.page-container`, a wrapping
-`.app-nav`, `img` max-width) from the TASK-072 polish pass. The rebrand needs a
-real cult/temple aesthetic.
-
-**Acceptance Criteria:**
-
-- [ ] A **base theme layer** implementing the cult aesthetic from the designs:
-      **palette** (CSS custom properties / design tokens), **type scale** (headings,
-      body, the ceremonial/display face if the designs specify one), **spacing**, and
-      base element styling. Built on/extending `src/app.css` (and/or a tokens module),
-      wired through the root layout — the existing neutral baseline is the starting
-      point, not a constraint to preserve.
-- [ ] **Flair-component styling** for the user-facing signature surfaces (driven by
-      the designs):
-  - the champion **badge** (`TopDogBadge` — "The Anointed Wiener" treatment)
-  - the **police-tape HAMBURGER banners** (`HamburgerAlarmBanner`,
-    `ProfilePoliceBanner`, `ConfirmedHamburgerStamp`) — the heresy/excommunication
-    visual, leaning into the cult theme
-  - **mustard / Anoint** overlay (the splat/drip treatment from TASK-086)
-  - **reactions** controls
-  - **vote controls** (the feed cast/move/remove affordances)
-- [ ] **Responsive** layout system (the redesigned successor to the current
-      `.page-container` / `.app-nav` rules) — works across the page set on narrow and
-      wide screens.
-- [ ] **Accessibility:** color choices meet **WCAG AA contrast** for text; focus
-      states are visible; the theme does not rely on color alone to convey state
-      (e.g. an alarmed dog is not distinguished by color only). (A `/a11y-audit` pass
-      is a sensible follow-up once the theme lands.)
-- [ ] **No behavior change** — this is styling only. No load/action/RLS/RPC change;
-      no `{@html}`; components stay presentational. Flair components keep their
-      existing props/logic; only their styles change.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (styling
-      rarely breaks tests; update any snapshot/text assertion that changes), `@smoke`
-      4/4, `@security` green. No migration.
-
-**Notes (for the implementer):**
-
-- **The most design-dependent task** — it essentially _is_ the designs in CSS. Do
-  not invent the aesthetic; implement what the designs specify.
-- **Possible dependency (PROPOSE, do not assume):** if the designs call for a custom
-  **display/ceremonial font**, that may mean adding a web font. Per the dependency
-  gate, **propose it** (self-hosted font file vs. a font package) with the
-  alternatives-considered analysis — do **not** add it unprompted. A system-font
-  stack or a single self-hosted `.woff2` (no package) is the lowest-cost default and
-  likely needs **no** new dependency at all. (See § Possible Dependencies.)
-- No schema; no new architecture-decision row anticipated (a visual layer introduces
-  no invariant).
-
----
-
 ### TASK-088: Designed error / 404 page [`blocked`] [`P3`] [`S`] (`design-light`)
 
 **Owner:** unassigned
@@ -1041,6 +981,104 @@ null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable
 - **No new dependency; no schema; no migration; no new architecture-decision row** —
   recorded as a derived/no-schema **design/scope note** (composes decisions
   #12/#13/#15/#27).
+
+---
+
+## Completed Tasks (this milestone)
+
+### TASK-087: Base cult visual / theme layer [`complete`] [`P2`] [`L`]
+
+**Owner:** implementer — PR #99 (squash `dcce8c3`), merged 2026-06-19. Reviewer
+APPROVE after 1 fix cycle (WCAG 2.4.7 focus-ring regression on the wall textarea).
+
+**Problem:** the app was deliberately near-unstyled — `src/app.css` was ~80 neutral
+lines from the TASK-072 polish pass. The rebrand needed a real cult/temple aesthetic.
+
+**Acceptance Criteria:**
+
+- [x] A **base theme layer** implementing the cult aesthetic from the designs:
+      **palette** (CSS custom properties / design tokens), **type scale**,
+      **spacing**, and base element styling, wired through the root layout. Delivered
+      as `src/lib/styles/tokens.css` (imported by `src/app.css`).
+- [x] **Flair-component styling** for the signature surfaces: `TopDogBadge`,
+      the police-tape banners (`HamburgerAlarmBanner`, `ProfilePoliceBanner`,
+      `ConfirmedHamburgerStamp`), the mustard/Anoint overlay **base**, reaction
+      controls, vote controls.
+- [x] **Responsive** layout system (successor to `.page-container` / `.app-nav`).
+- [x] **Accessibility:** WCAG AA contrast (verified by hand at review); visible focus
+      states (the wall-textarea focus-ring regression was caught + fixed in review);
+      state not conveyed by color alone.
+- [x] **No behavior change** — styling only; no load/action/RLS/RPC change; no
+      `{@html}`; components stay presentational.
+- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 783, `@smoke` 4/4,
+      `@security` 94/94. No migration. No new dependency (fonts self-hosted, SIL OFL).
+
+**Notes:**
+
+TASK-087 lays the **foundation/theme layer for all of M8** — the dark-temple cult
+aesthetic as a tokenized CSS layer, with no behavior, schema, dependency, or
+architecture-decision change. PR #99, squash `dcce8c3`, merged 2026-06-19.
+
+- **The token vocabulary is the durable seam every downstream M8 task consumes.**
+  A new `src/lib/styles/tokens.css` holds the canonical CSS custom properties
+  (imported by `src/app.css`); downstream styling MUST reference `var(--…)`
+  tokens, **never literal hex**. The vocabulary:
+  - **Surfaces:** `--color-bg`, `--color-bg-deep` / `-mid` / `-lift`,
+    `--color-bg-chrome`, `--surface-temple` (the radial gold-glow paint).
+  - **Text ramp:** `--color-text`, `--color-heading`, `--color-text-muted` /
+    `-faint` / `-fainter`.
+  - **Accent (themeable):** `--accent`, `--accent-dim`, `--glow`, with per-theme
+    `--accent-gold` / `-crimson` / `-verdigris`; **switch the active accent via
+    `data-accent="crimson" | "verdigris"`** on a root element (default = Mustard
+    Gold). Derived gold tints: `--accent-strong` / `-soft` / `-border` /
+    `-plaque-border` / `-divider` / `-fill` / `-fill-strong`.
+  - **Status:** `--color-error`, `--color-on-accent`, `--color-selection`;
+    police-tape literals `--tape-alarm` / `-confirmed` / `-stripe-dark`,
+    `--mustard-splat`.
+  - **Type:** `--font-display` (Cinzel), `--font-body` (Cormorant Garamond);
+    scale `--text-eyebrow` / `-label` / `-sm` / `-base` / `-lg` / `-xl` / `-h2` /
+    `-h1`; tracking `--tracking-tight` / `-label` / `-eyebrow` / `-wide`.
+  - **Layout/motion:** spacing `--space-2xs`…`-3xl`; radii `--radius-control` /
+    `-card` / `-pill`; shadows/glow `--shadow-button` / `-button-glow` / `-card` /
+    `-plaque`, `--text-shadow-hero`, `--ring-focus`, `--ring-focus-offset`;
+    measures `--measure-form` / `-content` / `-wide`; motion `--motion-fast` /
+    `-base` / `-entrance` / `-glow-pulse`, easings `--ease-standard` / `-out` /
+    `-in-out`.
+- **`src/app.css` rewritten** to import the tokens, declare self-hosted
+  `@font-face`, paint the dark-temple base, provide responsive
+  `.page-container` / `.app-nav` successors, port the design `@keyframes`
+  (`glowPulse` / `fadeUp` / `stamp` / `unroll`) as tokenized utilities, and
+  honor `prefers-reduced-motion`.
+- **Self-hosted fonts — no new dependency.** Cinzel + Cormorant Garamond ship as
+  `.woff2` assets under `static/fonts/` (SIL OFL), with the bundled
+  `OFL-Cinzel.txt` / `OFL-CormorantGaramond.txt` license files. No CDN, no npm
+  package (resolves OQ-4). The implementer's sandbox blocked the font download,
+  so **the director fetched the `.woff2` files** out-of-band and the implementer
+  wired the `@font-face` self-host.
+- **Themed flair components (styles only):** `TopDogBadge`,
+  `HamburgerAlarmBanner`, `ProfilePoliceBanner`, `ConfirmedHamburgerStamp`,
+  `ReactionBar`, `BurgerReportControl`, `TopDogPrivilegesNotice`; plus themed
+  feed vote controls and profile surfaces (sigil ring, stat-ledger scaffold,
+  wall, mustard-overlay base). Components stay presentational — no load / action
+  / RLS / RPC change.
+- **1 fix cycle (WCAG 2.4.7 focus-visible).** Reviewer REQUEST_CHANGES → APPROVE.
+  The blocking finding: the wall-post `textarea:focus` rule used `outline: none`
+  plus a ~3% bg tint, which (via specificity) suppressed the global 2px gold
+  `--ring-focus` for keyboard users too. Fixed by dropping `outline: none` so the
+  global `--ring-focus` renders on `:focus-visible`. A minor finding (narrow the
+  sub-AA `--color-text-fainter` token comment to "placeholders only") was also
+  fixed.
+- **Gates:** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` 783/783 · `@smoke`
+  4/4 · `@security` 94/94 on a fresh `supabase db reset`. **No migration, no new
+  dependency, no new architecture-decision row** (the decision table stays at
+  #28 — this is a visual/skin layer).
+- **Forward note for downstream M8 tasks:** consume `var(--…)` tokens from
+  `src/lib/styles/tokens.css` (no literal hex); switch accent via `data-accent`;
+  reuse the themed flair components rather than re-styling them. Per-content
+  contrast caveat logged as **DW-028** (see [[tasks/discovered]]).
+
+**Discovered during this task:** DW-028 (faint-text tokens must stay AA on real
+content — see [[tasks/discovered]]).
 
 ---
 

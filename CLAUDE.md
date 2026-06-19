@@ -115,8 +115,11 @@ top-dog/
 │   │   │   ├── voting/        # pure ranking/tie-break logic + vote RPC wrappers + feed/leaderboard queries
 │   │   │   ├── reactions/  mustard/  walls/  dms/
 │   │   │   └── emoji/         # render-time filter + sprinkle (TDD)
+│   │   ├── styles/            # tokens.css — CSS-custom-property theme layer (M8)
 │   │   └── components/        # shared Svelte components
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
+├── static/
+│   └── fonts/                 # self-hosted SIL OFL .woff2 (Cinzel, Cormorant) + OFL licenses
 ├── tests/                     # Playwright E2E
 └── Handoffs/                  # session continuity
 ```
@@ -152,6 +155,26 @@ top-dog/
   rather than throwing; branch on `ok`. Build object paths with the pure
   `hotdogPath`/`avatarPath` helpers — never hand-construct the `{owner_id}/`
   prefix (uuid validation there backs the storage RLS write policies).
+
+### Theme & Styling (M8 dark-temple)
+
+- **The theme is a CSS-custom-property token layer** in `src/lib/styles/tokens.css`,
+  imported by `src/app.css`. Downstream styling **MUST consume `var(--…)` tokens —
+  never literal hex/px**. The vocabulary covers surfaces (`--color-bg*`,
+  `--surface-temple`), the text ramp (`--color-text*`, `--color-heading`), accents,
+  type (`--font-display` Cinzel / `--font-body` Cormorant Garamond + the
+  `--text-*` scale + `--tracking-*`), spacing (`--space-*`), radii, shadows/glow,
+  focus ring (`--ring-focus`), measures, and motion/easing.
+- **Three accent themes switch via a `data-accent` root attribute** —
+  `data-accent="crimson" | "verdigris"`; default (unset) is Mustard Gold. Style
+  against `--accent` / `--accent-*`, not a fixed gold literal, so the switch works.
+- **Fonts are self-hosted SIL OFL `.woff2` in `static/fonts/`** (Cinzel + Cormorant
+  Garamond), wired via `@font-face` in `src/app.css` — **NOT an npm package** (no
+  CDN, no dependency). The bundled `OFL-*.txt` license files must stay alongside.
+- **Reuse the themed flair components** (`TopDogBadge`, the police-tape banners,
+  the mustard/Anoint overlay base, reaction/vote controls) rather than re-styling
+  them. `--color-text-fainter` is **placeholders-only** (sub-AA by design); keep
+  `--color-text-faint` (≥AA) for real content (see DW-028).
 
 ### State Management
 

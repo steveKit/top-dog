@@ -2,8 +2,8 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) scoped — in the design phase** (build pending the user's go)
-**Last Updated:** 2026-06-18
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING** (activated 2026-06-19; TASK-087 theme foundation complete, 1/10)
+**Last Updated:** 2026-06-19
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for
@@ -15,24 +15,29 @@ task, TASK-072 (the M7 polish pass), closed M7 — Safety & Polish, the last of 
 eight pre-specified milestones.
 
 **The project then pivoted to a rebrand: Milestone M8 — "Snacktum Snacktorum" (the
-hot-dog CULT app, the Order of the Holy Tube) is SCOPED and in its DESIGN PHASE.** M8
-is a **"skin not skeleton" pass** — it changes only what users SEE (strings, copy,
-lore, components, styles, new user-facing pages/flows: a global app shell + nav, real
-sign-in, password reset, a ritual sign-up, a profile redesign, the "Anoint" mustard
-re-theme, an error/404 page) and **renames NO code identifier or infrastructure name**
-(the Supabase project/DB/containers stay `top-dog`; `is_current_top_dog` / `TopDogBadge`
-/ `selectTopDog` / table + RPC names all stay; champion title "Top Dog" → "The Anointed
-Wiener" is **copy only**). The **auth cluster + the app shell are fully designed and
-committed** (`design/pages/` mockups: Log In, Reset Password, the Snacktum Onboarding
-ritual, the App Chrome shell; `design/avatars/` 5 SVG sigils; `design/assets/` brand
-marks + favicons; `design/page-design-prompts.md` 11 paste-ready prompts for the
-still-unbuilt in-app pages). **No M8 build code has started** — every M8 task is
-`blocked` and execution is gated on the user's explicit "go". Five design questions are
-RESOLVED (the ritual sign-up rite, the 5-sigil avatar mechanism, the dark-temple theme,
-the self-hosted Cinzel/Cormorant fonts, the 6-digit-OTP reset flow); OQ-2 (the Anoint
-specifics) and OQ-5 (six TBD page names) plus the remaining in-app page designs are
-still OPEN. **No migration, no new dependency, and no new architecture-decision row** is
-expected for M8 (the decision table stays at #28). See
+hot-dog CULT app, the Order of the Holy Tube) — and the M8 BUILD has now STARTED
+(activated 2026-06-19).** M8 is a **"skin not skeleton" pass** — it changes only what
+users SEE (strings, copy, lore, components, styles, new user-facing pages/flows: a
+global app shell + nav, real sign-in, password reset, a ritual sign-up, a profile
+redesign, the "Anoint" mustard re-theme, an error/404 page) and **renames NO code
+identifier or infrastructure name** (the Supabase project/DB/containers stay `top-dog`;
+`is_current_top_dog` / `TopDogBadge` / `selectTopDog` / table + RPC names all stay;
+champion title "Top Dog" → "The Anointed Wiener" is **copy only**). The **auth cluster +
+the app shell are fully designed and committed** (`design/pages/` mockups: Log In, Reset
+Password, the Snacktum Onboarding ritual, the App Chrome shell; `design/avatars/` 5 SVG
+sigils; `design/assets/` brand marks + favicons; `design/page-design-prompts.md` 11
+paste-ready prompts for the still-unbuilt in-app pages). **The first M8 task has landed:
+TASK-087 — the base cult visual / theme layer (1/10).** It is the FOUNDATION/theme task:
+a tokenized dark-temple CSS layer (`src/lib/styles/tokens.css`, imported by
+`src/app.css`) that every downstream M8 task consumes via `var(--…)` tokens, plus
+self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` fonts under `static/fonts/`
+(no CDN, **no npm package**) and themed flair-component styling. Next up is TASK-080 (the
+global app shell + nav). Five design questions are RESOLVED (the ritual sign-up rite, the
+5-sigil avatar mechanism, the dark-temple theme, the self-hosted Cinzel/Cormorant fonts,
+the 6-digit-OTP reset flow); OQ-2 (the Anoint specifics) and OQ-5 (the dog-detail page
+name) plus the remaining in-app page designs are still OPEN. **TASK-087 confirmed M8's
+posture holds: no migration, no new dependency, and no new architecture-decision row**
+(the decision table stays at #28 — the theme is a visual/skin layer). See
 [[tasks/milestone-08-snacktum-snacktorum-rebrand]].
 
 The one carried-over open follow-up across the rest of the project is the **two
@@ -1421,6 +1426,35 @@ progress note.
    gate is hosted enforcement/parity, not workflow health. This is the user's hand;
    TASK-070's `20260617195233_upload_limits.sql` was the first M7 push, done
    2026-06-17. See Process notes.
+
+### Milestone M8 progress notes
+
+1. **Base cult visual / theme layer — the M8 foundation (TASK-087, PR #99
+   `dcce8c3`).** The first M8 task and the FOUNDATION every other M8 task builds on.
+   It introduces a tokenized **dark-temple** theme as a CSS-custom-property layer in
+   a new `src/lib/styles/tokens.css` (imported by a rewritten `src/app.css`), plus
+   self-hosted SIL OFL **Cinzel** + **Cormorant Garamond** `.woff2` fonts under
+   `static/fonts/` (with bundled OFL license files — **no CDN, no npm package**, so
+   M8's no-new-dependency posture holds; resolves OQ-4) and themed flair-component
+   styling (`TopDogBadge`, the police-tape banners, the mustard/Anoint overlay base,
+   reaction + vote controls, profile surfaces). **The token vocabulary is the durable
+   contract for the rest of M8** — downstream tasks consume `var(--…)` tokens (never
+   literal hex): themeable accents switch via a `data-accent="crimson" | "verdigris"`
+   root attribute (default Mustard Gold), atop the surface/text/type/spacing/
+   radius/shadow/motion token families. **Styling only** — no load / action / RLS /
+   RPC / schema change; components stay presentational. Reviewer REQUEST_CHANGES →
+   APPROVE after **1 fix cycle**: a WCAG 2.4.7 focus-visible regression where the
+   wall-post `textarea:focus` rule used `outline: none` + a faint bg tint, which (via
+   specificity) suppressed the global 2px gold `--ring-focus` for keyboard users too —
+   fixed by dropping `outline: none` so the global focus ring renders on
+   `:focus-visible` (a minor sub-AA token-comment narrowing was also fixed).
+   Operational note: the implementer's sandbox blocked the font download, so the
+   **director fetched the `.woff2` assets** out-of-band and the implementer wired the
+   `@font-face` self-host. `pnpm check` 0, `pnpm lint` clean, `pnpm test` 783/783,
+   `@smoke` 4/4, `@security` 94/94 on a fresh `supabase db reset`. **No migration, no
+   new dependency, no new architecture-decision row** (decision table stays at #28).
+   Forward contrast guard logged as DW-028 (faint-text tokens must stay AA on real
+   content). Next: TASK-080 (global app shell + nav).
 
 See [[CLAUDE]] for stack/conventions and [[TASKS]] for the work queue.
 

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#17120e}
+  @keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:.8}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  ::selection{background:rgba(224,168,46,.3)}
+</style>
+</helmet>
+<div style="--accent:{{ accentVar }}; --glow:{{ glowVar }}; min-height:100vh; background:radial-gradient(120% 55% at 50% -5%, #271c12 0%, #1a130d 45%, #15100b 100%); color:#f3e9d2; font-family:'Cormorant Garamond',serif; position:relative; overflow:hidden;">
+
+  <sc-if value="{{ glow }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute; top:-200px; left:50%; transform:translateX(-50%); width:760px; height:600px; background:radial-gradient(circle, var(--glow,rgba(224,168,46,0.4)) 0%, transparent 64%); filter:blur(30px); pointer-events:none; z-index:0;"></div>
+  </sc-if>
+
+  <header style="position:relative; z-index:2; display:flex; align-items:center; gap:30px; padding:17px 32px; background:rgba(23,18,14,0.86); border-bottom:1px solid rgba(224,168,46,0.18);">
+    <a href="#" style="display:flex; align-items:center; gap:11px; flex:none; text-decoration:none; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">
+      <img src="the-holy-tube.svg" width="30" height="30" alt="" style="display:block;" />
+      <span style="display:flex; flex-direction:column; gap:3px;">
+        <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:3px; color:#f3e9d2; white-space:nowrap;">SNACKTUM SNACKTORUM</span>
+        <span style="font:400 10px/1 'Cinzel',serif; letter-spacing:3px; color:var(--accent,#E0A82E); white-space:nowrap;">ORDER OF THE HOLY TUBE</span>
+      </span>
+    </a>
+    <nav style="display:flex; align-items:center; gap:24px; margin-left:6px;">
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Procession</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Your Litter</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Messages</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Catechism</a>
+    </nav>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:18px;">
+      <button style="display:inline-flex; align-items:center; gap:9px; flex:none; white-space:nowrap; padding:12px 22px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 6px 20px rgba(224,168,46,0.28);" style-hover="filter:brightness(1.08);" style-focus="outline:2px solid #f3e9d2; outline-offset:3px;">＋ Offer a Frank →</button>
+      <span style="width:1px; height:30px; background:rgba(224,168,46,0.22);"></span>
+      <button style="width:42px; height:42px; border-radius:50%; padding:0; border:1.5px solid var(--accent,#E0A82E); overflow:hidden; cursor:pointer; background:#1a120b; display:block;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;"><dc-import name="SigilCowled" hint-size="40px,40px" style="width:40px; height:40px; display:block;"></dc-import></button>
+    </div>
+  </header>
+
+  <div style="position:relative; z-index:2; display:flex; align-items:center; justify-content:center; gap:13px; padding:8px 20px; background:linear-gradient(#1e1610,#181109); border-bottom:1px solid rgba(224,168,46,0.2);">
+    <svg viewBox="0 0 24 16" width="17" height="11" aria-hidden="true"><path d="M2 14 L2 5 L7 9 L12 2 L17 9 L22 5 L22 14 Z" fill="var(--accent,#E0A82E)" stroke="#17120e" stroke-width="1.2" stroke-linejoin="round"></path></svg>
+    <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">The Anointed Wiener</span>
+    <span style="width:1px; height:15px; background:rgba(224,168,46,0.3);"></span>
+    <span style="width:22px; height:22px; border-radius:50%; overflow:hidden; border:1px solid var(--accent,#E0A82E); display:block; flex:none;"><dc-import name="SigilHaloed" hint-size="20px,20px" style="width:20px; height:20px; display:block;"></dc-import></span>
+    <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:1.5px; color:#f3e9d2; white-space:nowrap;">ViennaTheVictor</span>
+    <span style="font:400 15px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.8); white-space:nowrap;">reigning · № 1</span>
+  </div>
+
+  <main style="position:relative; z-index:1; max-width:620px; margin:0 auto; padding:30px 24px 80px; display:flex; flex-direction:column; align-items:center;">
+
+    <a href="#" style="align-self:flex-start; font:400 16px/1 'Cormorant Garamond',serif; color:rgba(243,233,210,0.55); text-decoration:none; border-radius:2px; padding:4px 2px; margin-bottom:26px;" style-hover="color:var(--accent,#E0A82E);" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">← Back to the Procession</a>
+
+    <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:5px; text-transform:uppercase; color:var(--accent,#E0A82E); margin-bottom:18px;">A Relic of the Order</span>
+
+    <!-- ===== RELIC FRAME ===== -->
+    <div style="position:relative; width:100%; max-width:440px; padding:12px; background:linear-gradient(#241a10,#1b130c); border:2px solid var(--accent,#E0A82E); border-radius:4px; box-shadow:0 0 0 6px rgba(224,168,46,0.1), 0 18px 44px rgba(0,0,0,0.5); animation:fadeUp .5s ease both;">
+      <div style="position:relative; width:100%; aspect-ratio:1; border:1px solid rgba(224,168,46,0.35); border-radius:3px; overflow:hidden; background:#0f0b07;">
+        <image-slot id="relic-hero" shape="rounded" radius="0" placeholder="the sacred link" style="width:100%; height:100%; display:block;"></image-slot>
+        <sc-if value="{{ showTape }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; top:50%; left:-12%; width:124%; transform:translateY(-50%) rotate(-11deg); background:repeating-linear-gradient(45deg,#E0A82E 0 16px,#1a120b 16px 32px); padding:10px 0; text-align:center; pointer-events:none; box-shadow:0 3px 14px rgba(0,0,0,0.6);">
+            <span style="display:inline-block; font:700 17px/1 'Cinzel',serif; letter-spacing:3px; color:#1a120b; background:#E0A82E; padding:5px 14px;">⚠ HAMBURGER ALARM</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ showStamp }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; background:rgba(15,9,6,0.5);">
+            <div style="transform:rotate(-13deg); border:4px double #d24a36; border-radius:10px; padding:14px 20px; background:rgba(140,47,31,0.32);">
+              <div style="font:700 24px/1.1 'Cinzel',serif; letter-spacing:3px; color:#ef8a72; text-align:center;">CONFIRMED<br>HAMBURGER</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <p style="font:400 23px/1.45 'Cormorant Garamond',serif; font-style:italic; color:#f3e9d2; text-align:center; margin:26px 0 0; max-width:460px; text-wrap:pretty;">“{{ caption }}”</p>
+
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:16px;">
+      <span style="font:400 16px/1 'Cormorant Garamond',serif; color:rgba(243,233,210,0.6);">venerated by</span>
+      <a href="#" style="font:600 15px/1 'Cinzel',serif; letter-spacing:1px; color:var(--accent,#E0A82E); text-decoration:none;" style-hover="text-decoration:underline; text-underline-offset:3px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">@{{ owner }}</a>
+      <sc-if value="{{ reigns }}" hint-placeholder-val="{{ false }}">
+        <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; background:linear-gradient(#f0c45a,#d2972a); border:1px solid #8a6a24; border-radius:2px; box-shadow:0 4px 12px rgba(224,168,46,0.4);">
+          <svg viewBox="0 0 24 16" width="13" height="9" aria-hidden="true"><path d="M2 14 L2 5 L7 9 L12 2 L17 9 L22 5 L22 14 Z" fill="#17120e" stroke="#17120e" stroke-width="1" stroke-linejoin="round"></path></svg>
+          <span style="font:700 9px/1 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; color:#17120e;">The Anointed Wiener</span>
+        </span>
+      </sc-if>
+    </div>
+
+    <!-- ===== STATS ===== -->
+    <div style="display:flex; gap:1px; margin-top:34px; border:1px solid rgba(224,168,46,0.28); border-radius:3px; overflow:hidden; background:rgba(224,168,46,0.2);">
+      <div style="background:#1c140d; padding:20px 38px; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font:700 38px/1 'Cinzel',serif; color:var(--accent,#E0A82E);">{{ peakDisplay }}</span><span style="font:600 10px/1 'Cinzel',serif; letter-spacing:2.5px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Peak Votes</span></div>
+      <div style="background:#1c140d; padding:20px 38px; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font:700 38px/1 'Cinzel',serif; color:#f3e9d2;">{{ votesDisplay }}</span><span style="font:600 10px/1 'Cinzel',serif; letter-spacing:2.5px; text-transform:uppercase; color:rgba(243,233,210,0.6);">Current Votes</span></div>
+    </div>
+
+    <!-- ===== REACTIONS (read-only) ===== -->
+    <sc-if value="{{ hasReactions }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:34px;">
+        <span style="font:600 10px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:rgba(224,168,46,0.7);">The Faithful Reacted</span>
+        <div style="display:flex; flex-wrap:wrap; gap:9px; justify-content:center;">
+          <sc-for list="{{ reactions }}" as="r" hint-placeholder-count="5">
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:7px 13px; background:rgba(243,233,210,0.05); border:1px solid rgba(224,168,46,0.2); border-radius:999px;"><span style="font-size:16px; line-height:1;">{{ r.emoji }}</span><span style="font:700 12px/1 'Cinzel',serif; color:rgba(243,233,210,0.72);">{{ r.count }}</span></span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== HERESY CONTROL ===== -->
+    <sc-if value="{{ showReport }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:36px; padding-top:28px; border-top:1px solid rgba(224,168,46,0.14); width:100%; display:flex; flex-direction:column; align-items:center; gap:10px;">
+        <sc-if value="{{ reportOff }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ onReport }}" style="display:inline-flex; align-items:center; gap:9px; padding:11px 22px; background:none; border:1px solid rgba(224,168,46,0.25); border-radius:2px; color:rgba(243,233,210,0.6); font:600 11px/1 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;" style-hover="border-color:rgba(210,74,54,0.6); color:#ef8a72;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">🍔 Call it Heresy</button>
+        </sc-if>
+        <sc-if value="{{ reportOn }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ onReport }}" style="display:inline-flex; align-items:center; gap:9px; padding:11px 22px; background:rgba(210,74,54,0.14); border:1px solid #d24a36; border-radius:2px; color:#ef8a72; font:700 11px/1 'Cinzel',serif; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:2px;">🍔 Heresy Called</button>
+        </sc-if>
+        <span style="font:400 14px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.42); text-align:center;">An accusation summons the Tribunal of the Holy Tube — choose wisely.</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showRuledNote }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:36px; padding-top:28px; border-top:1px solid rgba(224,168,46,0.14); width:100%; display:flex; justify-content:center;">
+        <span style="font:400 16px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(239,138,114,0.85); text-align:center;">the Tribunal of the Holy Tube has ruled.</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showAwaitNote }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:36px; padding-top:28px; border-top:1px solid rgba(224,168,46,0.14); width:100%; display:flex; justify-content:center;">
+        <span style="font:400 16px/1.4 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.8); text-align:center;">Thy relic stands accused — the Tribunal shall rule.</span>
+      </div>
+    </sc-if>
+
+  </main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;heresy&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;None&quot;,&quot;Flagged&quot;,&quot;Confirmed&quot;],&quot;default&quot;:&quot;None&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewerOwns&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;reigns&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showReactions&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { reported: false };
+
+  renderVals() {
+    const acc = this.props.accent || 'Mustard Gold';
+    const PAL = {
+      'Mustard Gold':  ['#E0A82E', 'rgba(224,168,46,0.4)'],
+      'Relic Crimson': ['#cf4636', 'rgba(207,70,54,0.4)'],
+      'Verdigris':     ['#57b59a', 'rgba(87,181,154,0.4)']
+    };
+    const [accentVar, glowVar] = PAL[acc] || PAL['Mustard Gold'];
+
+    const heresy = this.props.heresy || 'None';
+    const owns = this.props.viewerOwns === true;
+    const confirmed = heresy === 'Confirmed';
+    const flagged = heresy === 'Flagged';
+
+    const REACTS = [
+      { emoji: '🌭', count: 312 }, { emoji: '❤️', count: 540 }, { emoji: '🔥', count: 410 },
+      { emoji: '😂', count: 88 }, { emoji: '🤤', count: 130 }, { emoji: '👑', count: 220 }
+    ];
+    const reactions = REACTS.map((r) => ({ emoji: r.emoji, count: r.count.toLocaleString('en-US') }));
+
+    return {
+      accentVar, glowVar,
+      glow: this.props.glow !== false,
+      caption: 'A snap heard clear across the parish.',
+      owner: 'ViennaTheVictor',
+      reigns: this.props.reigns !== false,
+      peakDisplay: (1400).toLocaleString('en-US'),
+      votesDisplay: (1204).toLocaleString('en-US'),
+      hasReactions: this.props.showReactions !== false,
+      reactions,
+      showTape: flagged,
+      showStamp: confirmed,
+      showReport: flagged && !owns,
+      showRuledNote: confirmed,
+      showAwaitNote: flagged && owns,
+      reportOff: !this.state.reported,
+      reportOn: this.state.reported,
+      onReport: () => this.setState((s) => ({ reported: !s.reported }))
+    };
+  }
+}
+</script>
+</body>
+</html>

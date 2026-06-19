@@ -114,6 +114,7 @@ top-dog/
 │   ├── hooks.server.ts        # per-request @supabase/ssr client, auth guard
 │   ├── app.d.ts               # App.Locals types (supabase, session)
 │   ├── lib/
+│   │   ├── assets/            # brand/ (the-holy-tube + logo marks) + sigils/ (5 avatar SVGs) (M8)
 │   │   ├── supabase/          # browser client factory
 │   │   ├── server/            # server-only secret-key client
 │   │   ├── storage/           # SWAPPABLE storage module (hotdogs/avatars)
@@ -127,7 +128,8 @@ top-dog/
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
 │       └── (protected)/app/+layout.svelte  # persistent app shell + nav (M8 TASK-080)
 ├── static/
-│   └── fonts/                 # self-hosted SIL OFL .woff2 (Cinzel, Cormorant) + OFL licenses
+│   ├── fonts/                 # self-hosted SIL OFL .woff2 (Cinzel, Cormorant) + OFL licenses
+│   └── favicon.svg, favicon-32/64.png, apple-touch-icon.png  # wired in +layout.svelte (M8)
 ├── tests/                     # Playwright E2E
 └── Handoffs/                  # session continuity
 ```
@@ -479,4 +481,20 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   when the `/app` hub it rendered on was retired — Top Dog powers are documented in **The
   Catechism** (`/app/help`) and the crown-gated Tribunal nav link covers adjudication.
   Don't reference or re-introduce it.
+- **Brand assets live in `src/lib/assets/` and `static/` (M8 PR #107).** Brand marks
+  (the `the-holy-tube.svg` relic mark + the logo/header marks) live under
+  `src/lib/assets/brand/`; the 5 avatar sigils under `src/lib/assets/sigils/*.svg`
+  (ready for TASK-084's "Choose Thy Sigil" picker). **Favicons live in `static/`**
+  (`favicon.svg` + `favicon-32/64.png` + `apple-touch-icon.png`), wired via `<link>`s
+  in `src/routes/+layout.svelte`. The relic mark + favicons are wired; the sigils and
+  brand-logo SVGs are committed but **not yet referenced** (tracked as DW-031) — wire or
+  prune them, don't assume they're dead.
+- **Autofill inputs are kept on-theme via STACKED inset `box-shadow`s (M8, `src/app.css`).**
+  Browsers paint `:-webkit-autofill` / `:autofill` with a solid white/yellow UA background
+  that ignores `background-color`. The fix layers **two** inset shadows: an **opaque
+  `--color-bg` base** plus the translucent `--accent-fill` tint, with
+  `-webkit-text-fill-color: var(--color-text)` (plain `color` is ignored on autofill) and
+  `font-family: var(--font-body)`. **The opaque base layer is load-bearing** — `--accent-fill`
+  is ~5% alpha, so a single translucent-mask shadow lets the UA's white autofill background
+  bleed through on commit. Keep both layers when restyling any future autofilled input.
   Use [[wikilinks]] when cross-referencing project docs.

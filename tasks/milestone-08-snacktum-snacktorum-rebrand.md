@@ -210,6 +210,28 @@ verbatim — like the page names above, they are decided, not open:
 > Witness / Liar"). The design prompts already use the FALSE WITNESS wording
 > (`design/page-design-prompts.md`).
 
+### Confirmed auth/gate-page copy conventions (apply in TASK-081; do NOT undo)
+
+These were settled during the ad-hoc gate-page visual-polish pass (PR #107,
+`4fcc3c7`, 2026-06-19 — not a queued task). The interim pass already applied this
+voice to the four gate pages; **TASK-081's copy sweep MUST apply these conventions
+CONSISTENTLY and must NOT revert them.** They are decided, not open:
+
+| Concept                          | CONFIRMED user-facing copy                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **Password**                     | **"Seal"** — field labels, "Forgotten thy seal?", "Forge a New Seal", "Confirm the Seal", "Seal It →", validation messages |
+| **Email field**                  | label **"Mustard Address"**, placeholder **`you@mustard.condiment`**                                                       |
+| **Sign-in destination metaphor** | **"the grill"** (NOT "the gates") — the place a member is admitted to on sign-in                                           |
+
+> **Sign-up parity note (open item for TASK-081 / TASK-084).** `/sign-up` is the one
+> gate page **NOT yet at full theme/copy parity** after PR #107 — it still carries a
+> plain "Email" label and a bare `<h1>Sign up</h1>` with no eyebrow / ornament / themed
+> intro (it was always the unstyled stub; the polish pass restyled sign-in /
+> forgot-password / reset-password but left sign-up behind). **TASK-081** (and/or
+> **TASK-084**'s ritual rework) should bring `/sign-up` to parity — the **Mustard
+> Address** label + `you@mustard.condiment` placeholder + a themed heading/eyebrow
+> consistent with the other gate pages and the "Take the Casing" page name above.
+
 ---
 
 ## Active Tasks

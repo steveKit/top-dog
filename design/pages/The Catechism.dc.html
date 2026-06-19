@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:#17120e}
+  @keyframes glowPulse{0%,100%{opacity:.5}50%{opacity:.8}}
+  ::selection{background:rgba(224,168,46,.3)}
+</style>
+</helmet>
+<div style="--accent:{{ accentVar }}; --glow:{{ glowVar }}; min-height:100vh; background:radial-gradient(120% 50% at 50% -5%, #271c12 0%, #1a130d 45%, #15100b 100%); color:#f3e9d2; font-family:'Cormorant Garamond',serif; position:relative; overflow:hidden;">
+
+  <sc-if value="{{ glow }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute; top:-200px; left:50%; transform:translateX(-50%); width:760px; height:560px; background:radial-gradient(circle, var(--glow,rgba(224,168,46,0.4)) 0%, transparent 64%); filter:blur(30px); pointer-events:none; z-index:0;"></div>
+  </sc-if>
+
+  <header style="position:relative; z-index:2; display:flex; align-items:center; gap:30px; padding:17px 32px; background:rgba(23,18,14,0.86); border-bottom:1px solid rgba(224,168,46,0.18);">
+    <a href="#" style="display:flex; align-items:center; gap:11px; flex:none; text-decoration:none; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">
+      <svg viewBox="0 0 200 200" width="30" height="30" fill="none" stroke="var(--accent,#E0A82E)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="100" cy="56" rx="40" ry="11"></ellipse><rect x="50" y="96" width="100" height="28" rx="14" fill="rgba(224,168,46,0.2)"></rect><rect x="40" y="120" width="120" height="34" rx="17"></rect></svg>
+      <span style="display:flex; flex-direction:column; gap:3px;">
+        <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:3px; color:#f3e9d2; white-space:nowrap;">SNACKTUM SNACKTORUM</span>
+        <span style="font:400 10px/1 'Cinzel',serif; letter-spacing:3px; color:var(--accent,#E0A82E); white-space:nowrap;">ORDER OF THE HOLY TUBE</span>
+      </span>
+    </a>
+    <nav style="display:flex; align-items:center; gap:24px; margin-left:6px;">
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Procession</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Your Litter</a>
+      <a href="#" style="font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:rgba(243,233,210,0.82); text-decoration:none; padding:4px 0; border-radius:2px;" style-hover="color:#f3e9d2;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">Messages</a>
+      <a href="#" style="position:relative; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; color:var(--accent,#E0A82E); text-decoration:none; padding:4px 0; border-radius:2px;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:4px;">The Catechism<span style="position:absolute; left:0; right:0; bottom:-7px; height:2px; background:var(--accent,#E0A82E);"></span></a>
+    </nav>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:18px;">
+      <button style="display:inline-flex; align-items:center; gap:9px; flex:none; white-space:nowrap; padding:12px 22px; background:var(--accent,#E0A82E); color:#17120e; border:none; border-radius:2px; font:600 12px/1 'Cinzel',serif; letter-spacing:2px; text-transform:uppercase; cursor:pointer; box-shadow:0 6px 20px rgba(224,168,46,0.28);" style-hover="filter:brightness(1.08);" style-focus="outline:2px solid #f3e9d2; outline-offset:3px;">＋ Offer a Frank →</button>
+      <span style="width:1px; height:30px; background:rgba(224,168,46,0.22);"></span>
+      <button style="width:42px; height:42px; border-radius:50%; padding:0; border:1.5px solid var(--accent,#E0A82E); overflow:hidden; cursor:pointer; background:#1a120b; display:block;" style-focus="outline:2px solid var(--accent,#E0A82E); outline-offset:3px;"><dc-import name="SigilCowled" hint-size="40px,40px" style="width:40px; height:40px; display:block;"></dc-import></button>
+    </div>
+  </header>
+
+  <main style="position:relative; z-index:1; max-width:720px; margin:0 auto; padding:52px 28px 88px; display:flex; flex-direction:column; align-items:center;">
+
+    <span style="font:600 12px/1 'Cinzel',serif; letter-spacing:5px; text-transform:uppercase; color:var(--accent,#E0A82E); text-align:center;">The Scripture of the Order</span>
+    <h1 style="font:600 clamp(40px,7vw,62px)/1.02 'Cinzel',serif; letter-spacing:1px; margin:14px 0 0; color:#f6ecd2; text-shadow:0 2px 36px rgba(224,168,46,0.18); text-align:center;">The Catechism</h1>
+    <div style="display:flex; align-items:center; gap:14px; color:var(--accent,#E0A82E); font-size:14px; margin:20px 0 0;"><span style="width:54px; height:1px; background:var(--accent,#E0A82E); opacity:.45;"></span>✦<span style="width:54px; height:1px; background:var(--accent,#E0A82E); opacity:.45;"></span></div>
+    <p style="font:400 20px/1.6 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.72); max-width:540px; margin:18px 0 0; text-align:center; text-wrap:pretty;">How the Tube is judged, crowned, and kept. Read, and be among the knowing of the Faithful.</p>
+
+    <article style="width:100%; max-width:660px; margin-top:46px; display:flex; flex-direction:column; gap:14px; padding:26px 28px; background:rgba(224,168,46,0.05); border:1px solid rgba(224,168,46,0.22); border-radius:4px;">
+      <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Article the First · First and Highest</span>
+      <h2 style="font:600 clamp(25px,4.4vw,32px)/1.1 'Cinzel',serif; letter-spacing:0.5px; margin:0; color:#f6ecd2;">Of the Vote and the Crown</h2>
+      <p style="font:400 19px/1.72 'Cormorant Garamond',serif; color:rgba(243,233,210,0.84); margin:0; text-wrap:pretty;"><span style="float:left; font:600 62px/0.82 'Cinzel',serif; color:var(--accent,#E0A82E); margin:7px 13px 0 0;">E</span>ach disciple is granted a <strong style="font-weight:600; color:#f3e9d2;">single vote</strong>, and but one. It is not bound where first it falls — thou mayest <strong style="font-weight:600; color:#f3e9d2;">move it</strong> to a worthier link, yet in moving it thou <em>releasest</em> the vote thou heldest before; no soul may rest two votes at once. <strong style="font-weight:600; color:#f3e9d2;">None may vote upon their own frank</strong>, for self-praise is no judgment. The link that gathers <strong style="font-weight:600; color:#f3e9d2;">the most votes</strong> crowns its maker <span style="color:var(--accent,#E0A82E); font-weight:600;">The Anointed Wiener</span>. And the crown is <strong style="font-weight:600; color:#f3e9d2;">sticky</strong>: when votes stand equal, the reigning champion keeps it until another link pulls <em>strictly ahead</em>. The days of the reign are tallied, one upon the next, for as long as the crown is held.</p>
+    </article>
+
+    <div style="display:flex; align-items:center; gap:16px; color:var(--accent,#E0A82E); font-size:13px; margin:40px 0; width:100%; max-width:660px; justify-content:center; opacity:0.7;"><span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span>✦<span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span></div>
+
+    <article style="width:100%; max-width:660px; display:flex; flex-direction:column; gap:13px;">
+      <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Article the Second</span>
+      <h2 style="font:600 clamp(24px,4.2vw,30px)/1.1 'Cinzel',serif; letter-spacing:0.5px; margin:0; color:#f6ecd2;">Of the Powers of The Anointed Wiener</h2>
+      <p style="font:400 19px/1.72 'Cormorant Garamond',serif; color:rgba(243,233,210,0.84); margin:0; text-wrap:pretty;">To the reigning champion alone are two powers given. First, to <strong style="font-weight:600; color:#f3e9d2;">Anoint</strong> — to lay the mustard blessing upon another disciple's shrine. Second, to <strong style="font-weight:600; color:#f3e9d2;">adjudicate heresy</strong> — to sit in the Tribunal of the Holy Tube and rule upon the accused. No other hand may do these things.</p>
+    </article>
+
+    <div style="display:flex; align-items:center; gap:16px; color:var(--accent,#E0A82E); font-size:13px; margin:40px 0; width:100%; max-width:660px; justify-content:center; opacity:0.7;"><span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span>✦<span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span></div>
+
+    <article style="width:100%; max-width:660px; display:flex; flex-direction:column; gap:13px;">
+      <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Article the Third</span>
+      <h2 style="font:600 clamp(24px,4.2vw,30px)/1.1 'Cinzel',serif; letter-spacing:0.5px; margin:0; color:#f6ecd2;">Of Reactions</h2>
+      <p style="font:400 19px/1.72 'Cormorant Garamond',serif; color:rgba(243,233,210,0.84); margin:0; text-wrap:pretty;">Any disciple may answer a link with a reaction — 🌭, ❤, 🔥, and their kin. Yet know this well: reactions are <strong style="font-weight:600; color:#f3e9d2;">adornment only</strong>. They move no vote, raise no rank, and bear no weight whatsoever upon the crown. React freely; it changes nothing but the heart.</p>
+    </article>
+
+    <div style="display:flex; align-items:center; gap:16px; color:var(--accent,#E0A82E); font-size:13px; margin:40px 0; width:100%; max-width:660px; justify-content:center; opacity:0.7;"><span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span>✦<span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span></div>
+
+    <article style="width:100%; max-width:660px; display:flex; flex-direction:column; gap:13px;">
+      <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Article the Fourth</span>
+      <h2 style="font:600 clamp(24px,4.2vw,30px)/1.1 'Cinzel',serif; letter-spacing:0.5px; margin:0; color:#f6ecd2;">Of the Anointing</h2>
+      <p style="font:400 19px/1.72 'Cormorant Garamond',serif; color:rgba(243,233,210,0.84); margin:0; text-wrap:pretty;">When the champion anoints a shrine, the mustard rests but a while. The blessing <strong style="font-weight:600; color:#f3e9d2;">fades of its own accord over the span of about a day</strong>, and then is gone — that the faithful may earn it anew, and the honor never grow stale.</p>
+    </article>
+
+    <div style="display:flex; align-items:center; gap:16px; color:var(--accent,#E0A82E); font-size:13px; margin:40px 0; width:100%; max-width:660px; justify-content:center; opacity:0.7;"><span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span>✦<span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span></div>
+
+    <article style="width:100%; max-width:660px; display:flex; flex-direction:column; gap:13px;">
+      <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Article the Fifth</span>
+      <h2 style="font:600 clamp(24px,4.2vw,30px)/1.1 'Cinzel',serif; letter-spacing:0.5px; margin:0; color:#f6ecd2;">Of Walls and Epistles</h2>
+      <p style="font:400 19px/1.72 'Cormorant Garamond',serif; color:rgba(243,233,210,0.84); margin:0; text-wrap:pretty;">Every disciple keeps a <strong style="font-weight:600; color:#f3e9d2;">public wall</strong>, whereon any of the Faithful may leave their word for all to read. And for words meant for one alone, there are <strong style="font-weight:600; color:#f3e9d2;">private epistles</strong> — whispers sent disciple to disciple, seen by no other eye.</p>
+    </article>
+
+    <div style="display:flex; align-items:center; gap:16px; color:var(--accent,#E0A82E); font-size:13px; margin:40px 0; width:100%; max-width:660px; justify-content:center; opacity:0.7;"><span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span>✦<span style="flex:1; height:1px; background:rgba(224,168,46,0.2);"></span></div>
+
+    <article style="width:100%; max-width:660px; display:flex; flex-direction:column; gap:13px;">
+      <span style="font:600 11px/1 'Cinzel',serif; letter-spacing:3px; text-transform:uppercase; color:var(--accent,#E0A82E);">Article the Sixth</span>
+      <h2 style="font:600 clamp(24px,4.2vw,30px)/1.1 'Cinzel',serif; letter-spacing:0.5px; margin:0; color:#f6ecd2;">Of the Tribunal of the Holy Tube</h2>
+      <p style="font:400 19px/1.72 'Cormorant Garamond',serif; color:rgba(243,233,210,0.84); margin:0; text-wrap:pretty;">Any disciple who suspects a hidden hamburger may <strong style="font-weight:600; color:#f3e9d2;">report</strong> the link, raising a <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:1px; color:var(--accent,#E0A82E);">HAMBURGER ALARM</span> for all the Faithful to behold. Then, and only then, <span style="color:var(--accent,#E0A82E); font-weight:600;">The Anointed Wiener</span> rules. Should the champion declare it <em>not a hamburger</em>, the accusers are branded <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:1px; color:var(--accent,#E0A82E);">FALSE WITNESS</span> — a mark that fades over seven days. Should the champion <em>confirm the hamburger</em>, its maker is branded a <span style="font:600 15px/1 'Cinzel',serif; letter-spacing:1px; color:#ef8a72;">HAMBURGER HERETIC</span> — a mark that never fades.</p>
+      <p style="font:400 19px/1.5 'Cormorant Garamond',serif; font-style:italic; color:rgba(224,168,46,0.9); margin:8px 0 0; padding:14px 18px; border-left:2px solid var(--accent,#E0A82E); background:rgba(224,168,46,0.05); text-wrap:pretty;">Choose thine accusations wisely — a false report brands thee.</p>
+    </article>
+
+    <div style="display:flex; align-items:center; gap:14px; color:var(--accent,#E0A82E); font-size:14px; margin:50px 0 0;"><span style="width:40px; height:1px; background:var(--accent,#E0A82E); opacity:.4;"></span>☩<span style="width:40px; height:1px; background:var(--accent,#E0A82E); opacity:.4;"></span></div>
+    <p style="font:400 18px/1 'Cormorant Garamond',serif; font-style:italic; color:rgba(243,233,210,0.55); margin:18px 0 0; text-align:center;">Glory to the holy tube.</p>
+
+  </main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mustard Gold&quot;,&quot;Relic Crimson&quot;,&quot;Verdigris&quot;],&quot;default&quot;:&quot;Mustard Gold&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const acc = this.props.accent || 'Mustard Gold';
+    const PAL = {
+      'Mustard Gold':  ['#E0A82E', 'rgba(224,168,46,0.4)'],
+      'Relic Crimson': ['#cf4636', 'rgba(207,70,54,0.4)'],
+      'Verdigris':     ['#57b59a', 'rgba(87,181,154,0.4)']
+    };
+    const [accentVar, glowVar] = PAL[acc] || PAL['Mustard Gold'];
+    return { accentVar, glowVar, glow: this.props.glow !== false };
+  }
+}
+</script>
+</body>
+</html>

@@ -55,8 +55,22 @@ carry **full task files now** rather than header-only stubs. (The new-model
 default is a one-line stub the planner explodes on activation; here the detail
 was already written, so it is preserved.) Depends-on is kept coarse.
 
-None — M7 (the last pre-specified milestone) is now **complete**. Future work is tracked
-in [[tasks/discovered]] and feeds any post-M7 milestone stubs.
+The pre-specified set (M0–M7) is complete and M8 is the first post-plenary milestone
+(exploded above). New future milestones now appear here as one-line **stubs** until you
+activate one — the **planner** explodes a stub into its milestone file on activation.
+
+- **Milestone M9 — Operator / Admin Dashboard** `pending` (stub — not yet exploded).
+  **Net-new feature work, post-M8** (not part of the M8 skin-only rebrand). An
+  operator-only `/admin` area to monitor the platform: member / frank / vote / reaction /
+  anointing / report+verdict counts, the **invite funnel** (sent / redeemed / conversion),
+  **storage used** (`app_storage_bytes()` already exists), the current champion, and growth
+  over `created_at`. Mostly **read-only aggregates over existing data** — little/no new
+  tracking. **Key decision at activation — admin authorization:** recommended a
+  **server-side allowlist** of operator ids (no schema, non-forgeable) over a
+  non-client-writable `is_admin` column; this is distinct from the in-game "Anointed
+  Wiener" role. Read-only monitoring for v1.
+
+Other future work is tracked in [[tasks/discovered]].
 
 ## Deferred Milestones
 

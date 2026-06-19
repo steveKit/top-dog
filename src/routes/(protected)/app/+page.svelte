@@ -1,29 +1,12 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
-	import TopDogPrivilegesNotice from '$lib/components/TopDogPrivilegesNotice.svelte';
-
-	let { data } = $props();
+	// The bare `/app` hub is retired (TASK-080): its `+page.server.ts` always
+	// redirects to The Procession (`/app/feed`), and the persistent app shell
+	// (`+layout.svelte`) now owns navigation on every page. This body therefore
+	// never renders in practice; it remains only as a minimal SSR fallback in case
+	// the redirect is somehow bypassed. The old inline nav now lives in the shell,
+	// and the Top Dog Privileges notice was retired in M8 — Top Dog powers are
+	// documented in the Catechism (`/app/help`), and the crown-gated Tribunal nav
+	// link covers adjudication in the Court.
 </script>
 
-<h1>Your kennel</h1>
-<p>Signed in as {data.user?.email ?? 'unknown'}.</p>
-
-<!-- 👑 Top Dog privileges notice — gated on the live, server-derived crown flag
-     (decision #25), so it appears on gaining the crown and disappears on losing
-     it. Non-Top-Dog members never see it. (TASK-074) -->
-{#if data.profile?.is_current_top_dog}
-	<TopDogPrivilegesNotice />
-{/if}
-
-<nav class="app-nav">
-	<a href={resolve('/(protected)/app/dogs')}>Your hot dogs</a>
-	<a href={resolve('/(protected)/app/feed')}>The feed</a>
-	<a href={resolve('/(protected)/app/messages')}>Messages</a>
-	<a href={resolve('/(protected)/app/help')}>How Top Dog works</a>
-	<!-- The 🍔 Hamburger Court adjudication surface is the current Top Dog's alone
-	     (TASK-073). Gated on the live, non-client-writable crown flag (decision #25);
-	     the court route's own load + the DB RPC re-check it authoritatively. -->
-	{#if data.profile?.is_current_top_dog}
-		<a href={resolve('/(protected)/app/court')}>🍔 Hamburger Court</a>
-	{/if}
-</nav>
+<p>Redirecting to The Procession…</p>

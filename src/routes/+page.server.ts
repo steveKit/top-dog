@@ -2,10 +2,11 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 /**
- * The root path has no landing surface of its own — `/app` is the single app
- * entry point and its `(protected)/app/+layout.server.ts` already cascades the
- * auth/profile funnel (unauthenticated → /sign-in, profile-less → onboarding).
- * So `/` is an unconditional redirect to `/app`.
+ * The root path has no landing surface of its own — The Procession (`/app/feed`)
+ * is the app's home, and the `(protected)/app/+layout.server.ts` guard cascades
+ * the auth/profile funnel (unauthenticated → /sign-in, profile-less → onboarding)
+ * before the feed renders. So `/` is an unconditional redirect straight to the
+ * feed, skipping the now-retired bare `/app` hub hop (TASK-080).
  *
  * 307 (temporary) rather than 308 (permanent): the eventual destination is
  * user-dependent (the `/app` guard forwards to /sign-in or /onboarding based on
@@ -14,5 +15,5 @@ import type { PageServerLoad } from './$types';
  * 303; 307 is the GET-preserving analogue for an always-redirect landing.
  */
 export const load: PageServerLoad = () => {
-	throw redirect(307, '/app');
+	throw redirect(307, '/app/feed');
 };

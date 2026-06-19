@@ -127,25 +127,24 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--space-lg);
+		/* --space-md (down from --space-lg): this is the tallest gate page (code
+		   input + new-seal + confirm + the 6.5rem mark), so a one-step gap
+		   reduction across its many rows recovers the vertical overflow needed to
+		   fit an 800px viewport without a scrollbar — without touching the mark. */
+		gap: var(--space-md);
 		text-align: center;
 		max-width: var(--measure-form);
-		margin: 0 auto;
-	}
-
-	/* The Holy Tube — a decorative brand mark crowning the page, sized as a
-	   tasteful relic above the title. Token-sized for a consistent treatment
-	   across all four gate pages. */
-	.gate-mark {
-		width: var(--space-3xl);
-		height: var(--space-3xl);
-		display: block;
+		/* margin-inline (not `margin: 0 auto`) so this scoped wrapper only centers
+		   horizontally and can never clobber .gate-center's vertical layout. */
+		margin-inline: auto;
 	}
 
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-lg);
+		/* --space-md (down from --space-lg) — three fields here, so the tighter
+		   field rhythm reclaims the most space on this page. */
+		gap: var(--space-md);
 		width: 100%;
 		max-width: 25rem;
 		align-items: stretch;

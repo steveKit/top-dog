@@ -34,8 +34,15 @@
 			</label>
 
 			<label>
-				Password
-				<input type="password" name="password" autocomplete="new-password" minlength="8" required />
+				New Seal
+				<input
+					type="password"
+					name="password"
+					autocomplete="new-password"
+					minlength="8"
+					placeholder="at least eight marks"
+					required
+				/>
 			</label>
 
 			<button type="submit">Create account</button>
@@ -46,16 +53,3 @@
 		{/if}
 	{/if}
 </main>
-
-<style>
-	/* The Holy Tube — a decorative brand mark crowning the page, sized as a
-	   tasteful relic above the title. Token-sized for a consistent treatment
-	   across all four gate pages. align-self centers it within the
-	   (column-flex) .gate-center, which doesn't center its cross axis. */
-	.gate-mark {
-		width: var(--space-3xl);
-		height: var(--space-3xl);
-		display: block;
-		align-self: center;
-	}
-</style>

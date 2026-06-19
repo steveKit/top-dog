@@ -79,25 +79,21 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: var(--space-lg);
+		/* --space-md (down from --space-lg): a one-step gap reduction clears the
+		   small remaining overflow so the page fits an 800px viewport without a
+		   scrollbar, keeping the rhythm in step with the recovery gate pages. */
+		gap: var(--space-md);
 		text-align: center;
 		max-width: var(--measure-form);
-		margin: 0 auto;
-	}
-
-	/* The Holy Tube — a decorative brand mark crowning the page, sized as a
-	   tasteful relic above the title. Token-sized for a consistent treatment
-	   across all four gate pages. */
-	.gate-mark {
-		width: var(--space-3xl);
-		height: var(--space-3xl);
-		display: block;
+		/* margin-inline (not `margin: 0 auto`) so this scoped wrapper only centers
+		   horizontally and can never clobber .gate-center's vertical layout. */
+		margin-inline: auto;
 	}
 
 	form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-lg);
+		gap: var(--space-md);
 		width: 100%;
 		max-width: 22.5rem;
 		align-items: stretch;

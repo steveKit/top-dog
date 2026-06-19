@@ -51,7 +51,7 @@ export const actions: Actions = {
 			return fail(400, {
 				token,
 				email,
-				error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
+				error: `Seal must be at least ${MIN_PASSWORD_LENGTH} characters.`
 			});
 		}
 

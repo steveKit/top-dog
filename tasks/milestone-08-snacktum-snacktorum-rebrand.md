@@ -1189,6 +1189,57 @@ echoed fields; see [[tasks/discovered]]).
 
 ---
 
+## Cross-cutting (ad-hoc, not a numbered task)
+
+### Themed inline form validation — landed ad-hoc, now app-wide CANON (PR #109)
+
+**Owner:** implementer — PR #109 (squash `6c00c1c`), merged 2026-06-19. Reviewer
+APPROVE (no critical/major). **Not a queued task — M8 stays 4/10.** No migration, no
+new dependency, no new architecture-decision row (the decision table stays at #28).
+
+A follow-up to the auth cluster, landed outside the numbered-task queue: a **themed,
+accessible, inline client-side validation layer** that **replaces the browser's
+native HTML5 validation bubble** on the gate forms. New modules:
+
+- `src/lib/features/forms/validationMessage.ts` (pure, 20 unit tests) —
+  `classifyFailure` + `validationMessage` → themed, field-naming cult messages
+  (with **Mustard Address** / **Seal** special-cases).
+- `src/lib/features/forms/formValidation.svelte.ts` — `createFormValidation()` rune
+  factory: on a failed submit it populates a reactive `errors` map, focuses the first
+  invalid field, and `cancel()`s the submit (wrapping the page's `use:enhance`
+  SubmitFunction via `validation.enhance(...)`); `clearOnInput` hides a field's error
+  on the **first keystroke in that field** (per-field); the shared `clearError`
+  removes the message + `aria-invalid` + `aria-describedby` in lockstep. No
+  timer / auto-dismiss.
+- `src/lib/motion/reducedMotion.ts` — `errorSlideFade` (slide+fade transition that
+  animates height = the layout shift) + SSR-safe `prefersReducedMotion()` /
+  `motionDuration()`.
+- `src/app.css` `.field-error` (uses `--color-error`); `tests/form-validation.e2e.ts`.
+
+**This is recorded as a BINDING app-wide convention** — see the [[CLAUDE]]
+"Forms & validation" Patterns subsection. **Themed inline validation is the standard
+for EVERY form with required / empty-able fields across the app; the native HTML5
+bubble is never used.** New and reworked forms MUST adopt it.
+
+**Page-completeness context (so the rollout is understood).** Of the auth / gate
+pages, only **sign-in** and **forgot-password** are **finalized**. **Sign-up will be
+REPLACED by the Snacktum onboarding ritual (TASK-084)**, and **reset-password is not
+yet finalized**. Therefore the canon is applied **as each form-bearing page is built
+/ reworked**, not retrofitted onto pages about to change. Concretely, the
+form-bearing M8 tasks **MUST use the canonical validation**: **TASK-084** (the
+onboarding ritual), **TASK-085** (profile wall composer), and **any task touching the
+`dogs` / `messages` / `court` / `invite` forms**. Rollout tracked as **DW-032** in
+[[tasks/discovered]].
+
+**Gates:** reviewer APPROVE (no critical/major). `validationMessage.ts` ships with 20
+unit tests; `tests/form-validation.e2e.ts` covers the rendered layer.
+
+**Discovered during this work:** DW-032 (roll the canonical themed validation out to
+the remaining in-app forms — onboarding, hot-dog upload, profile wall, DM composer,
+Tribunal, invite — as each is built / reworked; see [[tasks/discovered]]).
+
+---
+
 ## Open Questions (REQUIRED — resolve WITH the designs before/at activation)
 
 These are the undecided items the build must not guess. Resolve each **with the

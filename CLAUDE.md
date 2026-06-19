@@ -122,7 +122,9 @@ top-dog/
 │   │   │   ├── auth/  invites/  profiles/  hotdogs/
 │   │   │   ├── voting/        # pure ranking/tie-break logic + vote RPC wrappers + feed/leaderboard queries
 │   │   │   ├── reactions/  mustard/  walls/  dms/
-│   │   │   └── emoji/         # render-time filter + sprinkle (TDD)
+│   │   │   ├── emoji/         # render-time filter + sprinkle (TDD)
+│   │   │   └── forms/         # themed inline validation: validationMessage.ts (pure) + createFormValidation() rune (M8)
+│   │   ├── motion/            # reducedMotion.ts — errorSlideFade transition + prefers-reduced-motion helpers (M8)
 │   │   ├── styles/            # tokens.css — CSS-custom-property theme layer (M8)
 │   │   └── components/        # shared Svelte components
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
@@ -185,6 +187,37 @@ top-dog/
   the mustard/Anoint overlay base, reaction/vote controls) rather than re-styling
   them. `--color-text-fainter` is **placeholders-only** (sub-AA by design); keep
   `--color-text-faint` (≥AA) for real content (see DW-028).
+
+### Forms & validation (CANON — themed inline validation, never the native bubble)
+
+- **Themed inline client-side validation is the STANDARD for EVERY form in the app
+  that has required / empty-able fields. The browser's native HTML5 validation
+  bubble is NEVER used.** New and reworked forms MUST adopt this — it is a binding
+  convention, not an option. (Landed ad-hoc as PR #109 on the auth-gate forms; made
+  app-wide canon. Rollout to remaining in-app forms tracked as DW-032.)
+- **The shape every form-bearing page follows:**
+  - Add `novalidate` to the `<form>` (suppresses the native bubble so our layer owns
+    the messaging).
+  - Construct `const validation = createFormValidation()` from
+    `$lib/features/forms/formValidation.svelte.ts` (a rune factory) and **wrap the
+    page's `use:enhance` SubmitFunction** through `validation.enhance(...)`. On a
+    failed submit it populates the reactive `validation.errors` map, focuses the
+    first invalid field, and `cancel()`s the submit; there is no timer / auto-dismiss.
+  - Per field: add `aria-invalid` + `aria-describedby` (kept in lockstep with the
+    error message and removed together by the shared `clearError`), and
+    `oninput={validation.clearOnInput}` (hides that field's error on the **first
+    keystroke in that field**, per-field).
+  - Render the message:
+    `{#if validation.errors.<name>}<p class="field-error" role="alert" id={...} transition:errorSlideFade>{...}</p>{/if}`.
+- **Messages are themed, field-naming cult copy from
+  `$lib/features/forms/validationMessage.ts`** (pure, unit-tested) — `classifyFailure`
+  - `validationMessage`. It special-cases themed field labels (e.g. **Mustard
+    Address**, **Seal**); **extend its label special-cases when a new themed field name
+    is introduced** rather than hand-writing message strings at the call site.
+- **`.field-error` (uses `--color-error`)** is the message style; the slide+fade
+  entrance/exit is `errorSlideFade` from `$lib/motion/reducedMotion.ts`, which animates
+  height (the layout shift) and is SSR-safe / `prefers-reduced-motion`-aware via
+  `prefersReducedMotion()` / `motionDuration()`.
 
 ### State Management
 

@@ -1,851 +1,1105 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme) + TASK-080 (app shell) + the **auth cluster** TASK-083 (reset) + TASK-082 (sign-in) **complete** — 4/10. Auth is now functional end-to-end (sign-in / forgot / reset). Next: TASK-081 (copy), TASK-084 (ritual sign-up), or TASK-085 (profile). **OQ-2 + OQ-5 FULLY RESOLVED (2026-06-19); dog-detail page = "The Relic"; TASK-086 adopts Option A — it WILL carry one migration (retire `prune_mustard_sprays`) + a likely decision #29.**
+> **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
+> Auth cluster + theme + shell **complete** — TASK-087 (theme) + TASK-080 (shell) +
+> TASK-083 (password recovery) + TASK-082 (sign-in) **done**. The three complete gate
+> pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
+> descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
+> finalized that these stay; they are NOT re-slugged).
+> **Re-scope (2026-06-19):** the remaining work is **REBUILT FROM the design mockups**
+> in `design/pages/*.dc.html` (a presentational rebuild per page, not an incremental
+> restyle) **and the IN-APP routes are RE-SLUGGED to cult names** (the `app` URL segment →
+> `snacktum-snacktorum`; each `/app/*` leaf → a cult slug). The four auth slugs are
+> unchanged. One foundational slug-refactor task lands the prefix rename + reference
+> rewrite; each remaining page gets its own rebuild-from-design task that **preserves its
+> `+page.server.ts` and re-wires all data/feature plumbing** (skin not skeleton).
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
-> **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum", and
-> redesign the user-facing surface — a global app shell + nav, the auth cluster
-> (real sign-in, password reset, ritual sign-up), a profile redesign, an error/404
-> page, the "Anoint" mustard re-theme, and a base cult visual/theme layer — plus
+> **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum" and
+> **rebuild the user-facing surface from the delivered design mockups** — re-slugged
+> cult routes, a per-page presentational rebuild of every remaining page, the
+> "Anoint" mustard re-theme, an error/404 page, and a derived honors Reliquary — plus
 > the champion-title copy swap "Top Dog" → **"The Anointed Wiener"** everywhere users
-> see it.
+> see it. **All designs are in hand** (`design/pages/`).
 
 ---
 
-## ⛔ Execution Block — read before dispatching ANY task
+## ✅ Designs delivered — milestone is ACTIVE and re-scoped
 
-**This milestone is exploded but MUST NOT be executed yet.** Every task below
-carries a hard dependency: **DESIGNS — final page designs from the user**. The
-user is providing page designs for the rebrand/redesign and has explicitly stated
-that **no build starts until those designs land**.
+**Every page is now mocked** (`design/pages/*.dc.html`) and all Open Questions are
+resolved (OQ-1…OQ-5; see § Resolved decisions). The original "wait for DESIGNS"
+execution block is **lifted** — the milestone is building. Dispatch tasks **only on
+explicit user instruction**, in the § Dependencies & Sequencing order; do not
+auto-chain.
 
-- The whole milestone is gated on a single shared dependency named **`DESIGNS`**
-  (final page designs delivered + reviewed with the user). Until then, **every
-  task is `blocked`**, not `pending`.
-- When designs arrive: resolve the Open Questions (below) **with** the designs,
-  flip the relevant tasks `blocked → pending` in this file, then dispatch in the
-  sequence in § Dependencies & Sequencing. The director does the flip on explicit
-  user activation; this is not an automatic transition.
-- A handful of tasks are **mostly design-independent** (the auth backend logic, the
-  app-shell wiring) and could begin earlier **if the user chooses to unblock them
-  ahead of the full design set** — they are marked **`design-light`** below. They
-  still default to `blocked` until the user says go; do not start them on your own
-  initiative.
+> **What changed at the 2026-06-19 re-scope (user-directed):**
+>
+> 1. **Rebuild each remaining page FROM its design mockup** in `design/pages/*.dc.html`
+>    — a presentational rebuild of `+page.svelte` (markup + styling), NOT an
+>    incremental restyle of the existing markup.
+> 2. **Re-slug the in-app routes to cult names** — the `app` URL segment becomes
+>    `snacktum-snacktorum`, and each `/app/*` leaf takes a cult slug (see § Slug Map).
+>    **The four auth slugs (`/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`)
+>    are KEPT descriptive** (the user finalized this) — the gate pages are NOT re-slugged.
+>    (Pre-launch, invite-only, not deployed → **no old→new redirects needed.**)
+>
+> This is a **deviation from the original plan's "URL paths UNCHANGED" note** (the old
+> Page Naming Map said the rename was display-only). **URLs now DO change.** It remains
+> a **skin-not-skeleton** pass at the code level (see the HARD SCOPE CONSTRAINT): no
+> table/RPC/TS-symbol rename, no infra rename, decisions #1–#28 + L2 preserved.
 
 ---
 
-## ‼️ HARD SCOPE CONSTRAINT — user-facing ONLY (rebrand the skin, keep the skeleton)
+## ‼️ HARD SCOPE CONSTRAINT — skin not skeleton (rebuild the presentation, preserve the wiring)
 
-**This milestone changes ONLY what users SEE — strings, copy, lore, components,
-styles, and new user-facing pages/flows.** It does **NOT** rename code identifiers
-or infrastructure. Every task below repeats this; here is the canonical list so no
-task can drift:
+**This milestone changes what users SEE and the URL slugs they navigate — markup,
+styling, copy, lore, and the route paths.** It does **NOT** rename code identifiers or
+infrastructure, and it does **NOT** delete server logic. Every rebuild task repeats
+this; here is the canonical list so no task can drift:
 
-**MUST NOT rename / change (forbidden in every task):**
+**MUST PRESERVE (forbidden to change in every task):**
 
-- **Infrastructure identities** (pinned per [[resource-naming]] — renaming forks
-  state / orphans resources):
+- **Each page's `+page.server.ts`** — the `load` function AND its `actions`. A rebuild
+  task replaces the **presentational** `+page.svelte`, re-wires the page's data/feature
+  plumbing into the new markup, and **must NOT delete or gut the server load/actions.**
+  If a server change is genuinely required, that is an escalation to the director, not a
+  silent rewrite.
+- **All data/feature wiring, re-connected into the new markup:**
+  - RLS-scoped queries on `event.locals.supabase` (never widen to the service client
+    except where decision #27 already requires it);
+  - the **decision #27 server-side signed-URL pattern** for cross-member private-bucket
+    images (`getServiceClient()` minting signed URLs **after** `safeGetSession()`, for
+    rows the RLS query already returned — see the feed/detail loads);
+  - the votes / reactions / walls / DMs / mustard(Anoint) / crown / badge / report+verdict
+    wiring each page composes today.
+- **Infrastructure identities** (pinned per [[resource-naming]]):
   - the Supabase project / DB / local containers (`top-dog`)
   - the git repository name
-  - the keep-alive GitHub Actions workflow + its labels
-    (`com.supabase.cli.project=top-dog`)
+  - the keep-alive GitHub Actions workflow + its labels (`com.supabase.cli.project=top-dog`)
 - **Code identifiers** (DB, TS, components — internal names stay as-is):
   - DB columns/tables: `is_current_top_dog`, `top_dog_since`, `days_as_top_dog`,
-    `hot_dogs`, `mustard_sprays`, `hotdog_reactions`, `burger_alarms`,
-    `burger_verdicts`, `hamburger_liars`, `wall_messages`, `dms`, `votes`,
-    `top_dog_days`, `invites`, `profiles`, etc.
+    `hot_dogs`, `mustard_sprays`, `hotdog_reactions`, `burger_alarms`, `burger_verdicts`,
+    `hamburger_liars`, `wall_messages`, `dms`, `votes`, `top_dog_days`, `invites`,
+    `profiles`, etc.
   - functions/RPCs: `recompute_top_dog`, `tally_top_dog_day`, `cast_vote`,
     `render_burger_verdict`, `prune_mustard_sprays`, etc.
   - TS symbols & components: `selectTopDog`, `TopDogBadge`, `mustardOpacity`,
-    `summarizeBurgerAlarm`, etc. (Note: `TopDogPrivilegesNotice` was **retired** in
-    TASK-080 — see Completed Tasks — so it is no longer a symbol to preserve.)
-- **Architecture & security posture:** preserve **every** locked decision #1–#28
-  and the **L2** security profile. No new architecture-decision row is expected
-  (this is a skin/UX pass); if one genuinely surfaces, record it per the normal gate.
+    `summarizeBurgerAlarm`, etc.
+- **Architecture & security posture:** preserve **every** locked decision #1–#28 and
+  the **L2** security profile. The only planned migration in the whole milestone is
+  TASK-094's prune retirement (+ a likely decision #29 — recorded as a plan); no other
+  task adds a migration or a new decision row.
 
-**MAY change (in scope):** user-visible **strings / copy / lore / titles /
-microcopy**, **Svelte component markup & styling**, **CSS / theme**, **new
-user-facing routes & flows** (sign-in form, password reset, ritual sign-up,
-error/404, app-shell nav), and **rendered labels** that today read "Top Dog".
+> **The route slug IS allowed to change (that is the point of the re-scope).** The
+> directory/file path under `src/routes` changes (`app` → `snacktum-snacktorum`, leaf
+> slugs to cult names) and the URL changes with it. What stays fixed is everything
+> _inside_ the files: the `load`/`actions` logic, the feature module names, the DB/RPC
+> identifiers. Renaming a route folder is in scope; renaming a code symbol to "match"
+> the cult name is **out** of scope.
 
-> **Champion-title swap is COPY ONLY.** "Top Dog" the _displayed title_ becomes
-> **"The Anointed Wiener"** wherever a user reads it — badge label, "Days as Top
-> Dog" stat, the Court's "Top Dog is the
-> adjudicator" tape, feed/leaderboard, help page. (The Top-Dog-privileges notice was
-> **retired in TASK-080** — Top Dog powers are now documented in The Catechism — so it
-> is no longer a copy target.) The _code_ keeps
-> `is_current_top_dog` / `TopDogBadge` / `selectTopDog` / `days_as_top_dog`
-> untouched. A task that renames a code symbol to match the new title has
-> **violated scope.**
+**MUST change (in scope):** the **route slugs** (§ Slug Map), each remaining page's
+**`+page.svelte` markup + styling** (rebuilt from its mockup), user-visible
+**strings / copy / lore / titles / microcopy**, and **new user-facing surfaces** (the
+error/404 page, the onboarding rite, the Reliquary shelf).
+
+> **Champion-title swap is COPY ONLY.** "Top Dog" the _displayed title_ becomes **"The
+> Anointed Wiener"** wherever a user reads it. The _code_ keeps `is_current_top_dog` /
+> `TopDogBadge` / `selectTopDog` / `days_as_top_dog`. A task that renames a code symbol
+> to match the new title has **violated scope.**
+
+---
+
+## Form-validation CANON (apply in EVERY rebuilt form with required fields)
+
+Every rebuilt page that has a form with required / empty-able fields MUST adopt the
+app-wide themed-validation canon (see [[CLAUDE]] "Forms & validation (CANON)") — the
+native HTML5 bubble is never used:
+
+- `novalidate` on the `<form>`;
+- `const validation = createFormValidation()` from
+  `$lib/features/forms/formValidation.svelte.ts`, wrapping the page's `use:enhance`
+  SubmitFunction via `validation.enhance(...)`;
+- per field: `aria-invalid` + `aria-describedby` (in lockstep, removed together by
+  `clearError`) + `oninput={validation.clearOnInput}`;
+- render: `{#if validation.errors.<name>}<p class="field-error" role="alert" id={...}
+transition:errorSlideFade>{...}</p>{/if}`;
+- messages come from `$lib/features/forms/validationMessage.ts` (extend its themed
+  label special-cases — **Mustard Address**, **Seal**, etc. — rather than hand-writing
+  strings at the call site).
+
+This applies to the rebuilt **onboarding rite** (TASK-092), the **Shrine** wall
+composer (TASK-093), and any **Summon a Frank** / **Tribunal** / **DM composer** forms
+in the litter / epistles / invite / tribunal rebuilds. Rollout is tracked as DW-032.
+
+---
+
+## Porting the design DSL → Svelte 5 (read once before any rebuild)
+
+The mockups are a bespoke design DSL, **not** Svelte. Port the **visual/animation
+intent**, do not copy the DSL. The constructs and their Svelte 5 equivalents:
+
+| Mockup DSL                                                                                        | Port to                                                                                                                               |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `<x-dc>…</x-dc>`, `<helmet>`, `<script type="text/x-dc">` (a `DCLogic` class with `renderVals()`) | the page's `<script lang="ts">` + `<svelte:head>` where needed; the `renderVals()` mapping becomes `$derived` values from real `data` |
+| `{{ expr }}` interpolation                                                                        | Svelte `{expr}` bound to real `data` from the load                                                                                    |
+| `<sc-if value="{{ x }}">…</sc-if>`                                                                | `{#if x}…{/if}`                                                                                                                       |
+| `<sc-for list="{{ items }}" as="item">`                                                           | `{#each items as item}…{/each}`                                                                                                       |
+| `style-hover="…"`, `style-focus="…"`                                                              | real CSS `:hover` / `:focus-visible` rules (keep AA + visible focus, decision/DW-028)                                                 |
+| inline `style="…"` with literal hex/px                                                            | **theme tokens** `var(--…)` from `src/lib/styles/tokens.css` (TASK-087) — **never literal hex**; switch accent via `data-accent`      |
+| `<image-slot>` / `<dc-import name="Sigil…">`                                                      | real `<img>` (signed/public URL) / the inline sigil SVGs under `src/lib/assets/sigils/`                                               |
+| Google-Fonts `<link>` in `<helmet>`                                                               | already self-hosted (`static/fonts/`, TASK-087) — **do not** re-add a CDN link                                                        |
+| inline `@keyframes` (`glowPulse`/`fadeUp`/`stamp`/`unroll`)                                       | the tokenized utilities already in `src/app.css` (TASK-087) — reuse them, honor `prefers-reduced-motion`                              |
+
+The signature flair (champion ribbon, HAMBURGER ALARM / CONFIRMED HAMBURGER stamps,
+HERETIC / FALSE WITNESS police-tape, the badge, the mustard/Anoint splat) already
+exists as themed components (`TopDogBadge`, `HamburgerAlarmBanner`,
+`ProfilePoliceBanner`, `ConfirmedHamburgerStamp`, `ReactionBar`, `BurgerReportControl`)
+— **reuse and re-place** them per the mock, don't re-implement them.
+
+---
+
+## Slug Map (FINALIZED by the user)
+
+**The `(protected)` group stays** (it is a SvelteKit layout group — the `(protected)`
+segment is not in the URL). What changes is the `app` segment → **`snacktum-snacktorum`**
+and each in-app leaf slug. **Route params (`[handle]`, `[id]`) are preserved.**
+
+### Group prefix + auth/gate pages (FINALIZED by the user)
+
+**The four auth slugs are KEPT DESCRIPTIVE — they are NOT re-slugged.** The user finalized
+that the auth cluster stays plain (`/sign-in`, `/sign-up`, `/forgot-password`,
+`/reset-password`). The three complete gate pages keep their folders and paths in place;
+only the in-app `app` prefix moves.
+
+| Current route          | New route                                                        | File move / disposition                                                       |
+| ---------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `/app/*` (URL segment) | `/snacktum-snacktorum/*`                                         | `src/routes/(protected)/app/` → `src/routes/(protected)/snacktum-snacktorum/` |
+| `/sign-in`             | **`/sign-in` (UNCHANGED)**                                       | folder stays `src/routes/sign-in/` — no move (TASK-082, complete)             |
+| `/sign-up`             | **`/sign-up` (UNCHANGED — hosts the onboarding rite, TASK-092)** | folder stays `src/routes/sign-up/`                                            |
+| `/forgot-password`     | **`/forgot-password` (UNCHANGED)**                               | folder stays `src/routes/forgot-password/` — no move (TASK-083, complete)     |
+| `/reset-password`      | **`/reset-password` (UNCHANGED)**                                | folder stays `src/routes/reset-password/` — no move (TASK-083, complete)      |
+
+### Leaf slugs under `/snacktum-snacktorum/` (FINALIZED by the user)
+
+| Current leaf             | Page (cult display name)                 | New route                                                                                                   |
+| ------------------------ | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `/app/feed`              | The Procession: Standings of the Blessed | `/snacktum-snacktorum/procession`                                                                           |
+| `/app/dogs`              | Your Litter                              | `/snacktum-snacktorum/litter`                                                                               |
+| `/app/dogs/[id]`         | The Relic                                | `/snacktum-snacktorum/litter/[id]`                                                                          |
+| `/app/profile/[handle]`  | The Shrine                               | `/snacktum-snacktorum/shrine/[handle]`                                                                      |
+| `/app/messages`          | Epistles                                 | `/snacktum-snacktorum/epistles`                                                                             |
+| `/app/messages/[handle]` | Whispers                                 | `/snacktum-snacktorum/epistles/[handle]`                                                                    |
+| `/app/invite`            | Summon a Frank                           | `/snacktum-snacktorum/summon`                                                                               |
+| `/app/court`             | The Tribunal of the Holy Tube            | `/snacktum-snacktorum/tribunal`                                                                             |
+| `/app/help`              | The Catechism                            | `/snacktum-snacktorum/catechism`                                                                            |
+| `/app/onboarding`        | Snacktum Onboarding (the rite)           | **REMOVED — absorbed into `/sign-up`** (the rite lives at `/sign-up`; no standalone in-app onboarding leaf) |
+| `/app` (retired hub)     | — (redirects to The Procession)          | `/snacktum-snacktorum` → `redirect → /snacktum-snacktorum/procession`                                       |
+
+> **Onboarding — FINALIZED: the rite lives at `/sign-up`, no standalone leaf.** Under OQ-1
+> B-absorb, **TASK-092's rite IS the `/sign-up` route**; the standalone
+> `(protected)/app/onboarding/` route is **removed/absorbed**. There is **no
+> `/snacktum-snacktorum/onboarding` or `/initiation`** slug. The profile-funnel guard (an
+> authenticated-but-profile-less member) now funnels into the **`/sign-up` rite at the
+> naming/sigil step** (the rite is resumable — they do NOT re-do invite-token/credentials);
+> TASK-092 owns finalizing this. See TASK-092.
+> **Dog detail** is nested under `litter` as `litter/[id]` ("The Relic" is a relic _in_
+> your litter) — keeps the gallery→detail relationship in the URL.
+
+> **No redirects needed.** The app is **pre-launch, invite-only, and not deployed**, so
+> there are **no old→new redirect shims** — the old paths simply cease to exist. (If the
+> app were live we'd add 301s; it is not, so we don't.)
+
+---
+
+## Page inventory & per-page disposition (the re-scoped surface)
+
+| Page (cult name)                 | Mockup (`design/pages/`)        | Current route → new route                                           | Disposition                                                                                                 | Task                                  |
+| -------------------------------- | ------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| **Enter the Snacktum** (sign-in) | `Log In.dc.html`                | `/sign-in` (UNCHANGED slug)                                         | COMPLETE — no slug change                                                                                   | —                                     |
+| **Forgot password** (forgot)     | `Reset Password.dc.html` (req.) | `/forgot-password` (UNCHANGED slug)                                 | COMPLETE — no slug change                                                                                   | —                                     |
+| **Reset password** (reset)       | `Reset Password.dc.html`        | `/reset-password` (UNCHANGED slug)                                  | COMPLETE — no slug change                                                                                   | —                                     |
+| **App shell + nav**              | `App Chrome.dc.html`            | chrome (no own URL)                                                 | DONE (TASK-080) — refresh nav links + labels in the refactor + a styling pass folded into the per-page work | TASK-090 (links)                      |
+| **Snacktum Onboarding** (rite)   | `Snacktum Onboarding.dc.html`   | `/sign-up` (the rite; standalone `/app/onboarding` REMOVED)         | REPLACE — rebuild `/sign-up` as the rite                                                                    | TASK-092                              |
+| **The Procession** (feed)        | `The Procession.dc.html`        | `/app/feed` → `/snacktum-snacktorum/procession`                     | REBUILD from design                                                                                         | TASK-091                              |
+| **Your Litter** (gallery)        | `Your Litter.dc.html`           | `/app/dogs` → `/snacktum-snacktorum/litter`                         | REBUILD from design                                                                                         | TASK-095                              |
+| **The Relic** (dog detail)       | `The Relic.dc.html`             | `/app/dogs/[id]` → `/snacktum-snacktorum/litter/[id]`               | REBUILD from design                                                                                         | TASK-096                              |
+| **The Shrine** (profile)         | `The Shrine.dc.html`            | `/app/profile/[handle]` → `/snacktum-snacktorum/shrine/[handle]`    | REBUILD from design (+ Anoint, + Reliquary slot)                                                            | TASK-093                              |
+| **Epistles** (DM inbox)          | `Epistles.dc.html`              | `/app/messages` → `/snacktum-snacktorum/epistles`                   | REBUILD from design                                                                                         | TASK-097                              |
+| **Whispers** (DM thread)         | `Whispers.dc.html`              | `/app/messages/[handle]` → `/snacktum-snacktorum/epistles/[handle]` | REBUILD from design                                                                                         | TASK-097                              |
+| **Summon a Frank** (invite)      | `Summon a Frank.dc.html`        | `/app/invite` → `/snacktum-snacktorum/summon`                       | REBUILD from design                                                                                         | TASK-098                              |
+| **The Tribunal** (court)         | `The Tribunal.dc.html`          | `/app/court` → `/snacktum-snacktorum/tribunal`                      | REBUILD from design                                                                                         | TASK-099                              |
+| **The Catechism** (help)         | `The Catechism.dc.html`         | `/app/help` → `/snacktum-snacktorum/catechism`                      | REBUILD from design (accuracy-checked)                                                                      | TASK-100                              |
+| **The Lost Pilgrim** (error/404) | `The Lost Pilgrim.dc.html`      | NEW `+error.svelte`                                                 | NEW                                                                                                         | TASK-101                              |
+| **The Reliquary** (badges)       | prompt #12 (+ The Shrine mock)  | a section of The Shrine                                             | NEW derived module + shelf                                                                                  | TASK-094-R (folds into TASK-093 page) |
+| **"Anoint"** (mustard re-theme)  | `The Shrine.dc.html` (splat)    | the mustard surface on The Shrine                                   | RE-THEME (+ the one migration)                                                                              | TASK-094                              |
 
 ---
 
 ## Confirmed decisions (baked into the tasks below)
 
-- **App name:** "Snacktum Snacktorum" (the temple). Replaces "Top Dog" as the
-  product/brand name in all user-facing copy, page `<title>`s, and headings.
-- **Champion title:** "Top Dog" → **"The Anointed Wiener"** — user-facing copy swap
-  everywhere the crown is shown. Code identifiers unchanged (see scope box).
-- **Theme:** a hot-dog **CULT / temple** aesthetic and lore pass across all pages.
-  The Hamburger Court / false-accuser brand (display label **FALSE WITNESS**, see the
-  cult naming-map below) / HAMBURGER HERETIC mechanics **already** fit the cult/heresy
-  theme — lean into them (heresy, excommunication, the unclean hamburger) rather than
-  reinventing.
-- **False-accuser brand display label:** **HAMBURGER LIAR → FALSE WITNESS** — the
-  consequence a `not_a_hamburger` verdict inflicts on false accusers is shown to users
-  as **FALSE WITNESS** (it pairs with HERETIC in the cult voice). This is a
-  **DISPLAY-LABEL change only**: every code/data identifier is UNCHANGED — the
-  `hamburger_liars` table, the `not_a_hamburger` verdict value, the
-  `getLiarBrandTimestamps` / `summarizeLiarBrand` helpers, the `liarBrand` /
-  `ProfilePoliceBanner` symbols, and the badge id `liar` all stay exactly as they are.
-  The copy pass (TASK-081) and badge/profile/Tribunal tasks (TASK-085, TASK-089) apply
-  the FALSE WITNESS label; the design prompts already use it (`design/page-design-prompts.md`).
-- **Default landing route = The Procession (`/app/feed`).** The post-auth home is
-  **The Procession** (the feed / "Standings of the Blessed"), not the old `/app`
-  "kennel" hub. This is a **CONFIRMED decision** (NOT an open question). Two
-  consequences, both baked into **TASK-080**:
-  1. **The `/` redirect repoints `/app` → `/app/feed`** — a one-line change to
-     `src/routes/+page.server.ts` (`redirect(307, '/app')` → `'/app/feed'`).
-  2. **The bare `/app` "kennel" hub is retired/absorbed** — its only job today is
-     holding the nav links, which the new global app shell + nav (TASK-080)
-     supersedes. Recommended disposition: **retire `/app` → redirect to
-     `/app/feed`** (or repurpose it as designed). See TASK-080.
-  - The **auth cascade is unaffected**: `/app/feed` lives under `(protected)/app`, so
-    its layout guard still funnels an **unauthenticated** user → `/sign-in` and a
-    **profile-less** user → `/app/onboarding` before The Procession renders. This is
-    a **route/user-facing** change only — **no infra or code-identifier change**
-    (the `(protected)/app` group, the layout guard, and every internal name are
-    untouched).
-
----
-
-## Page inventory (the surface this milestone restyles)
-
-For grounding — the current user-facing routes (≈14 pages) the copy/theme/redesign
-pass must cover (all under `src/routes`). The **Cult name** column carries the
-CONFIRMED themed display names where the user has decided one; see the
-**Page Naming Map** below for the full mapping + rationale. **OQ-5 is now fully
-resolved** — every user-facing page name is confirmed (the dog-detail page is
-**The Relic**).
-
-| Route                            | File(s)                                               | Cult name                                                       | Touched by                                        |
-| -------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
-| `/sign-up`                       | `sign-up/+page.svelte` (+ `+page.server.ts`)          | **Take the Casing**                                             | copy, ritual sign-up, theme                       |
-| `/sign-in`                       | `sign-in/+page.svelte` (**stub — no action**)         | **Enter the Snacktum** (heading)                                | **build the form/action**, copy, theme            |
-| `/forgot-password`               | **does not exist**                                    | _(new — name w/ designs)_                                       | **new**                                           |
-| `/reset-password`                | **does not exist**                                    | _(new — name w/ designs)_                                       | **new**                                           |
-| `/app` (home / "kennel")         | `(protected)/app/+page.svelte`                        | **N/A** — retired/absorbed by the shell (redirects to feed)     | copy, app-shell, theme                            |
-| `/app` shell                     | `(protected)/app/+layout.svelte` (**does not exist**) | _(chrome, not a page)_                                          | **new app-shell + nav**                           |
-| `/app/onboarding`                | `(protected)/app/onboarding/+page.svelte`             | **Choose Your Frank Name**                                      | ritual sign-up (may absorb), copy, theme          |
-| `/app/feed`                      | `(protected)/app/feed/+page.svelte`                   | **The Procession: Standings of the Blessed**                    | copy (title swap), theme                          |
-| `/app/dogs` (+ `/app/dogs/[id]`) | `(protected)/app/dogs/...`                            | **Your Litter** (`/app/dogs`); **The Relic** (`/app/dogs/[id]`) | copy, theme                                       |
-| `/app/profile/[handle]`          | `(protected)/app/profile/[handle]/+page.svelte`       | **The Shrine**                                                  | **profile redesign**, display-name, Anoint, theme |
-| `/app/messages` (+ `/[handle]`)  | `(protected)/app/messages/...`                        | **Epistles** (inbox) / **Whispers** (thread)                    | copy, theme                                       |
-| `/app/invite`                    | `(protected)/app/invite/+page.svelte`                 | **Summon a Frank**                                              | copy, theme                                       |
-| `/app/court`                     | `(protected)/app/court/+page.svelte`                  | **The Tribunal of the Holy Tube**                               | copy (title swap), theme                          |
-| `/app/help`                      | `(protected)/app/help/+page.svelte`                   | **The Catechism**                                               | copy (title swap + lore), theme                   |
-| error / 404                      | `+error.svelte` (**does not exist**)                  | _(new — name w/ designs)_                                       | **new**                                           |
-
-> **`/` redirect:** `/` currently redirects to `/app` (post-M7 scaffold cleanup,
-> PR #89). **M8 repoints it to `/app/feed`** — see the **Default landing route**
-> section below; the mechanical change lands in **TASK-080**. `/` itself is not a
-> page this milestone designs.
-
----
-
-## Page Naming Map — themed cult DISPLAY names (CONFIRMED)
-
-These are **user-facing display names / page `<title>`s / nav labels** mapped onto
-the EXISTING routes. **URL paths are UNCHANGED** — this is a skin, not a skeleton:
-the route param, the file path, and every internal/code identifier stay exactly as
-they are (per the HARD SCOPE CONSTRAINT). Only what a user reads in the title bar,
-the page heading, and the nav changes.
-
-**TASK-081 (brand & lore copy) is the source of truth for applying these exact
-names** — the copy pass MUST use the confirmed strings below verbatim (subject to
-the designs' final voice/casing) and MUST NOT invent alternatives for the
-already-decided routes.
-
-| Route (UNCHANGED)        | Cult display name (CONFIRMED)                |
-| ------------------------ | -------------------------------------------- |
-| `/sign-up`               | **Take the Casing**                          |
-| `/sign-in`               | **Enter the Snacktum** (page heading)        |
-| `/app/onboarding`        | **Choose Your Frank Name**                   |
-| `/app/dogs`              | **Your Litter**                              |
-| `/app/dogs/[id]`         | **The Relic**                                |
-| `/app/feed`              | **The Procession: Standings of the Blessed** |
-| `/app/profile/[handle]`  | **The Shrine**                               |
-| `/app/messages`          | **Epistles**                                 |
-| `/app/messages/[handle]` | **Whispers**                                 |
-| `/app/court`             | **The Tribunal of the Holy Tube**            |
-| `/app/invite`            | **Summon a Frank**                           |
-| `/app/help`              | **The Catechism**                            |
-
-> **OQ-5 is now FULLY RESOLVED** (2026-06-18 / 2026-06-19, from the user's mockup
-> filenames + the final dog-detail choice): `/sign-in` → **Enter the Snacktum**,
-> `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**,
-> `/app/messages/[handle]` → **Whispers**, and **`/app/dogs/[id]` → "The Relic"** are
-> all CONFIRMED above. The `/app` home/hub is **retired/absorbed** (redirects to The
-> Procession — see § Default landing route), so it needs no display name. **Every
-> user-facing page name is now confirmed** — TASK-081 applies them verbatim.
-
-### Confirmed cult copy beyond page names (verdict / brand labels)
-
-These are CONFIRMED user-facing label decisions the copy pass (TASK-081) and the
-brand-bearing tasks (TASK-085 Tribunal/profile, TASK-089 Reliquary badge) MUST apply
-verbatim — like the page names above, they are decided, not open:
-
-| User-facing label (CONFIRMED)            | Replaces                  | Code/data identifier (UNCHANGED)                                                                                        |
-| ---------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **The Anointed Wiener** (champion title) | "Top Dog"                 | `is_current_top_dog` / `TopDogBadge` / `selectTopDog` / `days_as_top_dog`                                               |
-| **FALSE WITNESS** (false-accuser brand)  | "HAMBURGER LIAR" / "LIAR" | `hamburger_liars` / `not_a_hamburger` / `getLiarBrandTimestamps` / `summarizeLiarBrand` / `liarBrand` / badge id `liar` |
-
-> **FALSE WITNESS is a DISPLAY-LABEL change only.** Wherever a user reads "HAMBURGER
-> LIAR" or (in the verdict-consequence context) "LIAR" — the Tribunal verdict copy,
-> the profile police-tape brand, the Reliquary shame-relic — show **FALSE WITNESS**
-> (it pairs naturally with HERETIC). **PRESERVE every code/data identifier unchanged**
-> (the `hamburger_liars` table, the `not_a_hamburger` verdict value, the
-> `getLiarBrandTimestamps` / `summarizeLiarBrand` wrappers, the `liarBrand` /
-> `ProfilePoliceBanner` symbols, the `liar` badge id, and any `*Liar*` / `*liar*`
-> symbol). The Reliquary shame-relic badge reads **FALSE WITNESS** (not "False
-> Witness / Liar"). The design prompts already use the FALSE WITNESS wording
-> (`design/page-design-prompts.md`).
-
-### Confirmed auth/gate-page copy conventions (apply in TASK-081; do NOT undo)
-
-These were settled during the ad-hoc gate-page visual-polish pass (PR #107,
-`4fcc3c7`, 2026-06-19 — not a queued task). The interim pass already applied this
-voice to the four gate pages; **TASK-081's copy sweep MUST apply these conventions
-CONSISTENTLY and must NOT revert them.** They are decided, not open:
-
-| Concept                          | CONFIRMED user-facing copy                                                                                                 |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Password**                     | **"Seal"** — field labels, "Forgotten thy seal?", "Forge a New Seal", "Confirm the Seal", "Seal It →", validation messages |
-| **Email field**                  | label **"Mustard Address"**, placeholder **`you@mustard.condiment`**                                                       |
-| **Sign-in destination metaphor** | **"the grill"** (NOT "the gates") — the place a member is admitted to on sign-in                                           |
-
-> **Sign-up parity note (open item for TASK-081 / TASK-084).** `/sign-up` is the one
-> gate page **NOT yet at full theme/copy parity** after PR #107 — it still carries a
-> plain "Email" label and a bare `<h1>Sign up</h1>` with no eyebrow / ornament / themed
-> intro (it was always the unstyled stub; the polish pass restyled sign-in /
-> forgot-password / reset-password but left sign-up behind). **TASK-081** (and/or
-> **TASK-084**'s ritual rework) should bring `/sign-up` to parity — the **Mustard
-> Address** label + `you@mustard.condiment` placeholder + a themed heading/eyebrow
-> consistent with the other gate pages and the "Take the Casing" page name above.
+- **App name:** "Snacktum Snacktorum" (the temple). Carried by the designs.
+- **Champion title:** "Top Dog" → **"The Anointed Wiener"** — user-facing copy swap.
+  Code identifiers unchanged (scope box).
+- **False-accuser brand display label:** **HAMBURGER LIAR → FALSE WITNESS** — a
+  DISPLAY-LABEL change only (the `hamburger_liars` table, `not_a_hamburger` verdict
+  value, `getLiarBrandTimestamps` / `summarizeLiarBrand` / `liarBrand` /
+  `ProfilePoliceBanner` symbols, and the `liar` badge id all stay). The designs already
+  use "FALSE WITNESS".
+- **Default landing route = The Procession.** Post-auth home is The Procession (the
+  feed). Realized in TASK-080 as `/` → `/app/feed`; the slug refactor (TASK-090)
+  repoints it to `/snacktum-snacktorum/procession`. The bare hub is retired (redirects
+  to The Procession).
+- **Cult / temple aesthetic** — the dark-temple theme (TASK-087) is the foundation; the
+  rebuilds consume its `var(--…)` tokens and reuse its themed flair components.
+- **Rebuild-from-design + re-slug (2026-06-19 re-scope, user-directed)** — recorded as a
+  **scope decision** (not a numbered architecture-decision row): the deviation from the
+  original "URL paths UNCHANGED" plan. URLs now change; code identifiers + infra do not.
+  The decision table stays at **#28** (the only planned new row is TASK-094's #29).
 
 ---
 
 ## Active Tasks
 
-> All tasks are **`blocked`** on **`DESIGNS`** (final page designs). Sizes are
-> pre-design estimates and may move once designs land. Do **not** dispatch until
-> the user activates after delivering designs.
+> Re-scoped 2026-06-19. The completed gate/shell/theme tasks are in § Completed Tasks.
+> Dispatch **only on explicit user instruction**, in the § Dependencies & Sequencing
+> order. The foundational slug refactor (TASK-090) lands first (or its prefix piece
+> does); the per-page rebuilds follow.
 
-### TASK-081: Brand & lore copy pass — app name + "The Anointed Wiener" + cult terminology [`blocked`] [`P1`] [`L`]
+### TASK-090: Foundational slug refactor — `app` → `snacktum-snacktorum` prefix + every reference [`pending`] [`P1`] [`L`]
 
 **Owner:** unassigned
-**Dependencies:** `DESIGNS` (final lore/voice + per-page copy); soft-depends on
-TASK-080 (shell exists to hold nav/header copy) and is the **source of truth for
-the title swap** that TASK-082/084/085/086 reference.
+**Dependencies:** none hard (the completed gate pages + shell exist). **Risky
+cross-cutting refactor** — a **checkpoint tag is warranted at execution**
+(`checkpoint-YYYY-MM-DD-pre-slug-refactor`, director suggests at dispatch). Lands first
+so the per-page rebuilds build on the final paths (each rebuild then only touches its
+own `+page.svelte`).
 
-**Scope:** a **user-facing-strings-only** sweep across all ≈14 pages (see the Page
-inventory): product name "Top Dog" → **"Snacktum Snacktorum"**; champion title
-"Top Dog" → **"The Anointed Wiener"**; the **per-page cult display names** from the
-**Page Naming Map** (the confirmed page `<title>`s / headings / nav labels); and a
-cult/temple lore voice for titles, headings, and microcopy. **No code identifiers,
-no infra names.**
+> **‼️ The four auth slugs are KEPT (`/sign-in`, `/sign-up`, `/forgot-password`,
+> `/reset-password`) — the user finalized this.** This task does **NOT** move the gate-page
+> folders and does **NOT** retarget any `/sign-in` redirect. The ONLY route change is the
+> in-app **prefix** `app` → `snacktum-snacktorum` (+ its leaf paths, whose folder renames
+> fold into the per-page rebuilds). The auth-guard change is a **prefix** change only.
+
+**Scope:** the in-app route-prefix rename for the parts **NOT tied to a page rebuild** —
+the `(protected)/app/` → `(protected)/snacktum-snacktorum/` directory move and updating
+**EVERY internal reference to the `/app/` URL prefix in lockstep**. This is a
+move-and-rewrite task: it does **not** restyle any page (the per-page rebuilds own
+markup), and it does **not** touch the three complete gate-page folders (their slugs are
+unchanged). It MAY apply the final cult-name **nav labels** in the shell (the shell is
+already complete; this is the natural place to finalize its link targets + labels).
+
+> **‼️ The auth-guard string-prefix is load-bearing.** `src/hooks.server.ts` guards
+> `event.url.pathname.startsWith('/app')` (line ~68) — if the route segment becomes
+> `/snacktum-snacktorum` but this prefix is not updated, **the entire protected area
+> becomes unguarded** (an unauthenticated user could reach it). This is the single
+> highest-risk line in the refactor. Update it to `'/snacktum-snacktorum'` AND its
+> co-located test (`src/hooks.server.test.ts`).
 
 **Acceptance Criteria:**
 
-- [ ] **Per-page display names applied from the Page Naming Map.** This task is the
-      **source of truth** for those strings — apply the **CONFIRMED** names verbatim
-      (subject to the designs' final casing/voice) to each route's `<title>`,
-      top-level heading, and nav label:
-      `/sign-up` → **Take the Casing**, `/sign-in` heading → **Enter the Snacktum**,
-      `/app/onboarding` → **Choose Your Frank Name**, `/app/dogs` → **Your Litter**,
-      `/app/feed` → **The Procession: Standings of the Blessed**,
-      `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**,
-      `/app/messages/[handle]` → **Whispers**, `/app/court` → **The Tribunal of the
-      Holy Tube**, `/app/invite` → **Summon a Frank**, `/app/help` → **The Catechism**,
-      and **`/app/dogs/[id]` → "The Relic"** (resolved 2026-06-19 — OQ-5 fully closed).
-      The **`/app` home/hub is retired** (redirects to The Procession — no name
-      needed). **Every page name is now confirmed** — apply "The Relic" verbatim to the
-      dog-detail page; do not invent alternatives. URL paths and code identifiers stay
-      UNCHANGED (skin, not skeleton).
-- [ ] **App name** "Snacktum Snacktorum" replaces "Top Dog" as the product/brand
-      name in: page `<title>`s, top-level headings, the sign-in/sign-up copy
-      ("Top Dog is invite-only" → cult-framed equivalent), the help page, and any
-      other user-visible "Top Dog the app" reference.
-- [ ] **Champion-title swap "Top Dog" → "The Anointed Wiener"** in **every**
-      user-facing place the crown is shown:
-  - the badge label (`TopDogBadge` `label` prop value — **prop value only**, not the
-    component name)
-  - the **"Days as Top Dog"** stat label → "Days as The Anointed Wiener" (or the
-    designed phrasing)
-  - _(the Top-Dog-privileges notice was **retired in TASK-080** — Top Dog powers now
-    live in The Catechism, so it is no longer a copy target)_
-  - the Court's **"TOP DOG IS THE ADJUDICATOR"** police-tape label
-    (`HamburgerAlarmBanner` / court copy)
-  - the **feed/leaderboard** crown references
-  - the **help page** crown/vote explanation
-- [ ] **Cult/temple lore voice** applied to headings + microcopy across the pages,
-      consistent with the designs. Lean into the **existing** heresy theme: the
-      Hamburger Court, the false-accuser brand (display label **FALSE WITNESS** — see
-      the cult naming-map; the old "HAMBURGER LIAR" wording is renamed in display copy,
-      the `hamburger_liars` code/data is unchanged), and **HAMBURGER HERETIC** already
-      fit (excommunication / the unclean hamburger / heresy) — re-theme their copy to
-      match, but **keep the underlying mechanic labels recognizable** (a user who saw
-      the brand should still understand the consequence).
-- [ ] **Help page (`/app/help`) accuracy preserved.** It describes live mechanics;
-      the copy re-theme must **not** change any _described behavior_ — only the voice.
-      Re-verify every mechanic-bearing line still matches source
-      (`voting/ranking.ts`, `mustard/decay.ts`, `reports/verdict.ts`) exactly as
-      TASK-075 did. The vote system stays accurately described (one movable vote, no
-      self-vote, most votes → crown, sticky tie-break, the days tally). **NOTE
-      (OQ-2d, 2026-06-19):** the mustard/Anoint overlay lifespan changes from ~24h →
-      **~6h** (`MUSTARD_LIFESPAN_MS`) — update the Catechism's "~24h" mustard copy to
-      **~6h** in lockstep with whichever of TASK-081 / TASK-086 lands the constant
-      change, so the help page stays accurate.
-- [ ] **No code identifier renamed; no infra name changed.** Grep check at the end:
-      `is_current_top_dog`, `days_as_top_dog`, `selectTopDog`, `TopDogBadge`,
-      `recompute_top_dog`, table/RPC names — all still present and unchanged. Only
-      _string literals / markup text_ differ.
-- [ ] **XSS-safe:** all copy is fixed strings (no `{@html}`, no user content
-      interpolated unescaped).
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (update any
-      test that asserts on a changed user-facing string), **`@smoke` 4/4** (smoke
-      may assert visible copy — update selectors/text expectations in lockstep),
-      `@security` green. No migration.
+- [ ] **Directory move:** `src/routes/(protected)/app/` → `src/routes/(protected)/snacktum-snacktorum/`
+      (the `(protected)` group is preserved — it is not in the URL). The **leaf folders
+      keep their current names in THIS task** (`feed`, `dogs`, `profile`, `messages`,
+      `invite`, `court`, `help`, `dogs/[id]`, etc.) — the leaf-slug renames are folded
+      into each page's rebuild task so a rebuild touches exactly one page. **The
+      `onboarding` leaf is the exception: it is REMOVED/absorbed into `/sign-up` (TASK-092
+      owns this)** — do not carry it forward as a `snacktum-snacktorum` leaf. **Exception
+      (mechanical):** if the user prefers all leaf renames in one mechanical pass, this
+      task can absorb them (flag the choice to the director) — default is
+      leaf-renames-with-rebuilds to keep each rebuild self-contained.
+- [ ] **Gate-page folders UNCHANGED:** `sign-in/`, `sign-up/`, `forgot-password/`,
+      `reset-password/` keep their folders and slugs — **do NOT move or restyle them**
+      (the user finalized that the auth slugs stay descriptive).
+- [ ] **Auth-guard PREFIX updated (redirect targets stay `/sign-in`):**
+  - `src/hooks.server.ts`: the **only** change is the protected-area prefix
+    `startsWith('/app')` → `startsWith('/snacktum-snacktorum')`. The
+    `redirect(303, '/sign-in')` target is **UNCHANGED** (stays `/sign-in`). Update the
+    co-located `src/hooks.server.test.ts` to assert the new prefix.
+  - `src/routes/(protected)/snacktum-snacktorum/+layout.server.ts`: the
+    `redirect(303, '/sign-in')` target is **UNCHANGED** (stays `/sign-in`); the
+    profile-funnel `ONBOARDING_PATH` constant `'/app/onboarding'` → **`'/sign-up'`** (the
+    rite now lives at `/sign-up`, where an authenticated-but-profile-less member resumes
+    at the naming/sigil step — TASK-092 owns finalizing the resumable funnel; default to
+    `'/sign-up'` here and let TASK-092 confirm/adjust).
+- [ ] **Root redirect updated:** `src/routes/+page.server.ts` `redirect(307, '/app/feed')`
+      → `'/snacktum-snacktorum/procession'` (the final feed slug; coordinate with
+      TASK-091 if feed's leaf-rename lands separately — the redirect must point at
+      whatever the feed leaf finally is).
+- [ ] **Per-page `load` redirects: PREFIX only, `/sign-in` target UNCHANGED.** Each
+      `+page.server.ts` whose load does `redirect(303, '/sign-in')` on a missing session
+      keeps that `/sign-in` target verbatim — **do NOT retarget it.** (The only path
+      literals this task changes inside those loads are any `/app/...` URLs.)
+- [ ] **Shell nav `resolve(...)` links updated** (`(protected)/snacktum-snacktorum/+layout.svelte`):
+      the `resolve('/(protected)/app/feed')` etc. route-id strings → the new
+      `/(protected)/snacktum-snacktorum/...` ids; the `page.url.pathname.startsWith('/app/...')`
+      active-route checks → `/snacktum-snacktorum/...`; the brand-home href + the ＋Upload
+      target. Apply the final cult **nav labels** here (The Procession / Your Litter /
+      Epistles / The Catechism / ☩ The Tribunal / ＋ Summon a Frank) — they are already
+      cult-name placeholders, confirm them verbatim.
+- [ ] **Recovery email template — NO CHANGE.** `supabase/templates/recovery.html`
+      references the `/reset-password` page, which **keeps its slug** — leave it as-is.
+      (Earlier draft retargeted it to `/forge-anew`; that rename was dropped.)
+- [ ] **`config.toml` checked:** `site_url` / `additional_redirect_urls` are
+      `127.0.0.1:3000` (no `/app` path) — no change needed, but confirm no auth redirect
+      URL hardcodes a renamed in-app path.
+- [ ] **Doc-comment path references updated** (non-functional but kept truthful):
+      `src/lib/features/hotdogs/detail.ts` ("backs the dog detail view (/app/dogs/[id])"),
+      `src/lib/features/voting/votes.ts` ("(/app/feed)") — update the `/app/...` paths in
+      these comments to the new slugs so the comments don't lie.
+- [ ] **Unit tests updated** (they assert redirect targets / paths): `src/hooks.server.test.ts`
+      (the new prefix), `src/routes/(protected)/.../layout-guard.test.ts`, and any
+      `*-action.test.ts` / `*-load.test.ts` asserting on `'/app/...'` redirect strings.
+      **`'/sign-in'` assertions stay as-is** (the target is unchanged) — only `/app/...`
+      path assertions change. Run `pnpm test` and fix every `/app/...` path assertion the
+      move breaks.
+- [ ] **E2E specs updated — `/app/...` paths only** (they hardcode paths): `tests/smoke.e2e.ts`
+      (`**/app/onboarding`, `**/app/profile/${handle}`, `/app/dogs` → the new
+      `snacktum-snacktorum/...` paths; note the `**/app/onboarding` wait must become the
+      `/sign-up` rite's profile/sigil step per TASK-092), `tests/sign-in.e2e.ts`
+      (`**/app/onboarding` → the new funnel target). **The `/sign-in` and `/sign-up`
+      navigations in these specs are UNCHANGED** (those slugs stay). `tests/form-validation.e2e.ts`
+      navigates `/sign-in` — **no path change there.** Update only the `/app/...` literals.
+      **Copy assertions in these specs (e.g. "Sign up", "Set up your profile", "Your hot
+      dogs") are updated by the page-rebuild tasks, not here** — TASK-090 changes only the
+      `/app/...` PATHS the specs navigate to; if a spec goes red on copy after the path
+      fix, that copy is owned by the rebuild task for that page (note it, don't fix copy
+      here).
+- [ ] **Grep sweep (final AC):** no remaining functional reference to the `/app/` URL
+      prefix outside of (a) the git history and (b) intentionally-historical prose in
+      completed-task notes. Search `src/`, `tests/`, `supabase/` for `/app/`. **Do NOT
+      flag `/sign-in`, `/sign-up`, `/forgot-password`, or `/reset-password`** — those
+      slugs are KEPT and their references are correct, not stragglers. (`'/app'`
+      substrings inside unrelated identifiers like `app.css` or `$app/...` SvelteKit
+      imports are NOT route paths — leave them.)
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (every path
+      assertion updated), **`@smoke` green** (paths re-pointed; the smoke flow must still
+      walk end-to-end on the new slugs), `@security` green, `tests/form-validation.e2e.ts`
+      green. **No migration.**
 
 **Notes (for the implementer):**
 
-- This is the **largest-surface** task but the **lowest-risk per change** (strings).
-  It is **highly design-dependent** — the final voice/wording comes from the
-  designs; do not invent the lore ahead of them.
-- Watch for copy asserted in tests: `@smoke` and unit tests may match on visible
-  text (headings, button labels). Changing a string without updating its assertion
-  turns a suite red — update both together.
-- No new dependency; no schema; no new architecture-decision row (copy only).
+- **This is a mechanical-but-wide PREFIX rename, not a redesign.** Touch the `/app/`
+  paths/links/redirects + their tests; do NOT restyle any `+page.svelte` (the rebuilds
+  own that), do NOT touch the gate-page folders, and do NOT retarget any `/sign-in`
+  redirect. Keeping the leaf folders named as-is here (and folding leaf-renames into the
+  rebuilds) means a later rebuild touches exactly one page's directory — minimizing
+  collision.
+- **`resolve(...)` route ids** are compile-checked by SvelteKit against the actual route
+  tree, so a missed link surfaces at `pnpm check` — lean on that. After the directory
+  move, regenerate `$types` (a `pnpm check` / dev build) so the new route ids exist.
+- **The auth-guard PREFIX + the root redirect are the correctness core** — verify the
+  guard prefix (`/app` → `/snacktum-snacktorum`; the `/sign-in` target is unchanged) and
+  the `/`→procession redirect by walking the `@smoke` flow on the new paths. The
+  profile-funnel guard now points at `/sign-up` (TASK-092 finalizes the resumable rite).
+- No new dependency; no schema; no new architecture-decision row (route prefix rename
+  only).
 
 ---
 
-### TASK-084: Ritual sign-up — re-theme (and possibly redesign the flow of) onboarding [`blocked`] [`P2`] [`L`]
+### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`pending`] [`P1`] [`L`]
 
 **Owner:** unassigned
-**Dependencies:** `DESIGNS` (the ritual design — **and the resolution of OQ-1**,
-which decides this task's true size); TASK-081 (copy/voice); touches
-`sign-up/+page.svelte` and `(protected)/app/onboarding/+page.svelte`.
+**Dependencies:** TASK-090 (final base paths); TASK-087 (theme tokens — done). Mockup:
+`design/pages/The Procession.dc.html`. **`@smoke`-critical** (the slice's leaderboard
+surface; the vote path is exercised). Touches
+`src/routes/(protected)/snacktum-snacktorum/feed/+page.svelte` (rebuild) and renames the
+leaf folder `feed` → `procession`.
 
-**Scope (DEFERRED until OQ-1 is decided with the designs):** re-frame the
-invite-redemption + onboarding sequence as an **initiation "ritual"** into the cult.
-**The size of this task depends on which option the designs choose (see OQ-1):**
-
-- **Option A — cosmetic re-theme (S/M):** restyle + re-copy the existing sign-up
-  and onboarding steps as a "ritual" (ceremony framing, cult voice) **without
-  changing the flow or the underlying actions**. Lowest risk. The `@handle` + avatar
-  onboarding step stays where it is.
-- **Option B — multi-step rite (M/L):** redesign sign-up into a guided multi-step
-  "rite" (e.g. invite → credentials → naming → avatar as ceremonial stages),
-  **possibly absorbing the `/app/onboarding` step** into the rite so a new initiate
-  flows straight through. Higher risk: it touches the post-sign-up funnel
-  (`(protected)/app/+layout.server.ts` routes a profile-less user to
-  `/app/onboarding`) and must **not** break invite redemption or the profile-funnel
-  guard.
-
-**Acceptance Criteria (common to both options):**
-
-- [ ] The invite-redemption mechanics are **unchanged and intact**: the
-      pre-check → `signUp` → atomic `redeem_invite` RPC → orphan-cleanup-on-lost-race
-      → session-branch redirect sequence (decisions #17/#22/#23) still works
-      end-to-end. **No change to `redeem_invite` / invite RLS / the action's
-      redemption ordering.**
-- [ ] The **profile-funnel guard still holds**: a freshly-redeemed, profile-less
-      user still ends up setting a validated unique `@handle` (+ optional avatar)
-      before using the app, with **no redirect loop** (decision: onboarding guard in
-      `+layout.server.ts`). If Option B absorbs onboarding, the guard must be updated
-      coherently (a user who completed the rite has a profile; one who didn't is still
-      funneled) — and re-tested.
-- [ ] **Handle validation unchanged:** charset `^[A-Za-z0-9_]{2,32}$` at the app
-      boundary, case-insensitive uniqueness via `citext`, `HANDLE_TAKEN` sentinel on
-      `23505` (decision/DW history) — re-themed copy must not weaken validation.
-- [ ] Cult "ritual/initiation" voice + visual treatment per the designs (TASK-081
-      owns the shared lore; this task applies it to the sign-up/onboarding surface).
-- [ ] **Security (L2):** no secret key on the client; avatar upload still goes
-      through `$lib/storage` with the owner-prefix path + the hard 2 MiB Storage-API
-      cap (TASK-070); compression via `compressToWebp`.
-- [ ] **Tests:** the existing `sign-up/signup-action.test.ts` and
-      `onboarding/onboarding-action.test.ts` stay green (update assertions for changed
-      copy only); if Option B changes the flow, add coverage for the new step
-      sequence and the updated funnel guard. **The M1 `@smoke` slice (invite → profile
-      → upload → see dog) MUST stay green** — if the rite changes the path the smoke
-      test walks, update the smoke test in lockstep.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      4/4**, `@security` green. Migration only if the flow genuinely requires one
-      (Option A/B as scoped should need **none** — flag immediately if you think it
-      does).
-
-**Notes (for the implementer):**
-
-- **Do NOT pick A vs B yourself — OQ-1 is decided with the designs.** Scope
-  conservatively toward **A** unless the designs clearly call for **B**. If B, treat
-  the funnel-guard change as the riskiest part and cover it with tests.
-- This is the most flow-sensitive task in the milestone because it sits on the
-  invite/auth critical path and the `@smoke` slice. Preserve the redemption
-  ordering and the profile funnel above all.
-- No new dependency expected; no new architecture-decision row anticipated.
-
----
-
-### TASK-085: Profile page redesign + display-name surfacing [`blocked`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** `DESIGNS` (the profile design — the user's screenshot is the
-"before"); TASK-080 (shell), TASK-081 (copy/title swap), TASK-087 (theme tokens).
-**Soft-couples with TASK-089** (the derived badge reliquary renders on this page —
-this task lays out the shelf slot; TASK-089 owns the badge module/logic; neither
-hard-blocks the other). Touches `(protected)/app/profile/[handle]/+page.svelte` and
-its `+page.server.ts` — the redesign surfaces `display_name` (already loaded) and
-**adds read-only aggregate queries for the derived stat ledger** (counts/sums over
-`top_dog_days` / `hot_dogs` / `invites` / `mustard_sprays` / `hotdog_reactions` —
-all existing tables, no schema change).
-
-**Problem:** the profile page is cramped — avatar + an inline/squeezed wall
-composer, with **`display_name` barely surfaced** even though it exists (free-form,
-may contain spaces) alongside the URL-safe `@handle`. The user's screenshot of the
-current page is the "before."
+**Scope:** rebuild the feed `+page.svelte` from the mockup as **The Procession: Standings
+of the Blessed**, preserve `feed/+page.server.ts` (load + the 6 actions), re-wire all
+feature plumbing into the new markup, and rename the leaf slug.
 
 **Acceptance Criteria:**
 
-- [ ] **Redesigned profile layout** per the designs: avatar (with a designed
-      placeholder when `avatar_path` is null), a **display-name-forward** header, and
-      a **proper wall composer** (not the cramped inline box — a real compose area
-      with the post affordance, `use:enhance` loading state preserved).
-- [ ] **Display-name surfacing:** `display_name` is shown as the **human name**
-      (headings, wall message authorship, profile header), while **`@handle` remains
-      the URL-safe identifier** (the route param, mentions, the canonical id). **No
-      schema change** — both `profiles.display_name` and `profiles.handle` already
-      exist and already load. Where a name is shown to humans, prefer `display_name`
-      (falling back to `@handle` if display name is blank — note onboarding defaults
-      `display_name` to the handle, so it's rarely empty).
-- [ ] **Derived profile stat ledger** — surface the member's standing as a stat
-      block, **every value DERIVED from data the app already keeps** (no new schema,
-      no new tracking, no new write path; the load gains read-only aggregate queries
-      only). Show:
-  - **Days as The Anointed Wiener** — already shown (`profiles.days_as_top_dog`).
-  - **Times Crowned** — distinct crowned-day count (`top_dog_days`, `profile_id` =
-    this member).
-  - **Franks Offered** — count of this member's `hot_dogs`.
-  - **Total Devotion** — sum of `vote_count` across this member's `hot_dogs`.
-  - **Highest Blessing** — `max(peak_votes)` across this member's `hot_dogs`.
-  - **Disciples Summoned** — count of `invites` they minted that were redeemed
-    (`inviter_id` = this member AND `consumed_at is not null`).
-  - **Anointings Received** — count of `mustard_sprays` where
-    `target_profile_id` = this member.
-  - **Reactions Received** — count of reactions across this member's dogs
-    (`hotdog_reactions` joined via `hot_dogs.owner_id`).
-  - the **HERETIC / FALSE WITNESS** shame marks — already surfaced as the
-    `ProfilePoliceBanner` brands (`isHeretic` / `liarBrand` — code symbols
-    UNCHANGED; "FALSE WITNESS" is a display-label rename only); keep those, do not
-    duplicate them as a "stat".
-  - **‼️ Reports are ANONYMOUS — do NOT surface the reporter side on a public
-    profile.** Never show "heresies you've called", a count of reports this member
-    _made_, or any reporter-side tally. Reporter ids are deliberately never exposed
-    (decision #27 / TASK-071 anonymity). Only the _consequences a member bears_
-    (HERETIC, FALSE WITNESS, anointings received) are public — the accusations they
-    _make_ are not. This is a hard constraint, not a preference.
-  - Prefer adding these as small read-only count/sum queries to the existing
-    `event.locals.supabase` (RLS-scoped) load. Where a render-time pure summary
-    already exists for a value, **reuse it** (e.g. the HERETIC / FALSE WITNESS brands
-    via `verdict.ts`); do not recompute. If TASK-089 (the derived badge module) lands
-    first, these same aggregates can feed both — coordinate to avoid duplicate
-    queries, but neither task is a hard dependency of the other.
-- [ ] **Reliquary (badge shelf) placement** — the profile is where the derived
-      **badge reliquary** renders (TASK-089). This task lays out the **section/shelf
-      slot** on the redesigned profile per the design (see the Reliquary prompt in
-      `design/page-design-prompts.md` #12); **TASK-089 owns the badge module + the
-      shelf component's earned/locked logic.** If TASK-089 has not landed when this
-      task builds, leave a clearly-marked placeholder slot for the shelf and wire it
-      when TASK-089 is in. (Soft-coupled, not a hard blocker either direction.)
-- [ ] **All existing profile features keep working** and stay correctly wired:
-  - the **mustard overlay** (now "Anoint" per TASK-086) — render-time decay via
-    `mustardOpacity`, positioned in the spray area (decision #15)
-  - the **wall** — `renderWallBody` (emoji filter at render, decision #16), post +
-    delete actions, `invalidateAll` after mutation
-  - the **🍔 FALSE WITNESS / HERETIC profile banners** (`ProfilePoliceBanner`) —
-    render-time FALSE WITNESS decay + persistent HERETIC (decision #15, TASK-073)
-  - the **`TopDogBadge`** (label re-copied to "The Anointed Wiener" per TASK-081)
-  - the **canSpray** gate (Top-Dog-only) — unchanged authorization (decision #25)
-- [ ] **Title swap** "Top Dog" → "The Anointed Wiener" anywhere the profile shows the
-      crown/badge/stat. Code identifiers unchanged.
-- [ ] **Security/wiring unchanged:** the load stays on `event.locals.supabase`
-      (RLS-scoped); cross-member private-bucket images (if any rendered here) keep the
-      decision #27 server-side service-client signing pattern; no new trust path.
-      `display_name` and wall bodies render through Svelte auto-escaped text (no
-      `{@html}`) — XSS-safe.
-- [ ] Responsive + accessible (semantic headings, labeled compose textarea, image
-      `alt` text using the display name).
-- [ ] **Tests:** the existing `profile-load.test.ts`, `wall-action.test.ts`,
-      `spray-action.test.ts` stay green (update only for intentional copy/markup
-      changes); add coverage if the load surfaces a newly-shown field. `@smoke`
-      (which walks profile → wall in the slice) stays green.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      4/4**, `@security` green. No migration.
+- [ ] **`+page.svelte` rebuilt from `The Procession.dc.html`:** the centered temple
+      column, eyebrow → h1 ("The Procession" / "Standings of the Blessed"), the ✦
+      divider, the ranked `№`-numbered frank cards with image, `@handle`, vote count +
+      `peak`, caption, and the vote/move/voted control states. Port the DSL `sc-for`
+      cards → `{#each data.dogs}`, the `sc-if` champion ribbon / vote-state branches →
+      `{#if}`, inline styles → `var(--…)` tokens. Reuse the themed flair components.
+- [ ] **`feed/+page.server.ts` PRESERVED and re-wired** — the load (votable dogs,
+      current vote, reactions via `summarizeReactions`, **decision #27 service-client
+      signed URLs**, anonymous burger-alarm counts via the service client, my-reports,
+      verdicts via `dogAlarmState`) and **all six actions** (`vote`, `remove`, `react`,
+      `unreact`, `report`, `unreport`) are unchanged; the new markup wires every one. Do
+      NOT delete or gut the load/actions.
+- [ ] **Champion ribbon / HAMBURGER ALARM / CONFIRMED HAMBURGER** render correctly from
+      the existing data (`isChampion` ↔ the crown, `alarm`/`alarmState` ↔
+      `summarizeBurgerAlarm` + verdict). Reuse `HamburgerAlarmBanner` /
+      `ConfirmedHamburgerStamp` / `TopDogBadge`; re-place per the mock.
+- [ ] **Champion-title copy = "The Anointed Wiener"** in the ribbon/crown labels (copy
+      only; `is_current_top_dog` untouched).
+- [ ] **Leaf-slug rename** `feed` → `procession` (folder move). Update the root redirect
+      target (`src/routes/+page.server.ts` → `/snacktum-snacktorum/procession`), the shell
+      nav link + active-route check, and any other internal link to feed, in lockstep.
+      (Coordinate with TASK-090 if it lands the redirect; whichever lands the rename owns
+      the redirect target.)
+- [ ] **Form-validation canon** is N/A here (the feed has no required-field form — its
+      controls are single-button vote/react/report posts); no `createFormValidation`
+      needed unless a rebuilt control gains a text field.
+- [ ] **Security/wiring unchanged:** queries stay RLS-scoped on `event.locals.supabase`;
+      only the existing decision #27 signed-URL minting uses the service client; no new
+      trust path; no `{@html}` (captions render as auto-escaped text — XSS-safe).
+- [ ] **Responsive + accessible:** semantic `<article>`/headings, image `alt`, visible
+      focus on controls (decision/DW-028 — no color-only state cues), keyboard-operable
+      vote/move/report controls.
+- [ ] **Tests:** `feed/feed-action.test.ts` stays green (update only for intentional
+      copy/markup changes). **`@smoke` stays green** — if the smoke flow asserts feed
+      copy or the leaderboard, update it in lockstep with this page's new strings + path.
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
+      green**, `@security` green. **No migration.**
 
-**Notes (for the implementer):**
+**Notes (for the implementer):** the feed is the densest read surface (votes + reactions
 
-- **Highly design-dependent** — the layout comes from the designs; do not redesign
-  ahead of them.
-- This page composes the **most** features (mustard/Anoint, wall+emoji,
-  FALSE WITNESS/HERETIC banners, badge, canSpray) — the redesign must preserve every
-  one of those wirings.
-  Treat it as a re-skin + re-layout, not a rewrite of the data flow.
-- **The derived stat ledger + the badge reliquary are both pure reads of EXISTING
-  data** — no new schema, no migration, no new write path, no new dependency. The
-  ledger is small aggregate queries on the RLS-scoped load; the reliquary is
-  TASK-089's derived module. **The hard constraint:** reports are anonymous —
-  never surface a reporter-side count on a public profile (only consequences borne,
-  not accusations made). See decision #27 / TASK-071 anonymity.
-- No new dependency; no schema change (display-name + every stat source already
-  exists); no new architecture-decision row.
+- alarms + verdicts + signed URLs) — treat it as a re-skin + re-layout of an unchanged
+  data flow, not a rewrite. Read `feed/+page.server.ts` and the existing `+page.svelte`
+  fully first. No new dependency; no schema; no new decision row.
 
 ---
 
-### TASK-086: "Anoint" — mustard re-theme [`blocked`] [`P2`] [`M`]
+### TASK-092: The Snacktum Onboarding rite — rebuild `/sign-up` as the rite (absorbs onboarding) [`pending`] [`P1`] [`L`]
 
 **Owner:** unassigned
-**Dependencies:** `DESIGNS` (the splat treatment in `design/pages/The Shrine.dc.html`);
-**OQ-2 is now FULLY RESOLVED (2026-06-19)** — all five sub-decisions are decided (see
-the Scope + AC below); TASK-085 (profile redesign hosts the overlay **and the wall**
-the anoint-notice composes into), TASK-081 (copy). Touches the mustard surface:
-`(protected)/app/profile/[handle]/+page.svelte`, the spray action, the render-time
-`mustardOpacity` overlay (+ `MUSTARD_LIFESPAN_MS` constant), **and the wall render**
-(where the derived, coalesced anoint-notice is composed in alongside `wall_messages` —
-read-only, no write). **Under Option A (user-approved) it ALSO touches**
-`prune_mustard_sprays` — the prune job is **retired** (one migration + a keep-alive
-workflow edit) so the persisting wall-notice's source rows survive. It does **NOT**
-change the `mustard_sprays` table shape, the `wall_messages` table/immutability, or the
-`spray` write path's authorization.
+**Dependencies:** TASK-090 (final paths); mockup `design/pages/Snacktum Onboarding.dc.html`;
+**OQ-1 RESOLVED = Option B-with-absorb** (a multi-step rite that absorbs onboarding); the
+5 sigils in `src/lib/assets/sigils/` (`cowled` / `haloed` / `shadowed` / `tube` / `candle`).
+**`@smoke`-critical** (the slice STARTS here: invite → profile). **The rite IS the
+`/sign-up` route** — touches `src/routes/sign-up/...`. **The standalone
+`(protected)/app/onboarding/` route is REMOVED/absorbed** (no
+`/snacktum-snacktorum/onboarding` leaf); this task owns that removal and the funnel-guard
+retarget to `/sign-up`.
 
-**Scope (OQ-2 RESOLVED — build to these decided values):** rename the Top-Dog
-mustard-spray action to **"Anoint"** (the champion bestows a blessing — a "splat" of
-mustard) in user-facing copy, re-theme the visual to a **splat**, shorten the overlay
-decay to **~6h**, **and surface a derived, coalesced "anoint → wall notice"** on the
-anointed member's wall. The five sub-decisions are now all decided (2026-06-19):
-
-- **OQ-2a — who may Anoint → KEEP GATED.** Only the reigning champion ("The Anointed
-  Wiener" / `is_current_top_dog`) may Anoint — the decision #25 `WITH CHECK`
-  authorization on the non-client-writable crown column is **unchanged**.
-- **OQ-2b — Anoint vs reactions → NO re-mechanic, NO merge.** Anoint stays the
-  **existing mustard spray**, re-copied as "anointing." The emoji reactions surface is
-  **untouched** (no replace, no merge).
-- **OQ-2c — visual → SPLAT.** Reuse the splat animation in
-  `design/pages/The Shrine.dc.html` (replacing the old drip framing).
-- **OQ-2d — decay → DECAYS, but over ~6h (was ~24h).** The overlay still fades at
-  render via `mustardOpacity` (decision #15), but the lifespan shortens from ~24h →
-  **~6h**: a render-time constant change to `MUSTARD_LIFESPAN_MS` in
-  `src/lib/features/mustard/decay.ts` (+ its co-located tests). The DB still stores
-  only the raw `sprayed_at` timestamp — **no migration for the decay change itself.**
-- **OQ-2e — anoint → wall notice → 24h ROLLING STACK; PERSISTS.** Render-time derived
-  from `mustard_sprays`, coalesced into one "×N" notice on the anointed member's wall.
-  **(i) coalescing window — a rolling 24h that RESETS at each anointing:** successive
-  anoints collapse into the SAME notice as long as each lands within 24h of the
-  previous one (the window slides forward with each anoint); a gap of **>24h** ends that
-  burst and the next anoint starts a **new** notice. **(ii) the wall notice PERSISTS**
-  as a lasting record — only the visual mustard **overlay** decays (~6h, OQ-2d).
-
-> **‼️ IMPLEMENTATION DIRECTION = Option A (user-approved 2026-06-19) — TASK-086
-> CARRIES ONE MIGRATION.** Because the wall notice PERSISTS and is render-derived from
-> `mustard_sprays` rows, those rows must SURVIVE. So the daily **`prune_mustard_sprays()`
-> job is RETIRED**: TASK-086 ships (a) **one migration** that retires/neuters
-> `prune_mustard_sprays` (drop or no-op the function — keep its EXECUTE lockdown
-> posture; preserve the table's decision #28 grants + decision #12 RLS), (b) a
-> **keep-alive workflow edit** dropping the daily prune step from
-> `.github/workflows/keepalive.yml`, and (c) a **likely NEW architecture-decision row
-> #29** (mustard_sprays retention: rows permanent; overlay decays at render ~6h;
-> wall-notice render-derived, coalesced, permanent). **This means M8 is no longer
-> strictly "no migration."** Batch TASK-086's hosted push onto the standing M7
-> hosted-push gate (see § Standing ops note). Decision #29 is recorded as a **plan**
-> here + in the OQ section; the director adds the real [[PROJECT]] decision-table row
-> when TASK-086 is implemented.
+**Scope (Option B-absorb — user-approved):** rebuild the invite-redemption + onboarding
+sequence as a single flowing **initiation rite AT `/sign-up`** from the mockup:
+**Summoned** (invite token) → **Inscribe Thy Name** (Casing Name = `@handle` + email +
+password) → **Choose Thy Sigil** (pick 1 of 5 built-in SVG sigils) → **Renounce the
+Patty** (a pure-UX oath, **no data persisted**) → **Received.** The rite **subsumes** the
+former `/app/onboarding` `@handle`+avatar step into `/sign-up`, and the standalone
+onboarding route is removed.
 
 **Acceptance Criteria:**
 
-- [ ] User-facing **"Anoint" copy** replaces "spray mustard" wherever a user reads it
-      (the profile action button, any help/Catechism text). Code identifiers
-      (`mustard_sprays`, `mustardOpacity`, `MUSTARD_LIFESPAN_MS`, the `spray` action
-      name, `prune_mustard_sprays`) **stay unchanged** (scope box) — the prune
-      function is _retired_ (dropped/neutered), not renamed.
-- [ ] **Overlay decay shortened to ~6h (OQ-2d).** `MUSTARD_LIFESPAN_MS` in
-      `src/lib/features/mustard/decay.ts` changes from `24 * 60 * 60 * 1000` →
-      **`6 * 60 * 60 * 1000`**; update the module doc-comment ("fully fades 24h" → "6h")
-      and the co-located `decay.test.ts` boundary cases (the 24h clamp/half-life
-      assertions move to the 6h boundary). The DB stores only the raw timestamp; the
-      decayed splat is computed at render — **no persisted decayed output, no migration
-      for this change.**
-- [ ] **Derived, coalesced "anoint → wall notice" (OQ-2e).** When a member is anointed,
-      their **wall shows a notice** attributing it to **The Anointed Wiener**; rapid
-      successive anoints **coalesce into ONE notice listing the count** ("The Anointed
-      Wiener anointed you ×N"). **RENDER-TIME DERIVED from the existing `mustard_sprays`
-      rows — NO new schema, NO new table, NO new write path, NO change to
-      `wall_messages` immutability.** The wall render composes the real `wall_messages`
-      with a **synthesized** anoint-notice derived from `mustard_sprays` (which already
-      records every anoint with a timestamp; the sprayer is always the reigning champion
-      per decision #25), grouped/coalesced by a **rolling-24h window that resets at each
-      anointing** (a >24h gap ends a burst and starts a new notice) and sorted
-      chronologically among the wall messages. The notice **persists** as a lasting
-      record (only the visual overlay decays, ~6h). **Un-forgeable by construction** —
-      the same derived, no-write pattern as the Reliquary badges (TASK-089) / the alarm
-      summarizer / mustard decay.
-- [ ] **`prune_mustard_sprays()` retired (Option A — REQUIRED for the persisting
-      notice).** Ship **one migration** that retires/neuters the prune function (drop
-      it, or make it a no-op) so anoint rows are NEVER pruned — they are the source of
-      the persisting wall notice. Preserve the `mustard_sprays` table's decision #28
-      base grants and its decision #12 plain owner-scoped RLS (this migration touches
-      only the prune function, not the table's shape/grants). **Edit
-      `.github/workflows/keepalive.yml`** to drop the daily prune step (the keep-alive
-      ping + tally steps stay). **Record decision #29** (mustard_sprays retention) per
-      the normal gate — flag it to the director to add the [[PROJECT]] decision-table
-      row at implementation time.
-- [ ] **Authorization preserved (OQ-2a = keep-gated):** only the current crown holder
-      may Anoint — the existing plain owner-scoped RLS write with the Top-Dog
-      `WITH CHECK` conjunct on the non-client-writable `is_current_top_dog` column
-      (decision #25) is **untouched**. The `canSpray` UI gate stays driven by the
-      server-derived crown flag.
-- [ ] **Visual re-theme — SPLAT (OQ-2c)** applied in the overlay component + theme
-      styles (TASK-087 tokens), reusing the splat animation from
-      `design/pages/The Shrine.dc.html`.
-- [ ] **Reactions untouched (OQ-2b):** no change to the emoji-reactions surface — Anoint
-      is a re-skin of the existing mustard spray, not a replacement or merge.
-- [ ] **Hosted-push gate:** the prune-retirement migration must be pushed to hosted via `supabase db push` (batch it with the standing M7 `burger_alarms` /
-      `burger_verdicts` migrations per the per-milestone hosted-push discipline). The
-      keep-alive prune step must be dropped **in lockstep** so a retired/neutered prune
-      function doesn't leave a workflow step calling a missing RPC (avoiding the
-      hosted-schema-drift 404 failure mode in [[CLAUDE]]).
-- [ ] **Tests:** `spray-action.test.ts` stays green (update for copy); `decay.test.ts`
-      updated for the 6h lifespan; add coverage for the pure anoint-notice coalescing
-      (rolling-24h-window grouping, ×N count, >24h gap → new notice). If the prune
-      retirement changes a live-DB guarantee, adjust any affected `@security` case.
-      `@smoke` / `@security` green.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      4/4, `@security` green. **One migration** (prune retirement) — the only M8 task
-      that carries one.
+- [ ] **Rebuilt rite UI from `Snacktum Onboarding.dc.html`** — the multi-step ceremony
+      with step beads, the wax-seal "SWORN" stamp moment, the haloed relic mark, eyebrow
+      → h1 per step. Port `sc-if` step gating → `{#if currentStep === …}`, the
+      `DCLogic`-style step state → `$state`/`$derived`.
+- [ ] **Invite-redemption mechanics UNCHANGED and intact** (decisions #17/#22/#23): the
+      pre-check → `signUp` → atomic `redeem_invite` RPC → orphan-cleanup-on-lost-race →
+      session-branch redirect sequence still works end-to-end. **No change to
+      `redeem_invite` / invite RLS / the redemption ordering.**
+- [ ] **Handle validation UNCHANGED:** charset `^[A-Za-z0-9_]{2,32}$` at the boundary,
+      case-insensitive uniqueness via `citext`, `HANDLE_TAKEN` sentinel on `23505`. The
+      themed copy must not weaken validation.
+- [ ] **Sigil avatar (OQ-1 resolution):** "Choose Thy Sigil" offers the **5 built-in
+      SVG sigils** rendered inline from `src/lib/assets/sigils/*.svg`; the selection is
+      stored as a **small sigil id reusing the `avatar_path` column** — **NO migration,
+      NO storage upload** (user-uploaded avatars remain deferred). The Shrine + shell +
+      Procession render the chosen sigil inline.
+- [ ] **‼️ Profile-funnel guard target = `/sign-up`, and the rite is RESUMABLE** (the
+      B-absorb core): an authenticated-but-profile-less member is funneled to **`/sign-up`**
+      (not a separate onboarding route — there is none), and the rite **resumes at the
+      naming/sigil step** — it must **NOT** force such a member to re-do the
+      invite-token/credentials steps they already completed (they are already authenticated;
+      detect that and skip Summoned/Inscribe, landing them on Choose Thy Sigil / the
+      profile-creation step). Update the guard in
+      `(protected)/snacktum-snacktorum/+layout.server.ts` so `ONBOARDING_PATH` → `'/sign-up'`,
+      a user who completed the rite **has a profile** and is NOT funneled, one who didn't
+      is funneled to the resumable rite, and there is **no redirect loop**. Re-test the
+      funnel (authenticated-profile-less → `/sign-up` at the naming/sigil step → creates
+      profile → returns into the app). **This task OWNS finalizing the guard target**
+      (TASK-090 defaults it to `/sign-up`; this task confirms + makes the rite resumable).
+- [ ] **Standalone onboarding route REMOVED:** the former `(protected)/app/onboarding/`
+      route does **not** survive the absorb — there is **no `/snacktum-snacktorum/onboarding`
+      or `/initiation` leaf.** Remove the leaf and ensure every internal reference points at
+      `/sign-up` (the guard, any "complete your profile" link). Carry the onboarding
+      route's `load`/`action` logic into the `/sign-up` rite (do not silently drop the
+      handle-validation / avatar-set behavior — it moves into the rite's profile step).
+- [ ] **Form-validation CANON** applied to every required-field step (email / password /
+      handle): `novalidate` + `createFormValidation()` + `errorSlideFade` + per-field
+      a11y; extend `validationMessage.ts` label special-cases for any new themed field
+      (e.g. **Casing Name**) rather than hand-writing strings.
+- [ ] **Security (L2):** no secret key on the client; the orphan-cleanup path keeps the
+      service client **server-side only**; non-enumerating where the existing flow is.
+- [ ] **`@smoke` slice updated in lockstep:** the slice walks invite → set handle → … —
+      the rite is at **`/sign-up`** (that slug is UNCHANGED), but the steps/copy and the
+      **post-rite paths change**. It currently expects "Sign up" / "Create account" / "Set
+      up your profile" / "Create profile" and navigates `/sign-up?token=` →
+      `**/app/onboarding` → `**/app/profile/${handle}`. Update `tests/smoke.e2e.ts` so:
+      the `/sign-up?token=` entry stays, the `**/app/onboarding` wait becomes the rite's
+      in-page naming/sigil step (no separate onboarding URL — the rite is single-route at
+      `/sign-up`), and `**/app/profile/${handle}` → `**/snacktum-snacktorum/shrine/${handle}`.
+      Match the new rite copy. The slice MUST stay green end-to-end.
+- [ ] **Tests:** `sign-up/signup-action.test.ts` stays green (update for the absorbed
+      flow); the former `onboarding/onboarding-action.test.ts` coverage **moves into the
+      `/sign-up` rite's tests** as the onboarding route is removed (don't drop its
+      handle-validation / profile-creation assertions — relocate them). Add coverage for
+      the new step sequence + the updated `/sign-up` funnel guard (incl. the resumable
+      authenticated-profile-less path).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
+      green**, `@security` green. **No migration** (sigil reuses `avatar_path`).
 
-**Notes (for the implementer):**
-
-- **OQ-2 is fully decided — build to the resolved values above, do not re-guess.** The
-  user-facing changes are: "Anoint" copy, a **splat** visual, a **6h** overlay decay,
-  and a derived/coalesced/persisting wall notice. The one structural change is the
-  **Option A prune retirement** + its migration + workflow edit + decision #29.
-- **The decay-constant change (6h) needs NO migration** — it's a pure TS constant +
-  tests + a Catechism copy update (~24h → ~6h, in lockstep with TASK-081/this task).
-- **The prune retirement is the load-bearing structural change.** It is what makes the
-  persisting wall notice coherent (the notice is render-derived from `mustard_sprays`,
-  so those rows must never be pruned). Ship the migration, the workflow edit, and the
-  decision-#29 row together; batch the hosted push with the M7 gate.
-- No new dependency. **One migration + a likely new architecture-decision row #29**
-  (the only M8 task that breaks the "no migration / no new decision row" posture).
+**Notes (for the implementer):** this is the most flow-sensitive task — it sits on the
+invite/auth critical path AND the `@smoke` slice start. Preserve the redemption ordering
+and the profile funnel above all; treat the funnel-guard change as the riskiest part and
+cover it with tests. The avatar step is a pure skin change (sigil id in `avatar_path`).
+No new dependency; no schema; no new decision row.
 
 ---
 
-### TASK-088: Designed error / 404 page [`blocked`] [`P3`] [`S`] (`design-light`)
+### TASK-093: The Shrine (profile) — rebuild from design + display-name + stat ledger + Reliquary slot [`pending`] [`P2`] [`L`]
 
 **Owner:** unassigned
-**Dependencies:** `DESIGNS` (error-page design); TASK-081 (copy/voice), TASK-087
-(theme).
+**Dependencies:** TASK-090 (paths); mockup `design/pages/The Shrine.dc.html`; TASK-087
+(theme). **Composes with TASK-094 (Anoint splat on this page) and TASK-094-R (the
+Reliquary shelf renders here).** **`@smoke`-critical** (the slice walks profile → wall).
+Touches `src/routes/(protected)/snacktum-snacktorum/profile/[handle]/+page.svelte`
+(rebuild) + its `+page.server.ts` (preserve load/actions; **add read-only aggregate
+queries** for the derived stat ledger), and renames the leaf `profile` → `shrine`.
+
+**Scope:** rebuild the profile `+page.svelte` from the mockup as **The Shrine** — a
+display-name-forward header, the sigil ring, a proper wall composer, the derived stat
+ledger, the Anoint splat surface, the FALSE WITNESS / HERETIC banners, and the Reliquary
+shelf slot — preserving every existing feature wiring and adding only read-only
+aggregate reads.
+
+**Acceptance Criteria:**
+
+- [ ] **`+page.svelte` rebuilt from `The Shrine.dc.html`:** the temple profile layout —
+      sigil avatar (designed placeholder when `avatar_path` is null), a
+      **display-name-forward** header with the `@handle` as the URL-safe id beneath, the
+      stat ledger plaques, the wall, and the shelf slot. Port the DSL → Svelte 5 with
+      `var(--…)` tokens.
+- [ ] **`profile/[handle]/+page.server.ts` PRESERVED and re-wired** — the load
+      (profile-by-handle, avatar public URL, `canSpray` from the viewer's crown, sprays
+      for render-time decay, wall messages, `liarBrand` via `summarizeLiarBrand`,
+      `isHeretic` via `isHamburgerHeretic`) and **all three actions** (`spray`, `post`,
+      `deleteMessage`) are unchanged; the new markup wires every one. **Add only
+      read-only aggregate queries** for the stat ledger (below). Do NOT delete/gut the
+      load/actions.
+- [ ] **Display-name surfacing:** `display_name` is the human name (header, wall
+      authorship), `@handle` stays the URL-safe identifier (route param, canonical id);
+      fall back to `@handle` if display name is blank. **No schema change** (both columns
+      already load).
+- [ ] **Derived stat ledger** — every value DERIVED from existing data via **read-only
+      aggregate queries on the RLS-scoped load** (no new schema, no write path): Days as
+      The Anointed Wiener (`days_as_top_dog`), Times Crowned (`top_dog_days` count),
+      Franks Offered (`hot_dogs` count), Total Devotion (`sum(vote_count)`), Highest
+      Blessing (`max(peak_votes)`), Disciples Summoned (redeemed `invites` where
+      `inviter_id` = member AND `consumed_at is not null`), Anointings Received
+      (`mustard_sprays` where `target_profile_id` = member), Reactions Received
+      (`hotdog_reactions` via `hot_dogs.owner_id`). Reuse the HERETIC / FALSE WITNESS
+      brands from the existing helpers — do not recompute. **Coordinate with TASK-094-R**:
+      several of these aggregates are the same the badge module needs — assemble once,
+      feed both.
+- [ ] **‼️ Reports are ANONYMOUS — never surface the reporter side** (decision #27 /
+      TASK-071). No "heresies you've called", no reporter-made count. Only consequences
+      _borne_ (HERETIC, FALSE WITNESS, anointings received) are public. Hard constraint.
+- [ ] **Wall composer** rebuilt as a real compose area (not the cramped inline box) with
+      the **form-validation CANON** applied (the body field), `use:enhance` loading
+      preserved, `renderWallBody` (emoji filter at render, decision #16) intact, post +
+      delete actions wired, `invalidateAll` after mutation.
+- [ ] **Reliquary shelf slot** laid out per the design (prompt #12) — this task lays out
+      the **section/shelf slot**; **TASK-094-R owns the badge module + earned/locked
+      shelf component**. If TASK-094-R hasn't landed, leave a clearly-marked placeholder
+      and wire it when it's in (soft-coupled, neither hard-blocks the other).
+- [ ] **Anoint splat surface** — the mustard overlay area is laid out for the **splat**
+      treatment (TASK-094 owns the splat visual + decay + wall-notice). The `canSpray`
+      gate (Top-Dog-only, decision #25) stays driven by the server-derived crown flag.
+- [ ] **All existing profile features keep working + correctly wired:** mustard/Anoint
+      overlay (`mustardOpacity`), wall (`renderWallBody`, post/delete), FALSE WITNESS /
+      HERETIC banners (`ProfilePoliceBanner`), `TopDogBadge` (label "The Anointed
+      Wiener"), `canSpray`.
+- [ ] **Leaf-slug** `profile` → `shrine` (folder move → `shrine/[handle]`, param
+      preserved); update the shell/links and the `@smoke` profile-URL assertion
+      (`**/app/profile/${handle}` → `**/snacktum-snacktorum/shrine/${handle}`) in
+      lockstep.
+- [ ] **Security/wiring unchanged:** load stays RLS-scoped; cross-member private images
+      (if any here) keep the decision #27 server-side signing; `display_name` + wall
+      bodies render auto-escaped (no `{@html}`) — XSS-safe.
+- [ ] **Tests:** `profile-load.test.ts`, `wall-action.test.ts`, `spray-action.test.ts`
+      stay green (update for intentional copy/markup); add coverage for any newly-loaded
+      ledger field. **`@smoke` stays green** (profile → wall in the slice; update its
+      copy/path assertions in lockstep).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
+      green**, `@security` green. **No migration.**
+
+**Notes (for the implementer):** this page composes the MOST features (Anoint, wall +
+emoji, FALSE WITNESS / HERETIC, badge, canSpray, stat ledger) — preserve every wiring;
+re-skin + re-layout, do not rewrite the data flow. The stat ledger + Reliquary are pure
+reads of existing data. **The hard constraint: reports are anonymous — never a
+reporter-side count.** Sequence after TASK-094 / TASK-094-R, or coordinate file scope
+(all three touch this page + its load). No new dependency; no schema; no new decision row.
+
+---
+
+### TASK-094: "Anoint" — mustard re-theme (splat + 6h decay + persisting wall notice + prune retirement) [`pending`] [`P2`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockup `design/pages/The Shrine.dc.html` (the splat);
+**OQ-2 FULLY RESOLVED** (all five sub-decisions — see below); composes with TASK-093 (the
+Shrine hosts the overlay + the wall the notice composes into) and TASK-094-R. **The ONLY
+M8 task that carries a migration.** Touches the mustard surface on the Shrine
+`+page.svelte`, the spray action, `src/lib/features/mustard/decay.ts`
+(`MUSTARD_LIFESPAN_MS`), the wall render (derived anoint-notice), `prune_mustard_sprays`
+(retired — one migration), and `.github/workflows/keepalive.yml` (drop the prune step).
+Does **NOT** change the `mustard_sprays` table shape, the `wall_messages`
+table/immutability, or the spray write-path authorization.
+
+**Scope (OQ-2 RESOLVED — build to these decided values):** rename the spray action to
+**"Anoint"** in user-facing copy, re-theme the visual to a **splat**, shorten the overlay
+decay to **~6h**, surface a derived/coalesced/**persisting** "anoint → wall notice", and
+**retire the prune job** so the notice's source rows survive.
+
+- **OQ-2a — keep gated.** Only the reigning champion may Anoint — the decision #25
+  `WITH CHECK` on the non-client-writable crown column is **unchanged**.
+- **OQ-2b — no re-mechanic, no merge.** Anoint stays the existing mustard spray, re-copied
+  as "anointing." The emoji reactions surface is **untouched**.
+- **OQ-2c — splat visual.** Reuse the splat animation in `design/pages/The Shrine.dc.html`.
+- **OQ-2d — decays over ~6h** (was ~24h): a render-time constant change to
+  `MUSTARD_LIFESPAN_MS` (`24h` → `6h`) + its co-located tests. **No migration for the
+  decay change** (DB still stores the raw `sprayed_at`).
+- **OQ-2e — anoint → wall notice = 24h ROLLING STACK; PERSISTS.** Render-time derived from
+  `mustard_sprays`, coalesced into one "×N" notice on the anointed member's wall; rolling
+  24h window that RESETS at each anointing; a >24h gap starts a new notice. The notice
+  PERSISTS (only the overlay decays).
+
+> **‼️ IMPLEMENTATION DIRECTION = Option A (user-approved) — CARRIES ONE MIGRATION.**
+> Because the wall notice PERSISTS and is render-derived from `mustard_sprays` rows, those
+> rows must SURVIVE → the daily **`prune_mustard_sprays()` job is RETIRED.** This task
+> ships (a) **one migration** retiring/neutering `prune_mustard_sprays` (drop or no-op —
+> keep its EXECUTE-lockdown posture; preserve the table's decision #28 grants + decision
+> #12 RLS), (b) a **keep-alive workflow edit** dropping the daily prune step, and (c) a
+> **likely new architecture-decision row #29** (mustard_sprays retention). Batch the
+> hosted push onto the standing M7 hosted-push gate. The director adds the real
+> [[PROJECT]] decision-table row when this task is implemented (the table stays #28 until
+> then).
+
+**Acceptance Criteria:**
+
+- [ ] **"Anoint" copy** replaces "spray mustard" wherever a user reads it (the Shrine
+      action button, the Catechism). Code identifiers (`mustard_sprays`, `mustardOpacity`,
+      `MUSTARD_LIFESPAN_MS`, the `spray` action, `prune_mustard_sprays`) **stay unchanged**
+      — the prune function is _retired_ (dropped/neutered), not renamed.
+- [ ] **Overlay decay → ~6h (OQ-2d):** `MUSTARD_LIFESPAN_MS` `24*60*60*1000` →
+      `6*60*60*1000`; update the module doc-comment + `decay.test.ts` boundary cases
+      (the 24h clamp/half-life assertions move to 6h). No migration.
+- [ ] **Splat visual (OQ-2c)** applied in the overlay component + theme styles, reusing
+      the splat animation from the Shrine mock.
+- [ ] **Derived, coalesced, persisting "anoint → wall notice" (OQ-2e):** RENDER-TIME
+      derived from existing `mustard_sprays` rows — **NO new schema/table/write path, NO
+      change to `wall_messages` immutability.** The wall render composes real
+      `wall_messages` with a **synthesized** anoint-notice ("The Anointed Wiener anointed
+      you ×N"), grouped by a rolling-24h window that resets at each anointing (>24h gap →
+      new notice), sorted chronologically among the messages. Un-forgeable by construction
+      (same derived no-write pattern as the Reliquary / alarm summarizer / decay).
+- [ ] **`prune_mustard_sprays()` retired (Option A):** one migration retires/neuters the
+      prune function so anoint rows are never pruned; preserve the `mustard_sprays`
+      decision #28 grants + decision #12 RLS (touch only the prune function). Edit
+      `.github/workflows/keepalive.yml` to drop the daily prune step (ping + tally stay).
+      Flag **decision #29** to the director.
+- [ ] **Authorization preserved (OQ-2a):** the plain owner-scoped RLS spray write with the
+      Top-Dog `WITH CHECK` on `is_current_top_dog` (decision #25) is **untouched**;
+      `canSpray` stays server-derived.
+- [ ] **Reactions untouched (OQ-2b).**
+- [ ] **Hosted-push gate:** push the prune-retirement migration to hosted (batch with the
+      M7 `burger_alarms` / `burger_verdicts` migrations) and drop the keep-alive prune
+      step **in lockstep** so the workflow never calls a retired RPC (avoiding the
+      hosted-schema-drift 404 in [[CLAUDE]]).
+- [ ] **Tests:** `spray-action.test.ts` green (copy); `decay.test.ts` updated for 6h; add
+      coverage for the pure anoint-notice coalescing (rolling-24h grouping, ×N, >24h →
+      new notice). Adjust any affected `@security` case if the prune retirement changes a
+      live-DB guarantee. `@smoke` / `@security` green.
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, `@security` green. **One migration** (prune retirement) — the only M8 task
+      with one.
+
+**Notes (for the implementer):** OQ-2 is fully decided — build to the resolved values, do
+not re-guess. The decay-constant change needs no migration; the **prune retirement is the
+load-bearing structural change** that makes the persisting notice coherent. Ship the
+migration + workflow edit + decision-#29 row together; batch the hosted push. Composes
+into TASK-093's Shrine page — sequence/coordinate file scope. No new dependency.
+
+---
+
+### TASK-094-R: The Reliquary — derived badge / honors module + shelf [`pending`] [`P3`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** mockup prompt #12 ("The Reliquary") + `design/pages/The Shrine.dc.html`
+(the shelf renders on the Shrine); **soft-couples with TASK-093** (the Shrine lays out the
+slot; this owns the module + shelf); TASK-087 (theme). **The pure module + tests are a
+separate file with no overlap — buildable in parallel with anything; only the
+profile-load wiring + shelf component collide with TASK-093.**
+
+**Scope / posture:** a **purely DERIVED, read-only** honors feature — pure functions over
+EXISTING tables, surfaced on the Shrine load. **NO new schema, NO migration, NO new write
+path, NO new dependency, NO new RPC.** Un-forgeable by construction (no client-settable
+badge state). Mirrors `voting/ranking.ts` / `mustard/decay.ts` / `reports/alarm.ts` /
+`reports/verdict.ts`. **Composes existing decisions #12/#13/#15/#27 — NOT a new numbered
+decision row** (recorded as a derived/scope note).
+
+**Acceptance Criteria:**
+
+- [ ] **New pure module `src/lib/features/badges/`** (e.g. `badges.ts`) — dependency-free,
+      no SvelteKit/Supabase imports in the pure part; takes a `BadgeInputs` value object
+      (already-loaded member facts) and returns earned + locked badge state (each badge:
+      id, earned, and for tiered badges the current tier + next threshold). The route load
+      assembles `BadgeInputs`; the module computes.
+- [ ] **Co-located TDD tests `badges.test.ts`** — each badge's earned/not-earned boundary
+      (at / just-below / just-above), every tier boundary, the all-locked (new member)
+      case, the all-earned case, defensive zero/missing inputs. Pure value-in/value-out.
+- [ ] **The v1 badge set — EXACTLY these, each VERIFIED derivable from existing schema:**
+  - **First Frank** — ≥1 `hot_dogs` (owner = member).
+  - **Crowned** — tiered 1/7/30, from `days_as_top_dog`.
+  - **Centurion** — `max(peak_votes)` ≥ 100 over the member's dogs.
+  - **The Summoner** — tiered, redeemed `invites` (`inviter_id` = member AND
+    `consumed_at is not null` — the authoritative spent signal, NOT `consumed_by`).
+  - **The Drenched** — tiered, `mustard_sprays` where `target_profile_id` = member.
+  - **Heretic** — owns a `confirmed_hamburger` verdict; **reuse `isHamburgerHeretic` /
+    `getDogVerdictsForOwner`**.
+  - **False Witness** (display label; badge id `liar` unchanged) — has a `hamburger_liars`
+    brand; **reuse `getLiarBrandTimestamps`** (decide _ever-branded_ vs _currently_ with
+    the designer; a relic shelf usually wants _ever_).
+  - **The Inquisitor** — tiered, `burger_verdicts` where `decided_by` = member.
+  - **Elder** — early member by `profiles.joined_at` (document a concrete threshold in the
+    module — a single source of truth, not a scattered magic number).
+- [ ] **Out of v1 — flag, do NOT build:** a total-votes-ever honor (the `votes` table
+      keeps only the one current vote — `UNIQUE(voter_id)`) and reign-streak honors
+      (`top_dog_days` records discrete days, not streak metadata). Note in the module
+      doc-comment + log as Discovered Work.
+- [ ] **Reliquary shelf component** (e.g. `src/lib/components/Reliquary.svelte`) —
+      presentational only (takes computed badge state as a prop; no badge logic in the
+      component), showing earned (lit) vs locked (dim) relics with tier indicators, per
+      the design. Mirrors `TopDogBadge` / `ProfilePoliceBanner`.
+- [ ] **Wired into the Shrine load** (`shrine/[handle]/+page.server.ts`) — gather inputs
+      via read-only queries on the RLS-scoped `event.locals.supabase`, build `BadgeInputs`,
+      run the module, pass the result to the page. **No service client** (no
+      anonymity-sensitive reads); **no write path.** A read failure degrades that badge to
+      locked. **Coordinate with TASK-093's stat ledger** — assemble the shared aggregates
+      once.
+- [ ] **‼️ Reporter anonymity preserved (decision #27):** no badge keys on the reporter
+      side. "Heretic" keys on the member's OWN dogs' verdicts; "False Witness" on the
+      member's OWN `hamburger_liars` brand; "Inquisitor" on `decided_by` = member. No
+      "heresies you've called" badge. Hard constraint.
+- [ ] **Code identifiers neutral** (HARD SCOPE): `badges`, `Reliquary`, `BadgeInputs`,
+      ids `first_frank`/`crowned`/`centurion`/`summoner`/`drenched`/`heretic`/`liar`/
+      `inquisitor`/`elder`. Cult names are copy/labels only.
+- [ ] **Purely derived / read-only:** no migration, no new write path, no new dependency,
+      no new RPC, no new schema. Un-forgeable. Grep at the end: no `create table` / no
+      manifest change / no new `.rpc(`.
+- [ ] **`@smoke` stays green** (the shelf renders on the Shrine the slice walks).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (the new
+      `badges.test.ts` included), `@smoke` green, `@security` green. **No migration.**
+
+**Notes (for the implementer):** the textbook pure-render-time seam for this codebase —
+copy the shape of `voting/ranking.ts` / `mustard/decay.ts` / `reports/verdict.ts`. Reuse
+the existing verdict/liar helpers; only the count/max/threshold logic is new. The pure
+module is buildable first (design-independent); the shelf component is design-led. No new
+dependency; no schema; no new decision row.
+
+---
+
+### TASK-095: Your Litter (own-dogs gallery + upload) — rebuild from design + leaf `dogs` → `litter` [`pending`] [`P2`] [`L`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockup `design/pages/Your Litter.dc.html`; TASK-087
+(theme). **`@smoke`-critical** (the slice uploads a dog + sees it here). Touches
+`src/routes/(protected)/snacktum-snacktorum/dogs/+page.svelte` (rebuild) + preserves its
+`+page.server.ts`; renames the leaf `dogs` → `litter`.
+
+**Scope:** rebuild the own-dogs gallery + upload `+page.svelte` from the mockup as **Your
+Litter**, preserve the upload/list/delete load + actions, re-wire all plumbing, rename
+the leaf.
+
+**Acceptance Criteria:**
+
+- [ ] **`+page.svelte` rebuilt from `Your Litter.dc.html`** — the temple gallery layout,
+      the upload affordance, the per-dog tiles (own dogs gallery stays on the RLS client —
+      own-bucket SELECT works without the service client). Port DSL → Svelte 5 / tokens.
+- [ ] **`dogs/+page.server.ts` PRESERVED and re-wired** — the load (own dogs + per-row
+      signed URLs via the RLS client, per-row graceful degradation) and the upload + delete
+      actions (client-side `compressToWebp`, the 100-per-user cap, `evaluateUpload` global
+      guard, owner-prefix path, fail-closed compensating delete on insert failure) are
+      unchanged; the new markup wires them. Do NOT delete/gut.
+- [ ] **Upload-limit wiring intact** (TASK-070): the form-action size/count check stays as
+      the friendly UX layer; the authoritative DB + Storage-API caps are unchanged.
+- [ ] **Form-validation CANON** applied to the upload form's required fields (the photo /
+      caption inputs) where empty-able.
+- [ ] **HAMBURGER ALARM / CONFIRMED HAMBURGER** on a flagged own-dog render correctly
+      (reuse the components) per the mock.
+- [ ] **Leaf-slug** `dogs` → `litter` (folder move); update the shell ＋Upload target +
+      nav, and the `@smoke` `/app/dogs` navigation (`→ /snacktum-snacktorum/litter`) +
+      its copy assertions ("Your hot dogs", "Add hot dog", "No hot dogs yet...") in
+      lockstep with the new strings.
+- [ ] **Security/wiring unchanged:** own-gallery stays on `event.locals.supabase`
+      (RLS-scoped); no `{@html}`; no new trust path.
+- [ ] **Responsive + accessible:** semantic gallery, image `alt`, labeled upload inputs,
+      visible focus.
+- [ ] **Tests:** `dogs/dogs-action.test.ts` stays green (update for copy/markup).
+      **`@smoke` stays green** (upload → see dog; update copy/path in lockstep).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
+      green**, `@security` green. **No migration.**
+
+**Notes (for the implementer):** the own-dogs gallery correctly stays fully on the RLS
+client (own-bucket SELECT) — do NOT introduce the service client here (that is only for
+cross-member views, decision #27, which is the Relic/Procession concern). No new
+dependency; no schema; no new decision row.
+
+---
+
+### TASK-096: The Relic (dog detail) — rebuild from design + leaf `dogs/[id]` → `litter/[id]` [`pending`] [`P2`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockup `design/pages/The Relic.dc.html`; TASK-087
+(theme); coordinates with TASK-095 (shares the `litter` leaf parent). Touches
+`src/routes/(protected)/snacktum-snacktorum/dogs/[id]/+page.svelte` (rebuild) + preserves
+its `+page.server.ts`; renames the leaf under `litter/[id]`.
+
+**Scope:** rebuild the dog-detail `+page.svelte` from the mockup as **The Relic**,
+preserve the detail load + any actions, re-wire the cross-member signed-URL + stats +
+reactions + alarm/verdict plumbing, rename the leaf.
+
+**Acceptance Criteria:**
+
+- [ ] **`+page.svelte` rebuilt from `The Relic.dc.html`** — the relic detail layout (the
+      enshrined frank, its stats, reactions, owner, alarm/verdict state). Port DSL →
+      Svelte 5 / tokens; reuse the flair components.
+- [ ] **`dogs/[id]/+page.server.ts` PRESERVED and re-wired** — the detail load (per-dog
+      stats via `detail.ts`, the **decision #27 server-side service-client signed URL** for
+      this cross-member private-bucket image, reactions via `summarizeReactions`,
+      alarm/verdict state) and any actions are unchanged; the new markup wires them. Do
+      NOT delete/gut.
+- [ ] **‼️ Decision #27 preserved:** because The Relic shows ANOTHER member's dog from the
+      private `hotdogs` bucket, the signed URL is minted **server-side with the service
+      client AFTER `safeGetSession()`**, signing only the `image_path` the RLS query
+      returned. Keep the dog/owner/reaction QUERIES on the RLS client. No exposure
+      widening.
+- [ ] **Reactions + HAMBURGER ALARM / CONFIRMED HAMBURGER** render from the existing data;
+      reuse the components per the mock.
+- [ ] **Leaf-slug** `dogs/[id]` → `litter/[id]` (param preserved); update every link to a
+      dog detail (from the gallery + feed cards) in lockstep.
+- [ ] **Security/wiring unchanged** beyond the existing decision #27 signing; no `{@html}`
+      (caption auto-escaped).
+- [ ] **Responsive + accessible:** semantic detail, image `alt`, visible focus.
+- [ ] **Tests:** `dogs/[id]/detail-load.test.ts` stays green (update for copy/markup).
+      `@smoke` / `@security` green (the feed-detail E2E exercises this surface — update
+      paths/copy if it asserts them).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, `@security` green. **No migration.**
+
+**Notes (for the implementer):** The Relic is the canonical decision #27 surface
+(cross-member private image) — the server-side service-client signing is load-bearing; a
+P0 was caught here historically (TASK-033). Preserve it exactly. No new dependency; no
+schema; no new decision row.
+
+---
+
+### TASK-097: Epistles (DM inbox) + Whispers (DM thread) — rebuild from design + leaf `messages` → `epistles` [`pending`] [`P2`] [`L`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockups `design/pages/Epistles.dc.html` +
+`design/pages/Whispers.dc.html`; TASK-087 (theme). Touches
+`src/routes/(protected)/snacktum-snacktorum/messages/+page.svelte` (inbox rebuild) and
+`messages/[handle]/+page.svelte` (thread rebuild) + preserves both `+page.server.ts`;
+renames the leaf `messages` → `epistles` (+ `epistles/[handle]`).
+
+**Scope:** rebuild both DM `+page.svelte`s from their mockups as **Epistles** (inbox) and
+**Whispers** (thread), preserve both loads + the send action, re-wire all plumbing, rename
+the leaf (and its `[handle]` child).
+
+**Acceptance Criteria:**
+
+- [ ] **Epistles inbox rebuilt from `Epistles.dc.html`** — the conversation list with the
+      `summarizeConversations` render-time collapse, preview via `renderMessageBody`
+      (emoji filter, decision #16), per-conversation `read_at` state. Preserve
+      `messages/+page.server.ts` (the bounded inbox load, DW-018) + re-wire.
+- [ ] **Whispers thread rebuilt from `Whispers.dc.html`** — the message thread with the
+      compose box, messages via `renderMessageBody`, the conversation-scoped privacy load.
+      Preserve `messages/[handle]/+page.server.ts` (the thread load + the send action, the
+      `read_at`-only mutation boundary, DW-025's head-limit note) + re-wire.
+- [ ] **Both `+page.server.ts` PRESERVED and re-wired** — the conversation-scoped privacy
+      SELECT, the `read_at`-only mutation boundary (decision #24 applied to a privacy
+      column), the bounded reads. Do NOT delete/gut.
+- [ ] **Form-validation CANON** applied to the Whispers compose box (the message body
+      field).
+- [ ] **Leaf-slug** `messages` → `epistles` (+ `messages/[handle]` → `epistles/[handle]`,
+      param preserved); update the shell nav (Epistles link) + every link to a thread in
+      lockstep.
+- [ ] **Security/wiring unchanged:** loads stay RLS-scoped + conversation-privacy-scoped;
+      bodies render auto-escaped via `renderMessageBody` (no `{@html}`); the send action
+      pins `author_id = auth.uid()`.
+- [ ] **Responsive + accessible:** semantic list/thread, labeled compose box, visible
+      focus.
+- [ ] **Tests:** `messages/inbox-load.test.ts` + `messages/[handle]/thread-load.test.ts`
+      stay green (update for copy/markup). `tests/dms.e2e.ts` green (update paths/copy if
+      asserted).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, `@security` green. **No migration.**
+
+**Notes (for the implementer):** two pages (inbox + thread) share the `epistles` leaf —
+rebuild both together so the leaf rename is atomic. Store-original / render-filter
+(decision #16) is structural — never persist the filtered output. No new dependency; no
+schema; no new decision row.
+
+---
+
+### TASK-098: Summon a Frank (invite) — rebuild from design + leaf `invite` → `summon` [`pending`] [`P2`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockup `design/pages/Summon a Frank.dc.html`;
+TASK-087 (theme). Touches
+`src/routes/(protected)/snacktum-snacktorum/invite/+page.svelte` (rebuild) + preserves its
+`+page.server.ts`; renames the leaf `invite` → `summon`.
+
+**Scope:** rebuild the invite `+page.svelte` from the mockup as **Summon a Frank**,
+preserve the invite-minting load + action, re-wire, rename the leaf.
+
+**Acceptance Criteria:**
+
+- [ ] **`+page.svelte` rebuilt from `Summon a Frank.dc.html`** — the temple "summon" ritual
+      framing, the generated invite link display + copy affordance. Port DSL → Svelte 5 /
+      tokens.
+- [ ] **`invite/+page.server.ts` PRESERVED and re-wired** — the invite-mint load/action
+      (a unique invite link via the existing invite RPC/flow, decisions #17/#22/#23) is
+      unchanged; the new markup wires it. Do NOT delete/gut.
+- [ ] **Form-validation CANON** applied if the rebuilt form has a required field (e.g. a
+      "mint" trigger or any input the design adds); otherwise N/A for a single-button mint.
+- [ ] **Leaf-slug** `invite` → `summon` (folder move); update any link to invite (e.g. the
+      shell's ＋Summon target if it points at invite vs upload — verify which) in lockstep.
+- [ ] **Security/wiring unchanged:** load/action stay RLS-scoped; the invite token is
+      minted server-side; no `{@html}`.
+- [ ] **Responsive + accessible:** labeled copy-link control, visible focus.
+- [ ] **Tests:** `invite/invite-action.test.ts` stays green (update for copy/markup).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, `@security` green. **No migration.**
+
+**Notes (for the implementer):** the invite mint is the growth path's source — preserve
+the single-use invite mechanics exactly. No new dependency; no schema; no new decision row.
+
+---
+
+### TASK-099: The Tribunal (court) — rebuild from design + leaf `court` → `tribunal` [`pending`] [`P2`] [`L`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockup `design/pages/The Tribunal.dc.html`; TASK-087
+(theme). Touches `src/routes/(protected)/snacktum-snacktorum/court/+page.svelte` (rebuild)
+
+- preserves its `+page.server.ts`; renames the leaf `court` → `tribunal`.
+
+**Scope:** rebuild the court `+page.svelte` from the mockup as **The Tribunal of the Holy
+Tube**, preserve the double-gated adjudication load + verdict action, re-wire, rename the
+leaf.
+
+**Acceptance Criteria:**
+
+- [ ] **`+page.svelte` rebuilt from `The Tribunal.dc.html`** — the tribunal layout: the
+      flagged-frank docket, the verdict controls (confirm heresy / acquit), the cult-voiced
+      framing. Port DSL → Svelte 5 / tokens; reuse the police-tape components.
+- [ ] **`court/+page.server.ts` PRESERVED and re-wired** — the **double-gated**
+      adjudication (UI crown gate + the `render_burger_verdict` SECURITY DEFINER RPC's
+      authoritative DB gate on the non-client-writable `is_current_top_dog`, decision #25),
+      the **anonymous flagged-dog aggregate** (service-client after the gate, preserving
+      TASK-071 reporter anonymity, decision #27), and the verdict action are unchanged; the
+      new markup wires them. Do NOT delete/gut.
+- [ ] **‼️ Reporter anonymity + crown gate preserved (decisions #25/#27):** the flagged-dog
+      list stays an anonymous service-client aggregate AFTER the crown gate; never expose
+      reporter ids; the verdict write stays RPC-only.
+- [ ] **Champion-title copy = "The Anointed Wiener"** in the "Top Dog is the adjudicator"
+      framing (copy only). FALSE WITNESS / HERETIC labels applied per the design.
+- [ ] **Leaf-slug** `court` → `tribunal` (folder move); update the **crown-gated shell nav
+      link** (☩ The Tribunal) target + active-route check, and the gate stays driven by
+      `data.profile.is_current_top_dog` — not widened.
+- [ ] **Security/wiring unchanged:** the double gate + anonymity are load-bearing; no
+      `{@html}`.
+- [ ] **Responsive + accessible:** semantic docket, labeled verdict controls, visible
+      focus.
+- [ ] **Tests:** `court/court-action.test.ts` stays green (update for copy/markup).
+      `tests/burger-court.e2e.ts` green (update paths/copy if asserted).
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, **`@security` green** (the court is a privileged surface). **No migration.**
+
+**Notes (for the implementer):** the Tribunal is the most authorization-sensitive page —
+the double gate (UI + DB RPC) and the anonymous aggregate are load-bearing; preserve them
+exactly. No new dependency; no schema; no new decision row.
+
+---
+
+### TASK-100: The Catechism (help) — rebuild from design + leaf `help` → `catechism` (accuracy-checked) [`pending`] [`P3`] [`M`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (paths); mockup `design/pages/The Catechism.dc.html`; TASK-087
+(theme); **must reflect TASK-094's ~6h mustard change** (OQ-2d) if TASK-094 has landed.
+Touches `src/routes/(protected)/snacktum-snacktorum/help/+page.svelte` (rebuild — it has no
+`+page.server.ts`, static content); renames the leaf `help` → `catechism`.
+
+**Scope:** rebuild the help `+page.svelte` from the mockup as **The Catechism**, re-theme
+the copy to cult voice, **preserve mechanical accuracy** (it describes live mechanics),
+rename the leaf.
+
+**Acceptance Criteria:**
+
+- [ ] **`+page.svelte` rebuilt from `The Catechism.dc.html`** — the catechism / illuminated
+      doctrine layout explaining what members can do, the **vote system** emphasized (one
+      movable vote, no self-vote, most votes → crown, sticky tie-break, days tally), plus
+      Top Dog powers, reactions, Anoint(mustard), walls & DMs, the Tribunal. Port DSL →
+      Svelte 5 / tokens. Static content (no load, no per-user data).
+- [ ] **‼️ Mechanical accuracy preserved** — the cult re-theme changes only the VOICE, not
+      any described BEHAVIOR. Re-verify every mechanic-bearing line against source
+      (`voting/ranking.ts`, `mustard/decay.ts`, `reports/verdict.ts`) exactly as TASK-075
+      did. **Update the mustard/Anoint lifespan copy from "~24h" → "~6h"** (OQ-2d /
+      `MUSTARD_LIFESPAN_MS`) in lockstep with TASK-094 — if TASK-094 lands first, reflect
+      ~6h; if this lands first, coordinate so the two don't disagree. Apply the FALSE
+      WITNESS / "The Anointed Wiener" labels.
+- [ ] **Leaf-slug** `help` → `catechism` (folder move); update the shell nav (The Catechism
+      link) + any "how it works" link in lockstep.
+- [ ] **XSS-safe:** fixed strings, no `{@html}`, no user content. `aria-labelledby`
+      sections.
+- [ ] **Responsive + accessible:** semantic sections, visible focus on any links.
+- [ ] **Tests:** no per-user tests (static), but `@smoke` green (if the shell/nav link is
+      asserted, update). Add/adjust nothing unless a test asserts catechism copy.
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, `@security` green. **No migration.**
+
+**Notes (for the implementer):** the Catechism is static but **accuracy-critical** — a
+re-themed line that misstates a mechanic is a bug. Cross-check every mechanic against
+source; the ~24h→~6h mustard update is the one factual change (it tracks
+`MUSTARD_LIFESPAN_MS`). No new dependency; no schema; no new decision row.
+
+---
+
+### TASK-101: The Lost Pilgrim — designed error / 404 page [`pending`] [`P3`] [`S`]
+
+**Owner:** unassigned
+**Dependencies:** TASK-090 (final paths for the "return" link); mockup
+`design/pages/The Lost Pilgrim.dc.html`; TASK-087 (theme). `design-light` — an error
+boundary is standard SvelteKit; only copy/visual come from the mock.
 
 **Problem:** there is **no `+error.svelte`** anywhere — errors and 404s fall back to
-SvelteKit's default unstyled boundary page.
+SvelteKit's default unstyled boundary.
 
 **Acceptance Criteria:**
 
-- [ ] A designed **`src/routes/+error.svelte`** (root error boundary) rendering a
-      branded, cult-voiced error/404 page using `page.status` and `page.error`
-      (`$app/state`), with a friendly message and a way back (a link to `/app` or
-      `/` per the designs). Handles **404** (unknown route) and generic errors with
-      appropriate copy.
-- [ ] Cult lore voice (TASK-081) + theme styling (TASK-087). XSS-safe (no `{@html}`;
-      `page.error.message` is rendered as escaped text, and **no sensitive internal
-      error detail is shown to the user** — friendly copy only; server logs hold the
-      detail).
-- [ ] Optionally a nested `(protected)/app/+error.svelte` if the designs want a
-      distinct in-app error treatment (so an error inside `/app` keeps the shell
-      chrome). Decide with the designs; the root boundary is the required minimum.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      4/4, `@security` green. No migration.
+- [ ] **`src/routes/+error.svelte` rebuilt from `The Lost Pilgrim.dc.html`** — the root
+      error boundary: the haloed relic mark, the big `{{ status }}` numeral, the cult-voiced
+      eyebrow + line, and a "Return to the Procession →" CTA. Drive it from `page.status` +
+      `page.error` (`$app/state`): a **404** ("Thou Hast Strayed") vs a generic error
+      ("A Disturbance in the Tube"), mirroring the mock's `mode` (404/500) branching. The
+      CTA links to **The Procession** (the final feed slug — `/snacktum-snacktorum/procession`)
+      or `/` per the design.
+- [ ] **XSS-safe + no internal-detail leak:** `page.error.message` renders as escaped text
+      and **no sensitive internal error detail is shown** — friendly copy only (server logs
+      hold the detail). No `{@html}`.
+- [ ] **Optional nested `(protected)/snacktum-snacktorum/+error.svelte`** if the design
+      wants a distinct in-app error treatment (keeping the shell chrome). The root boundary
+      is the required minimum; decide the nested one with the design.
+- [ ] **Responsive + accessible:** semantic, visible focus on the CTA, the relic mark
+      `aria-hidden`.
+- [ ] **Tests:** none required (error boundary); `@smoke` / `@security` green.
+- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
+      green, `@security` green. **No migration.**
 
-**Notes (for the implementer):**
-
-- **`design-light`:** an error boundary is standard SvelteKit; only copy/visual wait
-  on designs. Small task.
-- **Security:** never render raw stack traces or internal error details to the user
-  — friendly message only (L2 / OWASP "security misconfiguration" + insufficient-
-  logging awareness: detail goes to server logs, not the page).
-- No new dependency; no schema; no new architecture-decision row.
-
----
-
-### TASK-089: The Reliquary — derived badge / honors system [`blocked`] [`P3`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** `DESIGNS` (the **Reliquary** design mock — `design/page-design-prompts.md`
-#12); **soft-couples with TASK-085** (the profile redesign hosts the reliquary shelf —
-TASK-085 lays out the slot, this task owns the badge module + the earned/locked shelf
-component; neither hard-blocks the other), TASK-081 (badge name copy/voice), TASK-087
-(theme tokens for the relic medallions).
-
-**Problem / opportunity:** the app already stores everything needed to award members
-**honors** — a first frank, a long reign, a 100-vote frank, redeemed invites, anointings
-received, a heresy verdict, an inquisitor's rulings, early membership — but nothing
-surfaces them. Add a **badge / honors "Reliquary"** on the profile (The Shrine),
-computed **DERIVED at render (Option A)** from data the app **already has**.
-
-**Scope / posture (read first — this is what keeps it inside M8's skin-not-skeleton
-constraint):**
-
-- This is a **purely DERIVED, read-only** feature: pure functions over **EXISTING**
-  tables, surfaced on the profile load. **NO new schema, NO migration, NO new write
-  path, NO new dependency, NO new RPC.**
-- Because a badge is computed at render from existing records, it is **un-forgeable by
-  construction** — there is **no client-settable badge state** anywhere (nothing to
-  POST, nothing to write, no "badge" row). A member cannot grant themselves a badge any
-  more than they can forge the underlying record (votes/crown/verdicts are already
-  server-maintained and non-client-writable per decisions #13/#24/#25/#28).
-- It **mirrors the project's existing pure render-time modules** — `voting/ranking.ts`
-  (`selectTopDog`), `mustard/decay.ts` (`mustardOpacity`), `reports/alarm.ts`
-  (`summarizeBurgerAlarm`), `reports/verdict.ts` (`isHamburgerHeretic` /
-  `summarizeLiarBrand`): a dependency-free `.ts` module with co-located `*.test.ts`,
-  no SvelteKit/Supabase imports in the pure part.
-- **NOT a new numbered architecture-decision row.** This composes existing decisions
-  (#12 cosmetic/ranking-inert, #13 crown, #15 render-time derivation, #27 anonymity)
-  with no new invariant — record it as a **design/scope note** (derived, read-only,
-  composes existing data), exactly as TASK-071/073 recorded their compositions.
-
-**Acceptance Criteria:**
-
-- [ ] **New pure feature module `src/lib/features/badges/`** — a dependency-free
-      `.ts` module (e.g. `badges.ts`) with **no SvelteKit and no Supabase imports in
-      the pure part**, following the `ranking.ts` / `decay.ts` / `alarm.ts` shape. It
-      takes a plain **`BadgeInputs`** value object (the already-loaded member facts —
-      counts/maxes/flags/timestamps) and returns the member's **earned + locked badge
-      state** (each badge: id, earned boolean, and for tiered badges the current tier +
-      the next-tier threshold). The route load assembles `BadgeInputs` from the
-      member's existing data and passes it in; the module computes, the load does I/O.
-- [ ] **Co-located unit tests** `src/lib/features/badges/badges.test.ts` — TDD-first
-      (this is pure threshold logic, exactly the CLAUDE.md "what to test TDD-first"
-      category). Cover: each badge's earned/not-earned boundary (at, just-below,
-      just-above the threshold), every tier boundary for tiered badges, the
-      all-locked (new member) case, the all-earned case, and defensive handling of
-      missing/zero inputs. No live DB — pure value-in / value-out.
-- [ ] **The v1 badge set — EXACTLY these, each VERIFIED derivable from existing
-      schema** (do **not** add any that need tracking the app does not keep):
-  - **First Frank** — member has **≥1** hot dog. _Source:_ count of `hot_dogs` where
-    `owner_id` = member.
-  - **Crowned** — _tiered_ **1 / 7 / 30**. _Source:_ `profiles.days_as_top_dog`
-    (already loaded).
-  - **Centurion** — a frank ever reached **≥100** votes. _Source:_ `max(peak_votes)`
-    over the member's `hot_dogs`. (Tiers optional, designer's call.)
-  - **The Summoner** — _tiered_ — **N** invites the member minted that were redeemed.
-    _Source:_ count of `invites` where `inviter_id` = member **AND `consumed_at is not
-null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable by
-    FK; see the single-use-guard gotcha in [[CLAUDE]]).
-  - **The Drenched** — _tiered_ — anointed **N** times. _Source:_ count of
-    `mustard_sprays` where `target_profile_id` = member.
-  - **Heretic** — owns a frank with a `confirmed_hamburger` verdict. _Source:_
-    `burger_verdicts` joined via `hot_dogs.owner_id` = member — **reuse the existing
-    `isHamburgerHeretic` / `getDogVerdictsForOwner`** (`reports/verdict.ts` /
-    `reports/verdictStore.ts`); do not re-derive. (A shame-mark, not a gilded honor —
-    see the design.)
-  - **False Witness** (display label; internal badge id `liar` — unchanged) — has a
-    `hamburger_liars` brand. _Source:_
-    `hamburger_liars` where `reporter_id` = member — **reuse the existing
-    `getLiarBrandTimestamps`**. (Decide with the designer whether this badge keys on
-    _ever branded_ (any row) or _currently branded_ (within the ~7-day
-    `summarizeLiarBrand` window); a relic/honor shelf usually wants _ever_, while the
-    existing profile banner uses _currently_. A shame-mark.)
-  - **The Inquisitor** — _tiered_ — rendered **N** verdicts as champion. _Source:_
-    count of `burger_verdicts` where `decided_by` = member.
-  - **Elder** — early member by `profiles.joined_at` (or a member-№ threshold derived
-    by ordering `profiles.joined_at` ascending). _Source:_ `profiles.joined_at`. Pick
-    a concrete, documented threshold (e.g. "sworn before {date}" or "among the first N
-    sworn") — record it in the module so it's a single source of truth, not a magic
-    number scattered in markup.
-- [ ] **Out of v1 — flag, do NOT build** (badges needing data the app does NOT track):
-      a **total-votes-ever-cast** honor (the `votes` table stores only the **one
-      current** vote per member — `UNIQUE(voter_id)`, re-casting MOVES the row — so
-      there is no lifetime vote-cast history) and **reign-streak** honors (`top_dog_days`
-      records discrete held days, not contiguous-streak metadata). These are **future /
-      out of v1**; note them in the module doc-comment + log them as Discovered Work so
-      the decision is durable, not lost.
-- [ ] **Rendered as a reliquary / relic-shelf on the profile (The Shrine)** — a new
-      presentational shelf component (e.g. `src/lib/components/Reliquary.svelte` /
-      `BadgeShelf.svelte`) shows **earned** relics (lit gold) vs **locked** ones (dim
-      silhouettes), with **tier** indicators for tiered badges, per the Reliquary design
-      (`design/page-design-prompts.md` #12). The component is **presentational only** —
-      it takes the computed badge state as a prop and renders; **no badge logic in the
-      component** (mirrors the `TopDogBadge` / `ProfilePoliceBanner` pattern: logic in
-      the pure module + load, rendering in the component).
-- [ ] **Wired into the profile load** (`(protected)/app/profile/[handle]/+page.server.ts`)
-      — the load gathers the badge inputs via **read-only** queries on the **RLS-scoped**
-      `event.locals.supabase` (counts/maxes over existing tables; reuse the existing
-      verdict/liar helpers), builds `BadgeInputs`, runs the pure `badges` module, and
-      passes the result to the page. **No service client needed** (no anonymity-sensitive
-      reads — see below); **no new write path; no mutation.** A read failure on any input
-      **degrades that badge to locked** rather than failing the page (the established
-      per-feature graceful-degradation pattern in this load).
-- [ ] **‼️ Reporter anonymity preserved (decision #27 / TASK-071).** **No badge keys on
-      the reporter side of a report.** "Heretic" keys on the member's OWN dogs' verdicts
-      (a consequence they bear); "False Witness" keys on the member's OWN
-      `hamburger_liars` brand
-      (a consequence they bear); "Inquisitor" keys on `decided_by` = the member (their
-      own rulings as champion). **None** surfaces "who reported whom" or a report-count a
-      member _made_. Do **not** add a "number of heresies you've called" badge — that
-      would leak the anonymous reporter side. This is a hard constraint.
-- [ ] **Un-themed code identifiers preserved (HARD SCOPE CONSTRAINT).** New code uses
-      neutral internal names (`badges`, `Reliquary`/`BadgeShelf`, `BadgeInputs`, badge
-      ids like `first_frank` / `crowned` / `centurion` / `summoner` / `drenched` /
-      `heretic` / `liar` / `inquisitor` / `elder`). The **cult display names** (e.g. "The
-      Anointed", "The Drenched", "Elder", "False Witness") are **copy/labels only**
-      (props/strings, TASK-081 voice), never code identifiers. Existing identifiers
-      (`is_current_top_dog`, `days_as_top_dog`, `selectTopDog`, table/RPC names) stay
-      untouched.
-- [ ] **Purely derived / read-only — restated as an explicit AC:** **no migration, no
-      new write path, no new dependency, no new RPC, no new schema.** Un-forgeable by
-      construction (no client-settable badge state — nothing to POST/insert). Grep check
-      at the end: no new `create table` / `supabase migration`, no package-manifest
-      change, no new `.rpc(` call.
-- [ ] **Keep the M1 `@smoke` vertical slice GREEN.** The badge shelf renders on the
-      profile, which the smoke slice walks (invite → profile → upload → see dog) — adding
-      a derived shelf must not break that flow. If the smoke test asserts on profile
-      content, update it in lockstep; otherwise it must remain 4/4.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (the new
-      `badges.test.ts` cases included), **`@smoke` 4/4**, `@security` green. **No
-      migration.**
-
-**Notes (for the implementer):**
-
-- **This is the textbook pure-render-time seam for this codebase.** Read
-  `voting/ranking.ts`, `mustard/decay.ts`, `reports/alarm.ts`, and `reports/verdict.ts`
-  first — copy their shape exactly: a self-contained, import-free `.ts` module with a
-  doc-comment explaining the derivation, co-located TDD tests, and the live wiring done
-  by the route load (the module never does I/O). The reliquary component mirrors
-  `TopDogBadge.svelte` / `ProfilePoliceBanner.svelte` (presentational, logic-free).
-- **Reuse, don't re-derive, where a helper exists.** HERETIC → `isHamburgerHeretic` +
-  `getDogVerdictsForOwner`; FALSE WITNESS → `getLiarBrandTimestamps` (+ optionally
-  `summarizeLiarBrand` if keying on _currently_ branded). Only the new
-  count/max/threshold logic is genuinely new.
-- **Coordinate with TASK-085's stat ledger** — several badge inputs (franks-offered
-  count, max peak_votes, redeemed-invite count, anointings-received count, crowned-day
-  count) are the **same aggregates** the TASK-085 stat ledger needs. If both land,
-  assemble the inputs once and feed both the ledger and the badges to avoid duplicate
-  queries. Neither task hard-blocks the other; whichever lands second reuses the first's
-  query helpers.
-- **Design-gated like the rest of M8** — `blocked` pending the Reliquary mock. The pure
-  module + tests are design-independent (the thresholds + derivation are real-data
-  facts, not visual), but the shelf component's earned/locked/tier visual treatment
-  needs the mock; treat the module as buildable-first and the component as design-led, as
-  the milestone does elsewhere.
-- **No new dependency; no schema; no migration; no new architecture-decision row** —
-  recorded as a derived/no-schema **design/scope note** (composes decisions
-  #12/#13/#15/#27).
+**Notes (for the implementer):** the mock is a clean, near-direct port (`mode`/`eyebrow`/
+`status`/`line`/CTA). **Security:** never render raw stack traces or internal detail to the
+user (L2 / OWASP "security misconfiguration" + insufficient-logging awareness). Small task.
+No new dependency; no schema; no new decision row.
 
 ---
 
@@ -856,680 +1110,279 @@ null`** (the authoritative spent-signal — NOT `consumed_by`, which is nullable
 **Owner:** implementer — PR #99 (squash `dcce8c3`), merged 2026-06-19. Reviewer
 APPROVE after 1 fix cycle (WCAG 2.4.7 focus-ring regression on the wall textarea).
 
-**Problem:** the app was deliberately near-unstyled — `src/app.css` was ~80 neutral
-lines from the TASK-072 polish pass. The rebrand needed a real cult/temple aesthetic.
+The M8 FOUNDATION: a tokenized dark-temple CSS layer (`src/lib/styles/tokens.css`,
+imported by `src/app.css`) that every downstream M8 task consumes via `var(--…)` tokens
+(accents switch via `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond
+`.woff2` fonts under `static/fonts/` (no CDN, no npm package), and themed flair-component
+styling. No migration, no new dependency, no new architecture-decision row (decision
+table stays #28). The token vocabulary (surfaces / text ramp / themeable accent / status
+/ type scale / layout-motion) is the durable seam every rebuild references — **consume
+`var(--…)`, never literal hex; switch accent via `data-accent`; reuse the themed flair
+components**. Discovered: DW-028 (faint-text tokens must stay AA on real content).
 
-**Acceptance Criteria:**
-
-- [x] A **base theme layer** implementing the cult aesthetic from the designs:
-      **palette** (CSS custom properties / design tokens), **type scale**,
-      **spacing**, and base element styling, wired through the root layout. Delivered
-      as `src/lib/styles/tokens.css` (imported by `src/app.css`).
-- [x] **Flair-component styling** for the signature surfaces: `TopDogBadge`,
-      the police-tape banners (`HamburgerAlarmBanner`, `ProfilePoliceBanner`,
-      `ConfirmedHamburgerStamp`), the mustard/Anoint overlay **base**, reaction
-      controls, vote controls.
-- [x] **Responsive** layout system (successor to `.page-container` / `.app-nav`).
-- [x] **Accessibility:** WCAG AA contrast (verified by hand at review); visible focus
-      states (the wall-textarea focus-ring regression was caught + fixed in review);
-      state not conveyed by color alone.
-- [x] **No behavior change** — styling only; no load/action/RLS/RPC change; no
-      `{@html}`; components stay presentational.
-- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 783, `@smoke` 4/4,
-      `@security` 94/94. No migration. No new dependency (fonts self-hosted, SIL OFL).
-
-**Notes:**
-
-TASK-087 lays the **foundation/theme layer for all of M8** — the dark-temple cult
-aesthetic as a tokenized CSS layer, with no behavior, schema, dependency, or
-architecture-decision change. PR #99, squash `dcce8c3`, merged 2026-06-19.
-
-- **The token vocabulary is the durable seam every downstream M8 task consumes.**
-  A new `src/lib/styles/tokens.css` holds the canonical CSS custom properties
-  (imported by `src/app.css`); downstream styling MUST reference `var(--…)`
-  tokens, **never literal hex**. The vocabulary:
-  - **Surfaces:** `--color-bg`, `--color-bg-deep` / `-mid` / `-lift`,
-    `--color-bg-chrome`, `--surface-temple` (the radial gold-glow paint).
-  - **Text ramp:** `--color-text`, `--color-heading`, `--color-text-muted` /
-    `-faint` / `-fainter`.
-  - **Accent (themeable):** `--accent`, `--accent-dim`, `--glow`, with per-theme
-    `--accent-gold` / `-crimson` / `-verdigris`; **switch the active accent via
-    `data-accent="crimson" | "verdigris"`** on a root element (default = Mustard
-    Gold). Derived gold tints: `--accent-strong` / `-soft` / `-border` /
-    `-plaque-border` / `-divider` / `-fill` / `-fill-strong`.
-  - **Status:** `--color-error`, `--color-on-accent`, `--color-selection`;
-    police-tape literals `--tape-alarm` / `-confirmed` / `-stripe-dark`,
-    `--mustard-splat`.
-  - **Type:** `--font-display` (Cinzel), `--font-body` (Cormorant Garamond);
-    scale `--text-eyebrow` / `-label` / `-sm` / `-base` / `-lg` / `-xl` / `-h2` /
-    `-h1`; tracking `--tracking-tight` / `-label` / `-eyebrow` / `-wide`.
-  - **Layout/motion:** spacing `--space-2xs`…`-3xl`; radii `--radius-control` /
-    `-card` / `-pill`; shadows/glow `--shadow-button` / `-button-glow` / `-card` /
-    `-plaque`, `--text-shadow-hero`, `--ring-focus`, `--ring-focus-offset`;
-    measures `--measure-form` / `-content` / `-wide`; motion `--motion-fast` /
-    `-base` / `-entrance` / `-glow-pulse`, easings `--ease-standard` / `-out` /
-    `-in-out`.
-- **`src/app.css` rewritten** to import the tokens, declare self-hosted
-  `@font-face`, paint the dark-temple base, provide responsive
-  `.page-container` / `.app-nav` successors, port the design `@keyframes`
-  (`glowPulse` / `fadeUp` / `stamp` / `unroll`) as tokenized utilities, and
-  honor `prefers-reduced-motion`.
-- **Self-hosted fonts — no new dependency.** Cinzel + Cormorant Garamond ship as
-  `.woff2` assets under `static/fonts/` (SIL OFL), with the bundled
-  `OFL-Cinzel.txt` / `OFL-CormorantGaramond.txt` license files. No CDN, no npm
-  package (resolves OQ-4). The implementer's sandbox blocked the font download,
-  so **the director fetched the `.woff2` files** out-of-band and the implementer
-  wired the `@font-face` self-host.
-- **Themed flair components (styles only):** `TopDogBadge`,
-  `HamburgerAlarmBanner`, `ProfilePoliceBanner`, `ConfirmedHamburgerStamp`,
-  `ReactionBar`, `BurgerReportControl`, `TopDogPrivilegesNotice`; plus themed
-  feed vote controls and profile surfaces (sigil ring, stat-ledger scaffold,
-  wall, mustard-overlay base). Components stay presentational — no load / action
-  / RLS / RPC change.
-- **1 fix cycle (WCAG 2.4.7 focus-visible).** Reviewer REQUEST_CHANGES → APPROVE.
-  The blocking finding: the wall-post `textarea:focus` rule used `outline: none`
-  plus a ~3% bg tint, which (via specificity) suppressed the global 2px gold
-  `--ring-focus` for keyboard users too. Fixed by dropping `outline: none` so the
-  global `--ring-focus` renders on `:focus-visible`. A minor finding (narrow the
-  sub-AA `--color-text-fainter` token comment to "placeholders only") was also
-  fixed.
-- **Gates:** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` 783/783 · `@smoke`
-  4/4 · `@security` 94/94 on a fresh `supabase db reset`. **No migration, no new
-  dependency, no new architecture-decision row** (the decision table stays at
-  #28 — this is a visual/skin layer).
-- **Forward note for downstream M8 tasks:** consume `var(--…)` tokens from
-  `src/lib/styles/tokens.css` (no literal hex); switch accent via `data-accent`;
-  reuse the themed flair components rather than re-styling them. Per-content
-  contrast caveat logged as **DW-028** (see [[tasks/discovered]]).
-
-**Discovered during this task:** DW-028 (faint-text tokens must stay AA on real
-content — see [[tasks/discovered]]).
+> **Re-scope note:** the rebuilds now port directly from the mockups, mapping inline mock
+> hex → these tokens. TASK-087 remains the styling foundation; nothing about it changes.
 
 ---
 
 ### TASK-080: Global app shell + persistent navigation [`complete`] [`P1`] [`M`] (`design-light`)
 
 **Owner:** implementer — PR #101 (squash `544b7be`), merged 2026-06-19. Reviewer
-REQUEST_CHANGES → APPROVE after 1 fix cycle (a working crown-gated feature,
-`TopDogPrivilegesNotice`, was orphaned by the hub retirement).
+REQUEST_CHANGES → APPROVE after 1 fix cycle.
 
-**Problem:** navigation lived only on the bare `/app` hub, so every sub-page was a
-dead end. The shell + The-Procession-as-home decision supersede the hub.
+A persistent `(protected)/app/+layout.svelte` shell renders a header/nav across every
+`/app` route (🌭 home → The Procession; The Procession / Your Litter / Epistles / The
+Catechism; ＋ Summon a Frank; crown-gated ☩ The Tribunal), reads `{ user, profile }` from
+the existing `+layout.server.ts` (no second crown query), repointed the `/` redirect
+`/app` → `/app/feed`, and retired the bare `/app` hub (`redirect(307, '/app/feed')`).
+**`TopDogPrivilegesNotice` (TASK-074) was intentionally RETIRED** (Top Dog powers now in
+The Catechism + the crown-gated Tribunal link) — `pnpm test` 783 → 775. No migration / no
+new dependency / no new decision row.
 
-**Acceptance Criteria:**
-
-- [x] New `(protected)/app/+layout.svelte` renders a persistent header/nav across
-      all `/app` routes; reads `{ user, profile }` from the existing
-      `+layout.server.ts` (no second crown query).
-- [x] 🌭 is a real home button → The Procession (`/app/feed`) via `resolve(...)`.
-- [x] Nav to feed / Your Litter (`/app/dogs`) / Epistles (`/app/messages`) / The
-      Catechism (`/app/help`) + a visible ＋ Upload affordance → `/app/dogs`.
-      (Labels are confirmed cult-name placeholders pending TASK-081.)
-- [x] 🍔/☩ Tribunal link stays gated on server-derived `is_current_top_dog`
-      (decision #25), both desktop + mobile nav — not widened.
-- [x] Old inline `<nav class="app-nav">` removed (no double nav); dead `.app-nav`
-      CSS deleted in the fix cycle.
-- [x] `/` redirect repointed `'/app'` → `'/app/feed'`; auth guard untouched.
-- [x] Bare `/app` hub retired → `redirect(307, '/app/feed')`.
-- [x] Svelte 5 runes, `resolve(...)` links, no `{@html}`; accessible nav
-      (semantic `<nav>`, `aria-current`, keyboard focus, mobile `aria-expanded`);
-      responsive collapse.
-- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 775, `@smoke`
-      4/4. No migration. (`@security` not re-run — orthogonal to UI/routing.)
-
-**Decision (user-approved):** the `TopDogPrivilegesNotice` (TASK-074) was
-**intentionally retired in M8** — Top Dog powers are documented in the Catechism
-(`/app/help`) and the crown-gated Tribunal nav link covers adjudication. Component
-
-- helper + tests deleted (783 → 775).
-
-**Notes:**
-
-TASK-080 closes the dead-end-navigation gap: app navigation now lives in a
-**persistent global shell**, and the bare `/app` "kennel" hub is retired. PR #101,
-squash `544b7be`, merged 2026-06-19. **1 fix cycle** (reviewer REQUEST_CHANGES →
-APPROVE).
-
-- **Persistent app shell.** A new `(protected)/app/+layout.svelte` renders a
-  persistent header/nav across **every** `/app` route, reading `{ user, profile }`
-  from the existing `(protected)/app/+layout.server.ts` — **no second crown query**.
-  The 🌭 brand mark is a real home button → **The Procession** (`/app/feed`) via
-  `resolve(...)`; nav links cover feed / **Your Litter** (`/app/dogs`) / **Epistles**
-  (`/app/messages`) / **The Catechism** (`/app/help`), plus a visible ＋ Upload
-  affordance → `/app/dogs`. (Labels are confirmed cult-name placeholders pending the
-  TASK-081 copy pass.) The 🍔/☩ **Tribunal** link stays gated on the server-derived
-  `is_current_top_dog` crown flag (decision #25) in both desktop and mobile nav — the
-  privilege gate is **not** widened. Svelte 5 runes, `resolve(...)` links, no
-  `{@html}`, accessible nav (semantic `<nav>`, `aria-current`, keyboard focus, mobile
-  `aria-expanded`, responsive collapse). The auth guard in `+layout.server.ts` is
-  untouched — the unauthenticated → `/sign-in` and profile-less → `/app/onboarding`
-  cascade is preserved.
-- **Default-route repoint.** The `/` redirect in `src/routes/+page.server.ts` was
-  repointed `redirect(307, '/app')` → `'/app/feed'`, realizing the CONFIRMED
-  "Default landing route = The Procession" decision (no infra / code-identifier
-  change — route only).
-- **Hub retirement.** The bare `/app` "kennel" hub is retired: its `+page.server.ts`
-  now `redirect(307, '/app/feed')`, and the hub `+page.svelte` is reduced to an SSR
-  fallback (its inline `<nav class="app-nav">` removed — the new shell supersedes it,
-  so there is no double nav). The dead `.app-nav` CSS was deleted in the fix cycle.
-- **`TopDogPrivilegesNotice` retirement (user-approved).** The reviewer's one
-  blocking finding was that retiring the hub orphaned `TopDogPrivilegesNotice`
-  (TASK-074) — a working crown-gated feature that had rendered only on the old `/app`
-  home. **User ruling: intentionally RETIRE it.** Top Dog powers are now documented in
-  **The Catechism** (`/app/help`), and the crown-gated **Tribunal** nav link in the new
-  shell covers the adjudication call-to-action — so the standalone nudge is redundant.
-  The fix cycle deleted the `TopDogPrivilegesNotice.svelte` component, the
-  `topDogPrivilegesNotice.ts` helper (`DISMISSED_KEY` / `isNoticeDismissed` /
-  `persistNoticeDismissed`), and its 8 dismissal-helper unit tests — accounting for the
-  test-count drop **783 → 775** (−8 = exactly the retired helper's cases).
-- **Gates (director-run):** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` 775 ·
-  `@smoke` 4/4. `@security` was **not re-run** — TASK-080 is a UI/routing change
-  orthogonal to the live-DB write guards. **No migration, no new dependency, no new
-  architecture-decision row** (the decision table stays at #28).
-- **Forward note:** the M7 `TopDogPrivilegesNotice` wiring-audit statement in
-  [[PROJECT]] is historically true for M7 but no longer matches the tree — the
-  component was retired here. A forward-note was added at the M7 wiring-audit line so
-  the audit statement isn't left silently contradicting the current code.
+> **Re-scope note:** the shell is done, but TASK-090 **updates its `resolve(...)` route
+> ids + active-route checks to the new `snacktum-snacktorum` paths**, finalizes its cult
+> nav labels, and re-points its links to the renamed leaves. The shell's STYLING already
+> matches `App Chrome.dc.html` (TASK-087-themed); TASK-090 only re-wires its links.
 
 ---
 
 ### TASK-083: Forgot-password + reset-password flow [`complete`] [`P1`] [`M`] (`design-light`)
 
 **Owner:** implementer — PR #103 (squash `3e236be`), merged 2026-06-19. Reviewer
-APPROVE, 1 fix cycle (the recovery email template was missing, so the default email
-sent a link not a code — added a cult-themed `{{ .Token }}` template + config wiring).
+APPROVE, 1 fix cycle (added a code-emitting recovery email template).
 
-**Problem:** there was no password-recovery path; a member who forgot their password
-was locked out.
+The recovery cluster: `/forgot-password` (`resetPasswordForEmail`, neutral
+non-enumerating) + `/reset-password` (**6-digit OTP** → `verifyOtp(type:'recovery')` →
+`updateUser`; `MIN_PASSWORD_LENGTH` 8 + confirm). The fix cycle added
+`supabase/templates/recovery.html` (`{{ .Token }}`, code-only) +
+`[auth.email.template.recovery]` / `otp_length = 6`, director-verified by a live Mailpit
+round-trip. `pnpm test` 793; no migration / no new dependency / no new decision row. Adds
+a hosted CONFIG item to the standing ops gate + DW-029.
 
-**Acceptance Criteria:**
-
-- [x] **`/forgot-password`** — email form → `resetPasswordForEmail`; always returns
-      the same neutral, non-enumerating message; boundary-validated; `use:enhance`.
-- [x] **`/reset-password`** — **6-digit OTP code** + new password (confirm) →
-      `verifyOtp({ email, token, type: 'recovery' })` → `updateUser({ password })`.
-      `MIN_PASSWORD_LENGTH` (8) + confirm-match enforced; friendly fail on
-      wrong/expired code. (Code flow per the resolved OQ — not magic-link.)
-- [x] **Recovery handshake** doc-checked (director-run, agent web tools were denied):
-      the `resetPasswordForEmail` → `verifyOtp(type:'recovery')` → `updateUser` flow is
-      the correct supabase-js v2 code-recovery pattern; `type:'recovery'` is TS-valid.
-- [x] **Local email testing:** recovery emails land in Mailpit (`http://localhost:54324`);
-      director ran a **live round-trip** — a real 6-digit code was delivered (code-only).
-- [x] **Security (L2):** non-enumerating (forgot + reset error paths); password length + confirm at the boundary; recovery session is the authoritative `updateUser`
-      gate; raw errors logged server-side only; no secret key on the client.
-- [x] **Tests:** action coverage for both pages (incl. verify-before-update order,
-      no-auth-on-bad-input, no raw-error leakage). 793 total.
-- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 793. No migration.
-      (Recovery template config added — `otp_length = 6`.)
-
-**Notes:**
-
-The password-recovery cluster — the third M8 task (3/10) and the first half of the
-auth cluster. PR #103, squash `3e236be`, merged 2026-06-19. Reviewer APPROVE after
-**1 fix cycle**. **No migration, no new dependency, no new architecture-decision row**
-(the recovery email template + `otp_length` are config; the decision table stays at #28).
-
-- **6-digit OTP code recovery (not magic-link).** Two new public routes realize the
-  resolved OQ reset flow as a code handshake: `/forgot-password` posts an email to
-  **`resetPasswordForEmail`** and **always returns the same neutral message**
-  (non-enumerating — no signal whether the email exists); `/reset-password` takes the
-  **6-digit code** + a new password (with confirm) and runs
-  **`verifyOtp({ email, token, type: 'recovery' })` → `updateUser({ password })`**. The
-  recovery session minted by `verifyOtp` is the authoritative gate on `updateUser` — the
-  password is never changed without a verified code. `MIN_PASSWORD_LENGTH` (8) and the
-  confirm-match are enforced at the boundary; a wrong/expired code surfaces a friendly
-  failure. The user chose **6 digits over the design's 4-mark** sigil (`otp_length = 6`).
-- **The 1 fix cycle — missing recovery email template (the load-bearing fix).** As first
-  built, Supabase fell back to its **default** recovery email, which sends a magic
-  **link**, not a **code** — incompatible with the code-entry `/reset-password` page. The
-  fix added a cult-themed **`supabase/templates/recovery.html`** that emits the 6-digit
-  `{{ .Token }}` (code-only, no link) and wired **`[auth.email.template.recovery]`** in
-  `supabase/config.toml` (with `otp_length = 6`). This is the **hosted ops consequence**
-  below: hosted production must carry the same code-emitting template or it will send a
-  link instead of a code.
-- **Live Mailpit verification (director-run).** The agent's web tools were denied, so the
-  director doc-checked the `resetPasswordForEmail` → `verifyOtp(type:'recovery')` →
-  `updateUser` handshake against supabase-js v2 (`type:'recovery'` is TS-valid) **and**
-  ran a **live Mailpit round-trip** (`http://localhost:54324`) confirming a real 6-digit,
-  **code-only** email was delivered — subject "Your recovery rite — Snacktum Snacktorum",
-  1h expiry.
-- **Security posture (L2).** Non-enumeration on both the forgot **and** reset error paths
-  (a single neutral message; failures never distinguish "no such email" from "wrong
-  code"); password length + confirm enforced at the boundary; the recovery session is the
-  `updateUser` gate; raw Supabase errors logged **server-side only**, never surfaced to
-  the client; no secret key on the client.
-- **Gates (director-run):** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` **793**. No
-  migration. (Recovery template + `otp_length = 6` config added.)
-- **Hosted ops gate (carried forward).** The hosted Supabase project's **recovery email
-  template must be set to the code-emitting `{{ .Token }}` template** (via the dashboard
-  or `supabase config push`) — otherwise production will send a recovery **link** instead
-  of a **code**, breaking the `/reset-password` code-entry page. Added to the standing
-  hosted-push/ops gate alongside the two M7 burger migrations and the TASK-086 prune
-  migration (see § Standing ops note, [[PROJECT]] Process notes, and [[TASKS]]).
-
-**Discovered during this task:** DW-029 (`MIN_PASSWORD_LENGTH` + the email pattern are
-duplicated across the auth pages — extract a shared `$lib/features/auth` validation
-module; see [[tasks/discovered]]).
+> **Re-scope note:** these two pages are COMPLETE and **KEEP their slugs**
+> (`/forgot-password`, `/reset-password` — the user finalized that the auth slugs stay
+> descriptive). TASK-090 does **NOT** move these folders, does **NOT** retarget any
+> `/sign-in` redirect, and the recovery email template's `/reset-password` reference is
+> **unchanged**. The only TASK-090 effect on this cluster is the in-app `/app/` prefix
+> rename in any shared link/test — these gate pages are otherwise untouched. No restyle
+> (the visual is final per `Reset Password.dc.html`).
 
 ---
 
 ### TASK-082: Build `/sign-in` — real email/password form + server action [`complete`] [`P1`] [`M`] (`design-light`)
 
 **Owner:** implementer — PR #105 (squash `5445002`), merged 2026-06-19. Reviewer
-APPROVE, 0 fix cycles (two minor non-blocking notes).
+APPROVE, 0 fix cycles.
 
-**Problem:** `/sign-in` was a non-functional stub — the destination of every
-unauthenticated bounce was a dead page. Built the real sign-in.
+The real themed sign-in form ("Enter the Snacktum") with a default action →
+`signInWithPassword` on `event.locals.supabase` → on success `redirect(303,'/app')` through
+the auth cascade (profile-less → `/app/onboarding`), non-enumerating (one generic error;
+password never echoed; raw errors server-side only). A new `tests/sign-in.e2e.ts` `@smoke`
+spec signs a seeded user in through the real form — live suite 5/5. `pnpm test` 801; no
+migration / no new dependency / no new decision row + DW-030.
 
-**Acceptance Criteria:**
-
-- [x] `sign-in/+page.server.ts` — default action → `signInWithPassword` on
-      `event.locals.supabase`.
-- [x] Boundary validation (email format + non-empty password) → `fail(400)` echoing
-      the email, never the password. (No password-length policy on login.)
-- [x] Success → `redirect(303, '/app')` (auth cascade routes profile-less →
-      `/app/onboarding`); non-enumerating generic error; raw errors server-side only.
-- [x] `sign-in/+page.svelte` — real themed form ("Enter the Snacktum"),
-      `use:enhance` + loading, Svelte 5 runes, no `{@html}`.
-- [x] Links to `/sign-up` + `/forgot-password` (both exist).
-- [x] Auth-trust boundary respected (`event.locals.supabase`; no secret key client-side).
-- [x] Tests: 8 action tests + `tests/sign-in.e2e.ts` `@smoke` sign-in path (reuses
-      the seeded inviter; asserts the onboarding funnel).
-- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 801, **`@smoke` 5/5
-      live** (incl. the new sign-in path). No migration.
-
-**Notes:**
-
-The real `/sign-in` — the fourth M8 task (4/10) and the second half of the auth
-cluster. PR #105, squash `5445002`, merged 2026-06-19. Reviewer APPROVE, **0 fix
-cycles** (two minor non-blocking notes). **No migration, no new dependency, no new
-architecture-decision row** (the decision table stays at #28).
-
-- **Real sign-in action — replacing the dead stub.** `/sign-in` was previously a
-  non-functional stub (no form, no action), yet it is the destination of every
-  unauthenticated bounce from the `(protected)/app` layout guard — so the bounce
-  landed on a dead page. `sign-in/+page.server.ts` now adds a default action that
-  calls **`signInWithPassword` on `event.locals.supabase`** (the RLS-scoped,
-  auth-trust-boundary client — no secret key on the client). On success it
-  **`redirect(303, '/app')`**, letting the existing auth cascade do the routing: a
-  signed-in but **profile-less** member is funneled on to `/app/onboarding`, an
-  established member to The Procession (`/app/feed`).
-- **Non-enumerating auth design.** Boundary validation (email format + non-empty
-  password) returns `fail(400, { email, error })` with the **password never echoed**;
-  a failed `signInWithPassword` surfaces a single **generic** auth error that does not
-  distinguish "no such account" from "wrong password" (no account enumeration). Raw
-  Supabase errors are logged **server-side only**, never surfaced to the client. There
-  is no password-length policy on the login path (length is a sign-up/reset concern,
-  not a sign-in one). This mirrors the non-enumeration posture TASK-083 established for
-  the forgot/reset pages — the whole auth cluster now reads as one consistent boundary.
-- **The themed form.** `sign-in/+page.svelte` is a real cult-themed form ("Enter the
-  Snacktum"), Svelte 5 runes, `use:enhance` with a loading state, no `{@html}`
-  (XSS-safe), with links to `/sign-up` (Take the Casing) and `/forgot-password` — both
-  of which now exist, so the auth surface is internally fully linked.
-- **The `@smoke` sign-in path (live-tested).** A new `tests/sign-in.e2e.ts` `@smoke`
-  spec drives a **seeded user through the real form** and asserts they reach the app —
-  specifically the **profile-less → `/app/onboarding` funnel**, proving the success
-  redirect threads the auth cascade correctly. It **reuses the seeded inviter** the
-  smoke harness already mints (no new fixture), so the live-stack suite grows from 4 to
-  **5/5** with no new global setup.
-- **Gates (director-run):** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` **801**
-  (8 new sign-in action tests covering validation, non-enumeration, no-password-echo,
-  and the success redirect) · **`@smoke` 5/5 live** on a fresh `supabase db reset`
-  (incl. the new sign-in path). No migration; no new dependency.
-- **This CLOSES the M8 auth cluster.** With sign-in built, the cluster is complete and
-  functional end-to-end — **sign-in (TASK-082) / forgot-password / reset-password
-  (TASK-083)** — all live-tested. A real member can now log in through the UI for the
-  first time (the prior workaround was the sign-up + invite path). The stale [[CLAUDE]]
-  "Local dev (WSL)" note calling `/sign-in` a non-functional stub is now corrected.
-
-**Discovered during this task:** DW-030 (annotate the `form` prop with `ActionData`
-across the auth pages — `sign-in` / `sign-up` / `forgot-password` / `reset-password`
-all use an untyped `let { form } = $props()`; type it for compile-time checking of the
-echoed fields; see [[tasks/discovered]]).
+> **Re-scope note:** the page is COMPLETE and **KEEPS its slug** (`/sign-in` — the user
+> finalized that the auth slugs stay descriptive). TASK-090 does **NOT** rename this
+> folder and does **NOT** retarget any `/sign-in` redirect (it stays the bounce target).
+> TASK-090's only effect here is repointing the success `redirect(303,'/app')` →
+> `'/snacktum-snacktorum'` (the in-app prefix) and updating the `/app/onboarding` funnel
+> hop → the `/sign-up` rite (TASK-092). The `tests/sign-in.e2e.ts` + `tests/form-validation.e2e.ts`
+> `/sign-in` navigations are unchanged; only their `/app/...` literals change. No restyle
+> (final per `Log In.dc.html`).
 
 ---
 
-## Cross-cutting (ad-hoc, not a numbered task)
+## Superseded tasks (folded into the re-scope)
 
-### Themed inline form validation — landed ad-hoc, now app-wide CANON (PR #109)
+The original pending tasks TASK-081 / TASK-084 / TASK-085 / TASK-086 / TASK-088 / TASK-089
+are **superseded** by the re-scoped task set above. Their substance is preserved:
 
-**Owner:** implementer — PR #109 (squash `6c00c1c`), merged 2026-06-19. Reviewer
-APPROVE (no critical/major). **Not a queued task — M8 stays 4/10.** No migration, no
-new dependency, no new architecture-decision row (the decision table stays at #28).
+| Old task     | Was                                                                                                | Folded into                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **TASK-081** | Brand & lore copy pass (apply cult display names + "The Anointed Wiener" + voice across all pages) | **The designs now carry the copy.** Each per-page rebuild applies its own page's cult copy + the title swap verbatim from its mockup. Cross-cutting strings that aren't on a single page (the shell nav labels) are finalized in **TASK-090**. There is **no separate copy-only sweep** — the copy lives in the rebuilds. (The confirmed display-name + label decisions in § Page Naming Map / § Resolved decisions are the source of truth the rebuilds apply.) |
+| **TASK-084** | Ritual sign-up (OQ-1 B-absorb)                                                                     | **TASK-092** (the Snacktum Onboarding rite — same B-absorb scope, now a rebuild-from-`Snacktum Onboarding.dc.html`).                                                                                                                                                                                                                                                                                                                                             |
+| **TASK-085** | Profile redesign + display-name + stat ledger                                                      | **TASK-093** (The Shrine rebuild — same scope, now rebuild-from-`The Shrine.dc.html`, composes TASK-094 + TASK-094-R).                                                                                                                                                                                                                                                                                                                                           |
+| **TASK-086** | "Anoint" mustard re-theme (+ the one migration, decision #29)                                      | **TASK-094** (same scope + the prune-retirement migration + workflow edit + decision-#29 plan, unchanged).                                                                                                                                                                                                                                                                                                                                                       |
+| **TASK-088** | Designed error/404 page                                                                            | **TASK-101** (The Lost Pilgrim — now rebuild-from-`The Lost Pilgrim.dc.html`).                                                                                                                                                                                                                                                                                                                                                                                   |
+| **TASK-089** | The Reliquary derived badge module                                                                 | **TASK-094-R** (same purely-derived scope, unchanged).                                                                                                                                                                                                                                                                                                                                                                                                           |
 
-A follow-up to the auth cluster, landed outside the numbered-task queue: a **themed,
-accessible, inline client-side validation layer** that **replaces the browser's
-native HTML5 validation bubble** on the gate forms. New modules:
-
-- `src/lib/features/forms/validationMessage.ts` (pure, 20 unit tests) —
-  `classifyFailure` + `validationMessage` → themed, field-naming cult messages
-  (with **Mustard Address** / **Seal** special-cases).
-- `src/lib/features/forms/formValidation.svelte.ts` — `createFormValidation()` rune
-  factory: on a failed submit it populates a reactive `errors` map, focuses the first
-  invalid field, and `cancel()`s the submit (wrapping the page's `use:enhance`
-  SubmitFunction via `validation.enhance(...)`); `clearOnInput` hides a field's error
-  on the **first keystroke in that field** (per-field); the shared `clearError`
-  removes the message + `aria-invalid` + `aria-describedby` in lockstep. No
-  timer / auto-dismiss.
-- `src/lib/motion/reducedMotion.ts` — `errorSlideFade` (slide+fade transition that
-  animates height = the layout shift) + SSR-safe `prefersReducedMotion()` /
-  `motionDuration()`.
-- `src/app.css` `.field-error` (uses `--color-error`); `tests/form-validation.e2e.ts`.
-
-**This is recorded as a BINDING app-wide convention** — see the [[CLAUDE]]
-"Forms & validation" Patterns subsection. **Themed inline validation is the standard
-for EVERY form with required / empty-able fields across the app; the native HTML5
-bubble is never used.** New and reworked forms MUST adopt it.
-
-**Page-completeness context (so the rollout is understood).** Of the auth / gate
-pages, only **sign-in** and **forgot-password** are **finalized**. **Sign-up will be
-REPLACED by the Snacktum onboarding ritual (TASK-084)**, and **reset-password is not
-yet finalized**. Therefore the canon is applied **as each form-bearing page is built
-/ reworked**, not retrofitted onto pages about to change. Concretely, the
-form-bearing M8 tasks **MUST use the canonical validation**: **TASK-084** (the
-onboarding ritual), **TASK-085** (profile wall composer), and **any task touching the
-`dogs` / `messages` / `court` / `invite` forms**. Rollout tracked as **DW-032** in
-[[tasks/discovered]].
-
-**Gates:** reviewer APPROVE (no critical/major). `validationMessage.ts` ships with 20
-unit tests; `tests/form-validation.e2e.ts` covers the rendered layer.
-
-**Discovered during this work:** DW-032 (roll the canonical themed validation out to
-the remaining in-app forms — onboarding, hot-dog upload, profile wall, DM composer,
-Tribunal, invite — as each is built / reworked; see [[tasks/discovered]]).
+The new per-page rebuild tasks **TASK-091 / TASK-095 / TASK-096 / TASK-097 / TASK-098 /
+TASK-099 / TASK-100** (Procession, Litter, Relic, Epistles+Whispers, Summon, Tribunal,
+Catechism) are net-new under the re-scope — these pages were previously only "copy + theme"
+touches under TASK-081/087 and now get a full rebuild-from-design each.
 
 ---
 
-## Open Questions (REQUIRED — resolve WITH the designs before/at activation)
+## Page Naming Map — themed cult DISPLAY names (CONFIRMED)
 
-These are the undecided items the build must not guess. Resolve each **with the
-user, alongside the designs**, then update the affected task(s) and flip them
-`blocked → pending`.
+The confirmed user-facing display names / page `<title>`s / nav labels. **Under the
+re-scope the in-app URL paths ALSO change** (see § Slug Map) — but the display names are
+unchanged, and the **four auth slugs are KEPT descriptive** (only the display copy is
+cult-voiced; the paths stay `/sign-in`, `/sign-up`, `/forgot-password`,
+`/reset-password`). Each per-page rebuild applies its page's name verbatim.
 
-> **Resolution status (2026-06-19 update):** **OQ-1, the avatar mechanism, OQ-3,
-> OQ-4, and the reset flow** were RESOLVED 2026-06-18 (see the RESOLVED rows + notes
-> below). **OQ-2 and OQ-5 are now FULLY RESOLVED (2026-06-19):**
->
-> - **OQ-5 (dog-detail page name) → "The Relic"** (`/app/dogs/[id]`). With this the
->   Page Naming Map is **complete** — every user-facing page name is confirmed; OQ-5
->   is **fully resolved**.
-> - **OQ-2 — all five sub-decisions RESOLVED:** **OQ-2a** keep Anoint gated to the
->   reigning champion ("The Anointed Wiener" / `is_current_top_dog`, decision #25
->   `WITH CHECK` unchanged); **OQ-2b** no re-mechanic / no merge with reactions — it
->   stays the existing mustard spray, re-copied as "anointing" (reactions untouched);
->   **OQ-2c** **splat** visual (reuse the splat animation in
->   `design/pages/The Shrine.dc.html`); **OQ-2d** overlay decays over **6h** (was 24h)
->   — a render-time constant change to `MUSTARD_LIFESPAN_MS`, no migration; **OQ-2e**
->   the anoint → wall-notice is a message on the anointed member's wall with a **24h
->   ROLLING STACK** (an anoint within 24h of the previous one increments the existing
->   message's ×N count and RESETS the window; a >24h gap starts a fresh message), and
->   the wall notice **PERSISTS** (only the overlay decays).
->
-> **‼️ One M8 posture change (2026-06-19):** OQ-2e's **persisting** wall notice is
-> render-derived from `mustard_sprays` rows, so those rows must SURVIVE — which means
-> the daily `prune_mustard_sprays()` job must be **retired** (TASK-086, **Option A**,
-> user-approved). **TASK-086 therefore WILL carry one migration** (retire/neuter
-> `prune_mustard_sprays`) + a keep-alive workflow edit (drop the prune step) + a
-> **likely new architecture-decision row #29** (mustard_sprays retention). So **M8 is
-> no longer strictly "no migration"** — TASK-086 adds one (to be batched onto the
-> standing hosted-push gate with the M7 burger migrations). The decay-constant change
-> itself (OQ-2d, 6h) needs **no** migration. Everything else stays skin-only — no
-> infra / code-identifier rename. (Decision #29 is recorded here as a **plan**; it
-> becomes a real [[PROJECT]] decision-table row only when TASK-086 is implemented — the
-> table stays at #28 until then.) Several in-app page designs are still to be generated
-> from `design/page-design-prompts.md`.
+| Page (route)                                 | Cult display name (CONFIRMED)                    |
+| -------------------------------------------- | ------------------------------------------------ |
+| `/sign-in` (UNCHANGED slug)                  | **Enter the Snacktum** (heading)                 |
+| `/forgot-password` (UNCHANGED slug)          | (gate page — cult-voiced per its mock)           |
+| `/reset-password` (UNCHANGED slug)           | (gate page — cult-voiced per its mock)           |
+| `/sign-up` (UNCHANGED slug — hosts the rite) | **Snacktum Onboarding** / Choose Your Frank Name |
+| `/snacktum-snacktorum/litter`                | **Your Litter**                                  |
+| `/snacktum-snacktorum/litter/[id]`           | **The Relic**                                    |
+| `/snacktum-snacktorum/procession`            | **The Procession: Standings of the Blessed**     |
+| `/snacktum-snacktorum/shrine/[handle]`       | **The Shrine**                                   |
+| `/snacktum-snacktorum/epistles`              | **Epistles**                                     |
+| `/snacktum-snacktorum/epistles/[handle]`     | **Whispers**                                     |
+| `/snacktum-snacktorum/tribunal`              | **The Tribunal of the Holy Tube**                |
+| `/snacktum-snacktorum/summon`                | **Summon a Frank**                               |
+| `/snacktum-snacktorum/catechism`             | **The Catechism**                                |
+| `+error.svelte`                              | **The Lost Pilgrim**                             |
 
-| ID        | Question                                                                                                                                                                                                                                                                                                                                                                                                 | Affects                                             | Recommended default                                                                                                                             | Status                                     |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                                                                                                                                                    | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | **RESOLVED** (B-absorb)                    |
-| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                                                                                                                                                  | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | **RESOLVED** (keep gated)                  |
-| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                                                                                                                                           | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | **RESOLVED** (re-theme the spray)          |
-| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                                                                                                                                                | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | **RESOLVED** (splat)                       |
-| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                                                                                                                                               | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | **RESOLVED** (decays, but **6h** not 24h)  |
-| **OQ-2e** | **Anoint → wall notice** (derived, coalesced; approach already chosen — render-time from `mustard_sprays`, NO schema/write-path). Two specifics open: **(i)** the **coalescing window** (what counts as "quick succession"); **(ii)** **persist vs. fade** of the wall notice.                                                                                                                           | TASK-086 (wall render — derived, read-only)         | **(i)** rolling "×N within ~an hour" (or a 24h bucket); **(ii)** **persists** as a lasting record (overlay still decays per OQ-2d). No DB/cron. | **RESOLVED** (24h rolling stack; persists) |
-| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                                                                                                                                               | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | **RESOLVED** (dark temple)                 |
-| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                                                                                                                                                   | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | **RESOLVED** (self-hosted woff2)           |
-| **OQ-5**  | **Cult display names for the TBD pages.** **FULLY RESOLVED:** `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers**, `/sign-in` heading → **Enter the Snacktum**, **`/app/dogs/[id]` (dog detail) → "The Relic"** (resolved 2026-06-19). `/app` home → **N/A** (retired → redirects to The Procession). The Page Naming Map is now complete. | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | **RESOLVED** (all page names confirmed)    |
+### Confirmed cult labels beyond page names
 
-### RESOLVED decisions (2026-06-18) — bake these into the affected tasks at build time
+| User-facing label (CONFIRMED)            | Replaces                  | Code/data identifier (UNCHANGED)                                                                                        |
+| ---------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **The Anointed Wiener** (champion title) | "Top Dog"                 | `is_current_top_dog` / `TopDogBadge` / `selectTopDog` / `days_as_top_dog`                                               |
+| **FALSE WITNESS** (false-accuser brand)  | "HAMBURGER LIAR" / "LIAR" | `hamburger_liars` / `not_a_hamburger` / `getLiarBrandTimestamps` / `summarizeLiarBrand` / `liarBrand` / badge id `liar` |
 
-- **OQ-1 — RESOLVED → a multi-step rite that ABSORBS onboarding** (Option B-with-absorb).
-  The initiation is a single flowing ceremony: **Summoned** (invite token) →
-  **Inscribe Thy Name** (Casing Name = `@handle` + email + password) → **Choose Thy
-  Sigil** (avatar) → **Renounce the Patty** (a pure-UX oath — **no data persisted**) →
-  **Received.** The rite **subsumes the `/app/onboarding` `@handle`+avatar step** into
-  sign-up. **TASK-084 consequences:** this is the higher-risk Option B — the
-  profile-funnel guard in `(protected)/app/+layout.server.ts` must be updated
-  coherently (a user who completed the rite has a profile and is NOT funneled; one who
-  didn't still is) **with no redirect loop**, and the **`@smoke` slice (invite →
-  profile → upload → see dog) must be updated in lockstep** if the rite changes the
-  path it walks. The invite-redemption mechanics (decisions #17/#22/#23) and handle
-  validation (`^[A-Za-z0-9_]{2,32}$`, `citext` uniqueness, `HANDLE_TAKEN` on `23505`)
-  stay **unchanged**. No migration expected.
-- **Avatar (within the rite) — RESOLVED → pick from 5 built-in SVG "sigils".** Cowled,
-  Haloed, Shadowed, Tube, Candle (designed at `design/avatars/Sigil*.dc.html`). Stored
-  as a small **sigil id** and rendered as **inline SVG**. **Mechanism: repurpose the
-  existing `avatar_path` column to hold the sigil id** — **NO migration, NO storage
-  upload.** This keeps the avatar step a pure skin change (no DB/storage/Storage-API
-  touch). **User-uploaded avatars are DEFERRED** to a later pass — TASK-084's "Choose
-  Thy Sigil" step offers only the 5 built-ins. (Note: this **removes** the avatar
-  upload path from the onboarding/ritual surface for now, which also retires the
-  TASK-070 2 MiB avatar-upload concern at this surface — keep the bucket cap in place;
-  it simply isn't exercised by the rite anymore.)
-- **OQ-3 — RESOLVED → the "dark temple" aesthetic.** Background `#17120e` painted with
-  a radial gold glow, parchment text `#f3e9d2`, accent **Mustard Gold `#E0A82E`**
-  (themeable alternates **Relic Crimson `#cf4636`** / **Verdigris `#57b59a`**). The
-  full Design System (palette, type scale, motifs, voice) is the source of truth in
-  `design/page-design-prompts.md` — **TASK-087** implements it in CSS.
-- **OQ-4 — RESOLVED → Cinzel + Cormorant Garamond, self-hosted woff2.** **Cinzel**
-  (display serif, ALL-CAPS letter-spaced) for headings/labels/buttons; **Cormorant
-  Garamond** (body serif) for prose. **Self-hosted `.woff2` files** (SIL OFL licensed)
-  — an **asset, NOT a package**, so the dependency gate is **NOT** triggered and **no
-  new dependency** is added (resolves the § Possible Dependencies candidate to "no
-  dependency"). TASK-087 wires the `@font-face` self-host through the root layout.
-- **Reset flow (TASK-083) — RESOLVED → a 6-digit OTP code recovery** (request →
-  emailed code → verify → set new password), **NOT** a magic link. The recovery email
-  template shows the **code**; locally the email lands in **Mailpit**
-  (`http://localhost:54324`). **TASK-083 consequence:** build a code-entry step (not a
-  link click). Confirm the current `@supabase/ssr` OTP recovery handshake against the
-  Supabase docs before building (the task's existing "one doc check" requirement still
-  applies — verify the OTP-code path, not the magic-link path).
+### Confirmed auth/gate-page copy conventions (already applied on the complete gate pages; preserve)
 
-### Design-ready tasks (2026-06-18) — designs in hand; awaiting the user's build go-ahead
+| Concept                          | CONFIRMED user-facing copy                                                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Password**                     | **"Seal"** — field labels, "Forgotten thy seal?", "Forge a New Seal", "Confirm the Seal", validation messages                                              |
+| **Email field**                  | label **"Mustard Address"**, placeholder **`you@mustard.condiment`**                                                                                       |
+| **Sign-in destination metaphor** | **"the grill"** (the place a member is admitted to on sign-in) — a copy/heading metaphor only; the **slug stays `/sign-in`** (auth slugs kept descriptive) |
 
-**These tasks now have designs** and the resolved decisions above, so they are ready
-to build **the moment the user activates the milestone** — but they **remain
-`blocked`** (the director flips `blocked → pending` on the user's explicit "go", not
-the documenter, and not on the documenter's initiative):
+---
 
-- **TASK-080 (global app shell + persistent nav)** — designed: `design/pages/App
-Chrome.dc.html`.
-- **TASK-082 (build `/sign-in`)** — designed: `design/pages/Log In.dc.html`.
-- **TASK-083 (forgot/reset password)** — designed: `design/pages/Reset Password.dc.html`
-  (+ the RESOLVED 6-digit OTP flow above).
-- **TASK-084 (ritual sign-up)** — designed: `design/pages/Snacktum Onboarding.dc.html`
-  (+ the RESOLVED OQ-1 B-absorb rite + the 5-sigil avatar above).
-- **TASK-087 (base cult theme)** — the Design System in `design/page-design-prompts.md`
-  (+ the RESOLVED OQ-3 dark-temple palette + OQ-4 self-hosted Cinzel/Cormorant fonts).
+## Resolved decisions (bake into the affected tasks)
 
-**Still NOT design-ready** (need the remaining in-app designs and/or the OPEN OQs):
-TASK-081 (copy — OQ-5 now mostly resolved; only the dog-detail page name is still
-open), TASK-085 (profile redesign — needs the profile/The Shrine mockup), TASK-086
-(Anoint — blocked on OQ-2's sub-decisions OQ-2a–e, including the new derived
-anoint → wall-notice sub-decision OQ-2e), TASK-088 (error/404 — has a prompt, "The
-Lost Pilgrim", but no mockup yet), TASK-089 (the derived badge reliquary — has a
-prompt, "The Reliquary" #12, but no mockup yet; the pure module + tests are
-design-independent and buildable first). Per § Next Steps in the handoff, build order
-on the user's "go" is theme → shell → sign-in → reset → ritual.
+> All Open Questions are RESOLVED. The full resolution history is preserved below.
 
-**OQ-5 — FULLY RESOLVED (page names all confirmed):**
-
-CONFIRMED (2026-06-18, from the user's mockup filenames — bake these into TASK-081):
-
-- **`/app/profile/[handle]`** (profile) → **The Shrine**
-- **`/app/messages`** (DM inbox) → **Epistles**
-- **`/app/messages/[handle]`** (DM thread) → **Whispers**
-- **`/sign-in`** heading → **Enter the Snacktum** (from the Log In design)
-- **`/app` home/hub** → **N/A** — retired/absorbed (redirects to The Procession; see
-  § Default landing route + TASK-080), so no display name is needed.
-
-RESOLVED 2026-06-19 (the last remaining OQ-5 item — user's choice):
-
-- **`/app/dogs/[id]`** (dog detail) → **The Relic**.
-
-With "The Relic" decided, **every user-facing page name is confirmed and OQ-5 is
-fully resolved.** TASK-081 applies "The Relic" verbatim to the `/app/dogs/[id]`
-`<title>` / heading / nav label (URL path + code identifiers UNCHANGED — skin, not
-skeleton). The Page Naming Map above is updated to carry it.
-
-**OQ-2 — FULLY RESOLVED (2026-06-19) — bake into TASK-086:**
-
-- **OQ-2a → keep gated.** Only the reigning champion ("The Anointed Wiener" /
-  `is_current_top_dog`) may Anoint — the decision #25 `WITH CHECK` authorization on
-  the non-client-writable crown column is **unchanged**.
-- **OQ-2b → no re-mechanic, no merge with reactions.** Anoint stays the **existing
-  mustard spray**, re-copied as "anointing." The emoji reactions surface is
-  **untouched** (no replace, no merge).
-- **OQ-2c → splat visual.** Reuse the splat animation in
-  `design/pages/The Shrine.dc.html` (replacing the old "drip" framing).
-- **OQ-2d → decays, but over 6h (not 24h).** The overlay still fades at render via
-  `mustardOpacity` (decision #15), but the lifespan shortens from ~24h → **~6h** — a
-  render-time constant change to `MUSTARD_LIFESPAN_MS` in
-  `src/lib/features/mustard/decay.ts` (+ its co-located tests). The Catechism
-  (`/app/help`) "~24h" mustard copy must update to **~6h** when TASK-081/086 run.
-  **No migration for the decay change itself** (the DB still stores only the raw
-  `sprayed_at`; the decayed splat is computed at render).
-- **OQ-2e → wall message with a 24h ROLLING STACK; persists.** The anoint → wall
-  notice is a message on the **anointed member's wall** attributing it to The Anointed
-  Wiener. Coalescing is a **rolling 24h window that RESETS at each anointing**: an
-  anoint within 24h of the previous one **increments the existing message's ×N count
-  and resets the 24h window**; a **>24h** gap ends that burst and starts a **fresh**
-  message. The wall notice **PERSISTS** as a lasting record — **only the visual
-  overlay decays** (~6h, per OQ-2d).
-
-> **‼️ IMPLEMENTATION DIRECTION (TASK-086) = Option A (user-approved 2026-06-19).**
-> Because the wall notice PERSISTS and is render-derived from `mustard_sprays` rows,
-> those rows must SURVIVE — so the daily **`prune_mustard_sprays()` job is retired**.
-> Consequences for TASK-086 (re-scoped below): it **WILL carry one migration**
-> (retire/neuter `prune_mustard_sprays`) **+** a keep-alive workflow edit (drop the
-> prune step) **+** a **likely new architecture-decision row #29** (mustard_sprays
-> retention: rows permanent; overlay decays at render ~6h; wall-notice render-derived,
-> coalesced, permanent). This **changes M8's posture: it is no longer strictly "no
-> migration."** Batch TASK-086's hosted push onto the standing M7 hosted-push gate.
-> **Decision #29 is recorded here as a PLAN only** — it becomes a real [[PROJECT]]
-> decision-table row when TASK-086 is implemented; the table stays at #28 until then.
+- **OQ-1 — RESOLVED → a multi-step rite that ABSORBS onboarding, AT `/sign-up`** (Option
+  B-with-absorb). Summoned (invite token) → Inscribe Thy Name (`@handle` + email +
+  password) → Choose Thy Sigil (avatar) → Renounce the Patty (pure-UX oath, no data
+  persisted) → Received. **The rite IS the `/sign-up` route; the standalone
+  `/app/onboarding` route is REMOVED/absorbed** (no `/snacktum-snacktorum/onboarding` or
+  `/initiation` leaf). The profile-funnel guard now targets `/sign-up` and the rite is
+  resumable (an authenticated-profile-less member resumes at the naming/sigil step).
+  Invite-redemption mechanics (#17/#22/#23) + handle validation unchanged. No migration.
+  → **TASK-092.**
+- **Avatar — RESOLVED → pick 1 of 5 built-in SVG sigils** (cowled / haloed / shadowed /
+  tube / candle), stored as a sigil id **reusing `avatar_path`** — NO migration, NO
+  storage upload. User-uploaded avatars deferred. → **TASK-092.**
+- **OQ-2 — RESOLVED (all five):** (a) keep Anoint gated; (b) re-theme the mustard spray,
+  no merge with reactions; (c) **splat** visual; (d) decays over **~6h** (constant change,
+  no migration); (e) anoint → wall notice = **24h rolling stack, persists** (render-derived
+  from `mustard_sprays`). **Option A (user-approved): retire `prune_mustard_sprays()`** so
+  the persisting notice's rows survive → **TASK-094 carries one migration + a keep-alive
+  workflow edit + a likely decision #29** (recorded as a plan; the table stays #28 until
+  implemented). → **TASK-094.**
+- **OQ-3 — RESOLVED → the "dark temple" aesthetic** (bg `#17120e` + radial gold glow,
+  parchment `#f3e9d2`, accent Mustard Gold `#E0A82E`; themeable Relic Crimson / Verdigris).
+  → implemented in **TASK-087** (done); the rebuilds consume its tokens.
+- **OQ-4 — RESOLVED → Cinzel + Cormorant Garamond, self-hosted woff2** (SIL OFL assets,
+  not a package — no dependency gate). → **TASK-087** (done).
+- **OQ-5 — RESOLVED → all page names confirmed** (see § Page Naming Map); the dog-detail
+  page is **The Relic**.
+- **Reset flow — RESOLVED → 6-digit OTP code recovery** (not magic-link). → **TASK-083**
+  (done).
+- **Re-scope (2026-06-19) — DECIDED by the user:** rebuild each remaining page from its
+  mockup; re-slug the in-app prefix `app` → `snacktum-snacktorum` + each leaf (§ Slug Map).
+  **The four auth slugs are KEPT descriptive** (`/sign-in`, `/sign-up`, `/forgot-password`,
+  `/reset-password` — the gate pages are NOT re-slugged); the onboarding rite lives at
+  `/sign-up` (no standalone onboarding leaf). No old→new redirects (pre-launch). Recorded
+  as a **scope decision** (deviation from the original "URL paths UNCHANGED" note) — not a
+  numbered architecture-decision row.
 
 ---
 
 ## Possible Dependencies (PROPOSED — none added; do not assume)
 
-No new dependency is expected for this milestone — it is a copy/markup/CSS pass on
-the existing SvelteKit + Supabase stack. The **only** candidate, contingent on the
-designs:
-
-- **A custom display/ceremonial web font** (OQ-4). If the designs require one, the
-  **lowest-cost option is self-hosting a single `.woff2`** (an asset, **not** a
-  package — no dependency gate triggered) or using a **system-font stack** (zero
-  cost). A **font npm package** (e.g. a Fontsource family) would be a real dev/runtime
-  dependency and **must go through the dependency gate** ([[dependencies]]) with the
-  alternatives-considered analysis (self-host the file vs. package vs. system stack)
-  **before** anyone adds it. **Decision deferred to the designs; nothing is added
-  now.**
-
-Everything else (sign-in, password reset, ritual sign-up, profile redesign, error
-page, theme) is buildable with **no new dependency**.
+No new dependency is expected — this is a markup/CSS/route-rename pass on the existing
+SvelteKit + Supabase stack, rebuilding from mockups with the already-self-hosted fonts
+(TASK-087). The only historical candidate (a font package, OQ-4) was **resolved to
+self-hosted woff2** — **no dependency added**. Everything in the re-scope is buildable with
+**no new dependency**.
 
 ---
 
 ## Dependencies & Sequencing
 
-**The whole milestone gates on `DESIGNS` (final page designs).** Nothing starts
-until the user delivers them and activates the milestone. Once unblocked, a sensible
-internal order (most design-independent first, most design-dependent last):
+**Re-scoped order.** The foundational slug refactor lands first (or its prefix piece does),
+then the per-page rebuilds. The completed gate/shell/theme tasks are already in.
 
 ```
-DESIGNS (the gate) ──▶ resolve Open Questions (OQ-1..OQ-5) ──▶ flip tasks blocked→pending
-                                   │
-   design-light (can lead) ───────┤
-     TASK-080  app shell + nav     │   ← structure design-independent; labels/style wait
-     TASK-082  /sign-in form+action│   ← logic+tests design-independent
-     TASK-083  forgot/reset password│  ← logic design-independent (one doc check)
-                                   │
-   design-dependent (follow) ──────┤
-     TASK-081  brand & lore copy    │   ← needs final voice; threads through the shell + pages
-     TASK-087  base cult theme      │   ← IS the designs in CSS; styles everything above
-     TASK-085  profile redesign     │   ← needs profile design; composes the most features
-     TASK-084  ritual sign-up       │   ← size set by OQ-1; sits on the invite/auth critical path
-     TASK-086  Anoint re-theme      │   ← gated by OQ-2; default = pure re-skin
-     TASK-088  error / 404 page     │   ← small; needs copy + theme
-     TASK-089  badge reliquary      │   ← derived/read-only; pure module buildable first, shelf needs the mock; soft-pairs with TASK-085 (same profile page)
+TASK-090  foundational slug refactor (app → snacktum-snacktorum PREFIX + every /app/ ref; auth slugs KEPT)
+            ← RISKY cross-cutting refactor; checkpoint tag at execution; lands FIRST
+   │
+   ├─ @smoke-critical rebuilds (the slice crosses these — keep @smoke green):
+   │    TASK-092  Snacktum Onboarding rite   (slice START: invite → profile; B-absorb funnel)
+   │    TASK-091  The Procession (feed)       (slice leaderboard; vote path)
+   │    TASK-095  Your Litter (gallery+upload)(slice upload → see dog)
+   │    TASK-093  The Shrine (profile)        (slice profile → wall; composes 094 + 094-R)
+   │
+   ├─ feature-entangled rebuilds (sequence after / coordinate with the Shrine):
+   │    TASK-094    "Anoint" re-theme         (THE migration; composes into the Shrine page)
+   │    TASK-094-R  The Reliquary             (pure module buildable FIRST/parallel; shelf on the Shrine)
+   │    TASK-096    The Relic (dog detail)    (decision #27 signed URL; shares the `litter` leaf)
+   │
+   └─ remaining page rebuilds (independent files — parallelizable across distinct pages):
+        TASK-097  Epistles + Whispers (DMs)
+        TASK-098  Summon a Frank (invite)
+        TASK-099  The Tribunal (court)        (double-gate + anonymity — @security)
+        TASK-100  The Catechism (help)        (accuracy-checked; ~24h→~6h tracks TASK-094)
+        TASK-101  The Lost Pilgrim (error/404)(design-light; near-direct port)
 ```
 
-- **Lead with the `design-light` trio** (TASK-080 shell, TASK-082 sign-in,
-  TASK-083 password reset) — these can be built (or at least skeletoned) with the
-  least dependence on the visual designs, and they close real functional gaps
-  (dead-end nav, the non-functional sign-in stub, no password recovery).
-- **TASK-081 (copy)** and **TASK-087 (theme)** are cross-cutting — they touch every
-  page. Land the shell + page structure first so there is somewhere for copy and
-  styles to live; sequence the copy pass and the theme pass to avoid two agents
-  editing the same `+page.svelte` simultaneously (see the parallel-collision note).
-- **TASK-085 (profile)**, **TASK-084 (ritual)**, **TASK-086 (Anoint)** are the most
-  feature-entangled and design-dependent — do them once the theme + copy foundations
-  are set.
+- **TASK-090 lands first** so every rebuild builds on the final base paths and each rebuild
+  then touches exactly its own page's directory (the leaf-renames fold into the rebuilds).
+- **@smoke-critical pages** (onboarding, feed, litter, shrine) — the slice
+  (invite → profile → upload → see dog) crosses all four. **Any path/flow/copy change the
+  smoke test walks MUST update `tests/smoke.e2e.ts` in lockstep** (and TASK-082 added a
+  sign-in `@smoke` path — TASK-090 re-points it).
+- **TASK-094 / TASK-094-R compose into TASK-093's Shrine page** (all three touch the Shrine
+  `+page.svelte` + its load). TASK-094-R's **pure module** is a separate file (buildable
+  first / in parallel); only its profile-load wiring + shelf component collide with
+  TASK-093. **TASK-096 (Relic) shares the `litter` leaf parent with TASK-095** — coordinate
+  the leaf rename so it's atomic.
 
-**Parallel-dispatch collision warning ([[workflow]] § Parallelism):** TASK-081
-(copy), TASK-085 (profile), TASK-086 (Anoint), TASK-087 (theme), and **TASK-089
-(badge reliquary)** **all edit overlapping `+page.svelte` / component files**
-(especially the profile page + its `+page.server.ts`, which TASK-081/085/086/089 all
-touch — TASK-089 adds the reliquary shelf + its input queries to the same load
-TASK-085 redesigns). These **cannot run in parallel on the same files** — sequence
-them, or split a page's copy vs. layout vs. style vs. badge-shelf into separate prereq
-edits. **TASK-089's pure module (`src/lib/features/badges/`) + its tests are a
-separate file with no overlap** and can be built in parallel with anything; only its
-profile-load wiring + shelf component collide with TASK-085. The director must build
-the file-scope matrix before any parallel batch and fail-closed on every overlap.
+**Parallel-dispatch collision warning ([[workflow]] § Parallelism):** the Shrine cluster
+(TASK-093 + TASK-094 + TASK-094-R) all edit the profile `+page.svelte` / `+page.server.ts`
+— **sequence them** (or split copy vs layout vs Anoint-surface vs badge-shelf as separate
+prereq edits). The Litter + Relic pair shares the `litter` parent. **Distinct pages with
+no shared files (e.g. Epistles vs Summon vs Tribunal vs Catechism vs Lost Pilgrim) can run
+in parallel** once TASK-090 has landed the base paths. The director builds the file-scope
+matrix before any parallel batch and fails-closed on every overlap.
 
-**Keep the M1 `@smoke` vertical slice GREEN throughout.** The slice (invite →
-profile → upload → see dog) crosses sign-up/onboarding (TASK-084), the app shell
-(TASK-080), and the profile page (TASK-085). **Any** auth/flow/nav/copy change that
-the smoke test walks **must update the smoke test in lockstep** — a redesign that
-silently breaks the smoke flow is a milestone regression. TASK-082 additionally
-**adds** a new `@smoke` sign-in path.
+**Keep the M1 `@smoke` vertical slice GREEN throughout.** TASK-090 re-points every path the
+slice walks; the four @smoke-critical rebuilds change the copy/markup it asserts — update
+the smoke test in lockstep at each. A redesign that silently breaks the slice is a
+milestone regression.
 
 ---
 
 ## Standing ops note (context only — NOT a task in this milestone)
 
-Unrelated to M8 but recorded for anyone who touches **hosted** during this work:
-the **two M7 migrations still await a hosted `supabase db push`** —
-`20260617205453_burger_alarms.sql` (TASK-071) and `20260618120000_burger_verdicts.sql`
-(TASK-073). No auto-pause risk (no scheduled job touches those tables; the daily
-keep-alive `ping` still reads `profiles`), but the report→verdict flow is
-non-functional on hosted until they're pushed (user's hand).
+For anyone who touches **hosted** during this work — three items batch onto one hosted
+bring-up step (per the per-milestone hosted-push discipline, [[PROJECT]] Process notes):
 
-> **‼️ UPDATE (2026-06-19) — M8 now DOES add a migration.** OQ-2's Option A
-> (user-approved) means **TASK-086 retires `prune_mustard_sprays()`**, so it carries
-> **one migration** (prune retirement) **+** a keep-alive workflow edit dropping the
-> daily prune step. **Batch TASK-086's hosted push with the two M7 migrations above**
-> (one `supabase db push`), and drop the prune step from
-> `.github/workflows/keepalive.yml` **in lockstep** so the workflow doesn't keep
-> calling a retired/neutered RPC (which would 404 → the hosted-schema-drift failure
-> mode in [[CLAUDE]]). Follow the per-milestone hosted-push discipline ([[PROJECT]]
-> Process notes). No other M8 task adds a migration.
-
-> **‼️ ALSO (2026-06-19) — TASK-083 adds a hosted CONFIG item to this same gate (no
-> migration).** The password-recovery flow ships a code-emitting recovery email
-> template (`supabase/templates/recovery.html` + `[auth.email.template.recovery]` /
-> `otp_length = 6` in `config.toml`). **Hosted production must carry the same template**
-> — set the recovery email to the `{{ .Token }}` (code-only) template via the Supabase
-> dashboard **or** `supabase config push`, **or production will send a recovery LINK
-> instead of a CODE**, breaking the `/reset-password` code-entry page. Batch this with
-> the M7 burger migrations + the TASK-086 prune migration as one hosted bring-up step.
+1. **Two M7 migrations** await a hosted `supabase db push` —
+   `20260617205453_burger_alarms.sql` (TASK-071) and
+   `20260618120000_burger_verdicts.sql` (TASK-073). No auto-pause risk; the report→verdict
+   flow is non-functional on hosted until pushed (user's hand).
+2. **TASK-094's prune-retirement migration** (M8) — batch its hosted push with the two
+   above, and drop the keep-alive prune step from `.github/workflows/keepalive.yml` **in
+   lockstep** so the workflow never calls a retired RPC (which would 404 → the
+   hosted-schema-drift failure mode in [[CLAUDE]]).
+3. **TASK-083's hosted CONFIG item** (no migration) — the hosted recovery email template
+   must be the code-emitting `{{ .Token }}` template (dashboard or `supabase config push`)
+   or production sends a recovery LINK instead of a CODE, breaking the reset page (at
+   `/reset-password` — slug unchanged).
 
 ---
 
-> **No caps.** Acceptance criteria, subtasks, and integration points are
-> unbounded. Give each task as much specificity as it needs to be completed to
-> spec — never trim detail to hit a count. These tasks are **`blocked` pending
-> final page designs**; do not dispatch until the user activates after delivering
-> them.
+> **No caps.** Acceptance criteria, subtasks, and integration points are unbounded. Give
+> each task as much specificity as it needs to be completed to spec — never trim detail to
+> hit a count. These tasks are `pending` (designs delivered, milestone active); **dispatch
+> only on explicit user instruction**, in the § Dependencies & Sequencing order.

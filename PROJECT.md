@@ -2,8 +2,39 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING** (activated 2026-06-19; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in complete, 4/10 — auth is now functional end-to-end)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in complete, 4/16 — auth is functional end-to-end; the remaining work is a foundational slug refactor + per-page rebuilds from the delivered mockups)
 **Last Updated:** 2026-06-19
+
+> **‼️ M8 RE-SCOPE (2026-06-19, user-directed) — rebuild-from-design + re-slug.** The
+> remaining M8 pages are now **REBUILT FROM their design mockups** (`design/pages/*.dc.html`
+> — a per-page presentational rebuild of `+page.svelte`, not an incremental restyle) **and
+> the IN-APP routes are RE-SLUGGED to cult names** (the `app` URL segment → `snacktum-snacktorum`;
+> each `/app/*` leaf → a cult slug, e.g. feed→`procession`, dogs→`litter`(+`litter/[id]`),
+> profile/[handle]→`shrine/[handle]`, messages→`epistles`(+`epistles/[handle]`),
+> invite→`summon`, court→`tribunal`, help→`catechism`). **The four auth slugs are KEPT
+> descriptive (user-finalized): `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`
+> — the three complete gate pages are NOT re-slugged**, and the **onboarding rite lives at
+> `/sign-up`** (the standalone `/app/onboarding` route is removed/absorbed — no
+> `/snacktum-snacktorum/onboarding` leaf). This is a **deviation from the original "URL paths
+> UNCHANGED" plan** — in-app URLs now DO change — recorded as a **scope decision, NOT a numbered
+> architecture-decision row** (the table stays at **#28**; the only planned new row remains
+> TASK-094's #29 prune retirement). It stays **skin-not-skeleton at the code level:** each
+> rebuild **preserves its `+page.server.ts` (load + actions)** and re-wires all data/feature
+> plumbing (RLS-scoped queries, the decision-#27 server-side signed-URL handling, votes /
+> reactions / walls / DMs / mustard(Anoint) / crown / badge / report+verdict wiring); **no
+> table/RPC/TS-symbol rename, no infra rename, decisions #1–#28 + L2 preserved.** The task
+> set is re-numbered: **4 complete** (TASK-087/080/083/082) **+ 12 pending** — TASK-090
+> (foundational slug refactor, lands first; a RISKY cross-cutting rename that must update the
+> `hooks.server.ts` auth-guard **prefix** `/app` → `/snacktum-snacktorum`, the root redirect,
+> the shell links, and the E2E+unit `/app/...` path assertions — checkpoint tag at execution.
+> **The `/sign-in` redirect targets are KEPT and the recovery email template is unchanged**;
+> the profile-funnel guard retargets to the `/sign-up` rite) then per-page rebuilds
+> TASK-091/092/093/094/094-R/095/096/097/098/099/100/101. The old pending tasks
+> TASK-081/084/085/086/088/089 are **superseded/folded** (081 copy → carried by the rebuilds;
+> 084→092 onboarding rite, 085→093 Shrine, 086→094 Anoint, 088→101 error page, 089→094-R
+> Reliquary). **Pre-launch (invite-only, not deployed) → no old→new redirects.** The slug map
+> is **FINALIZED by the user** (auth slugs unchanged; in-app prefix → `snacktum-snacktorum`;
+> onboarding rite at `/sign-up`). See [[tasks/milestone-08-snacktum-snacktorum-rebrand]] § Slug Map.
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
 cast a single movable vote for the best hot dog (not their own), and compete for

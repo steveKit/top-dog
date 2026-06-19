@@ -118,6 +118,7 @@ top-dog/
 │   │   ├── styles/            # tokens.css — CSS-custom-property theme layer (M8)
 │   │   └── components/        # shared Svelte components
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
+│       └── (protected)/app/+layout.svelte  # persistent app shell + nav (M8 TASK-080)
 ├── static/
 │   └── fonts/                 # self-hosted SIL OFL .woff2 (Cinzel, Cormorant) + OFL licenses
 ├── tests/                     # Playwright E2E
@@ -456,4 +457,19 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
     user** — re-seed, or run `pnpm test:e2e --grep @smoke` (it mints
     `smoke-inviter@topdog.test`). Password-recovery (reset) emails land in **Mailpit\*\*
     (`http://localhost:54324`).
-    Use [[wikilinks]] when cross-referencing project docs.
+- **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080).**
+  `(protected)/app/+layout.svelte` renders the persistent header/nav across every
+  `/app` route (🌭 home → The Procession `/app/feed`; feed / Your Litter / Epistles /
+  The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on the server-derived
+  `is_current_top_dog` crown flag**, decision #25). It reads `{ user, profile }` from
+  `(protected)/app/+layout.server.ts` — **don't add a second crown query** for nav. The
+  bare `/app` "kennel" hub is **retired** (`redirect(307, '/app/feed')`) and `/`
+  redirects to `/app/feed` (`src/routes/+page.server.ts`); there is **no inline
+  `.app-nav`** anymore (the old hub nav + its CSS were removed). New `/app` pages
+  inherit the shell automatically — do not re-add a page-level nav.
+- **`TopDogPrivilegesNotice` was RETIRED (M8 TASK-080).** The TASK-074 crown-holder
+  nudge component, its `topDogPrivilegesNotice.ts` helper, and its tests were deleted
+  when the `/app` hub it rendered on was retired — Top Dog powers are documented in **The
+  Catechism** (`/app/help`) and the crown-gated Tribunal nav link covers adjudication.
+  Don't reference or re-introduce it.
+  Use [[wikilinks]] when cross-referencing project docs.

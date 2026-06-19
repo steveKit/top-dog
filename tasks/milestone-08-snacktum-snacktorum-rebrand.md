@@ -1,6 +1,6 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme foundation) **complete** — 1/10. Next: TASK-080 (app shell + nav).
+> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme) + TASK-080 (app shell) **complete** — 2/10. Next: the auth cluster (TASK-082 sign-in / TASK-083 reset) or TASK-081 (copy). **OQ-2 + OQ-5 now FULLY RESOLVED (2026-06-19); dog-detail page = "The Relic"; TASK-086 adopts Option A — it WILL carry one migration (retire `prune_mustard_sprays`) + a likely decision #29.**
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum", and
 > redesign the user-facing surface — a global app shell + nav, the auth cluster
@@ -55,8 +55,9 @@ task can drift:
     `top_dog_days`, `invites`, `profiles`, etc.
   - functions/RPCs: `recompute_top_dog`, `tally_top_dog_day`, `cast_vote`,
     `render_burger_verdict`, `prune_mustard_sprays`, etc.
-  - TS symbols & components: `selectTopDog`, `TopDogBadge`, `TopDogPrivilegesNotice`,
-    `mustardOpacity`, `summarizeBurgerAlarm`, etc.
+  - TS symbols & components: `selectTopDog`, `TopDogBadge`, `mustardOpacity`,
+    `summarizeBurgerAlarm`, etc. (Note: `TopDogPrivilegesNotice` was **retired** in
+    TASK-080 — see Completed Tasks — so it is no longer a symbol to preserve.)
 - **Architecture & security posture:** preserve **every** locked decision #1–#28
   and the **L2** security profile. No new architecture-decision row is expected
   (this is a skin/UX pass); if one genuinely surfaces, record it per the normal gate.
@@ -68,8 +69,10 @@ error/404, app-shell nav), and **rendered labels** that today read "Top Dog".
 
 > **Champion-title swap is COPY ONLY.** "Top Dog" the _displayed title_ becomes
 > **"The Anointed Wiener"** wherever a user reads it — badge label, "Days as Top
-> Dog" stat, the Top-Dog-privileges notice, the Court's "Top Dog is the
-> adjudicator" tape, feed/leaderboard, help page. The _code_ keeps
+> Dog" stat, the Court's "Top Dog is the
+> adjudicator" tape, feed/leaderboard, help page. (The Top-Dog-privileges notice was
+> **retired in TASK-080** — Top Dog powers are now documented in The Catechism — so it
+> is no longer a copy target.) The _code_ keeps
 > `is_current_top_dog` / `TopDogBadge` / `selectTopDog` / `days_as_top_dog`
 > untouched. A task that renames a code symbol to match the new title has
 > **violated scope.**
@@ -120,26 +123,27 @@ error/404, app-shell nav), and **rendered labels** that today read "Top Dog".
 For grounding — the current user-facing routes (≈14 pages) the copy/theme/redesign
 pass must cover (all under `src/routes`). The **Cult name** column carries the
 CONFIRMED themed display names where the user has decided one; see the
-**Page Naming Map** below for the full mapping + rationale, and **OQ-5** for the
-one page name still TBD (dog detail; the other OQ-5 pages are now resolved).
+**Page Naming Map** below for the full mapping + rationale. **OQ-5 is now fully
+resolved** — every user-facing page name is confirmed (the dog-detail page is
+**The Relic**).
 
-| Route                            | File(s)                                               | Cult name                                                   | Touched by                                        |
-| -------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
-| `/sign-up`                       | `sign-up/+page.svelte` (+ `+page.server.ts`)          | **Take the Casing**                                         | copy, ritual sign-up, theme                       |
-| `/sign-in`                       | `sign-in/+page.svelte` (**stub — no action**)         | **Enter the Snacktum** (heading)                            | **build the form/action**, copy, theme            |
-| `/forgot-password`               | **does not exist**                                    | _(new — name w/ designs)_                                   | **new**                                           |
-| `/reset-password`                | **does not exist**                                    | _(new — name w/ designs)_                                   | **new**                                           |
-| `/app` (home / "kennel")         | `(protected)/app/+page.svelte`                        | **N/A** — retired/absorbed by the shell (redirects to feed) | copy, app-shell, theme                            |
-| `/app` shell                     | `(protected)/app/+layout.svelte` (**does not exist**) | _(chrome, not a page)_                                      | **new app-shell + nav**                           |
-| `/app/onboarding`                | `(protected)/app/onboarding/+page.svelte`             | **Choose Your Frank Name**                                  | ritual sign-up (may absorb), copy, theme          |
-| `/app/feed`                      | `(protected)/app/feed/+page.svelte`                   | **The Procession: Standings of the Blessed**                | copy (title swap), theme                          |
-| `/app/dogs` (+ `/app/dogs/[id]`) | `(protected)/app/dogs/...`                            | **Your Litter** (`/app/dogs`); `[id]` _TBD (OQ-5)_          | copy, theme                                       |
-| `/app/profile/[handle]`          | `(protected)/app/profile/[handle]/+page.svelte`       | **The Shrine**                                              | **profile redesign**, display-name, Anoint, theme |
-| `/app/messages` (+ `/[handle]`)  | `(protected)/app/messages/...`                        | **Epistles** (inbox) / **Whispers** (thread)                | copy, theme                                       |
-| `/app/invite`                    | `(protected)/app/invite/+page.svelte`                 | **Summon a Frank**                                          | copy, theme                                       |
-| `/app/court`                     | `(protected)/app/court/+page.svelte`                  | **The Tribunal of the Holy Tube**                           | copy (title swap), theme                          |
-| `/app/help`                      | `(protected)/app/help/+page.svelte`                   | **The Catechism**                                           | copy (title swap + lore), theme                   |
-| error / 404                      | `+error.svelte` (**does not exist**)                  | _(new — name w/ designs)_                                   | **new**                                           |
+| Route                            | File(s)                                               | Cult name                                                       | Touched by                                        |
+| -------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
+| `/sign-up`                       | `sign-up/+page.svelte` (+ `+page.server.ts`)          | **Take the Casing**                                             | copy, ritual sign-up, theme                       |
+| `/sign-in`                       | `sign-in/+page.svelte` (**stub — no action**)         | **Enter the Snacktum** (heading)                                | **build the form/action**, copy, theme            |
+| `/forgot-password`               | **does not exist**                                    | _(new — name w/ designs)_                                       | **new**                                           |
+| `/reset-password`                | **does not exist**                                    | _(new — name w/ designs)_                                       | **new**                                           |
+| `/app` (home / "kennel")         | `(protected)/app/+page.svelte`                        | **N/A** — retired/absorbed by the shell (redirects to feed)     | copy, app-shell, theme                            |
+| `/app` shell                     | `(protected)/app/+layout.svelte` (**does not exist**) | _(chrome, not a page)_                                          | **new app-shell + nav**                           |
+| `/app/onboarding`                | `(protected)/app/onboarding/+page.svelte`             | **Choose Your Frank Name**                                      | ritual sign-up (may absorb), copy, theme          |
+| `/app/feed`                      | `(protected)/app/feed/+page.svelte`                   | **The Procession: Standings of the Blessed**                    | copy (title swap), theme                          |
+| `/app/dogs` (+ `/app/dogs/[id]`) | `(protected)/app/dogs/...`                            | **Your Litter** (`/app/dogs`); **The Relic** (`/app/dogs/[id]`) | copy, theme                                       |
+| `/app/profile/[handle]`          | `(protected)/app/profile/[handle]/+page.svelte`       | **The Shrine**                                                  | **profile redesign**, display-name, Anoint, theme |
+| `/app/messages` (+ `/[handle]`)  | `(protected)/app/messages/...`                        | **Epistles** (inbox) / **Whispers** (thread)                    | copy, theme                                       |
+| `/app/invite`                    | `(protected)/app/invite/+page.svelte`                 | **Summon a Frank**                                              | copy, theme                                       |
+| `/app/court`                     | `(protected)/app/court/+page.svelte`                  | **The Tribunal of the Holy Tube**                               | copy (title swap), theme                          |
+| `/app/help`                      | `(protected)/app/help/+page.svelte`                   | **The Catechism**                                               | copy (title swap + lore), theme                   |
+| error / 404                      | `+error.svelte` (**does not exist**)                  | _(new — name w/ designs)_                                       | **new**                                           |
 
 > **`/` redirect:** `/` currently redirects to `/app` (post-M7 scaffold cleanup,
 > PR #89). **M8 repoints it to `/app/feed`** — see the **Default landing route**
@@ -167,6 +171,7 @@ already-decided routes.
 | `/sign-in`               | **Enter the Snacktum** (page heading)        |
 | `/app/onboarding`        | **Choose Your Frank Name**                   |
 | `/app/dogs`              | **Your Litter**                              |
+| `/app/dogs/[id]`         | **The Relic**                                |
 | `/app/feed`              | **The Procession: Standings of the Blessed** |
 | `/app/profile/[handle]`  | **The Shrine**                               |
 | `/app/messages`          | **Epistles**                                 |
@@ -175,13 +180,13 @@ already-decided routes.
 | `/app/invite`            | **Summon a Frank**                           |
 | `/app/help`              | **The Catechism**                            |
 
-> **OQ-5 is now mostly resolved** (2026-06-18, from the user's mockup filenames):
-> `/sign-in` → **Enter the Snacktum**, `/app/profile/[handle]` → **The Shrine**,
-> `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers** are all
-> CONFIRMED above. The `/app` home/hub is **retired/absorbed** (redirects to The
-> Procession — see § Default landing route), so it needs no display name. **Only the
-> dog-detail page (`/app/dogs/[id]`) name remains OPEN** under **OQ-5** — resolve it
-> with the user before TASK-081 finalizes that page's copy.
+> **OQ-5 is now FULLY RESOLVED** (2026-06-18 / 2026-06-19, from the user's mockup
+> filenames + the final dog-detail choice): `/sign-in` → **Enter the Snacktum**,
+> `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**,
+> `/app/messages/[handle]` → **Whispers**, and **`/app/dogs/[id]` → "The Relic"** are
+> all CONFIRMED above. The `/app` home/hub is **retired/absorbed** (redirects to The
+> Procession — see § Default landing route), so it needs no display name. **Every
+> user-facing page name is now confirmed** — TASK-081 applies them verbatim.
 
 ### Confirmed cult copy beyond page names (verdict / brand labels)
 
@@ -213,98 +218,6 @@ verbatim — like the page names above, they are decided, not open:
 > pre-design estimates and may move once designs land. Do **not** dispatch until
 > the user activates after delivering designs.
 
-### TASK-080: Global app shell + persistent navigation [`in_progress`] [`P1`] [`M`] (`design-light`)
-
-**Owner:** unassigned
-**Dependencies:** `DESIGNS` (nav layout / branding); pairs with the existing
-`(protected)/app/+layout.server.ts` (which already surfaces `{ user, profile }`).
-**Blocks:** TASK-081 (brand/lore copy lands partly in the shell), TASK-087 (theme
-styles the shell). Soft-sequence: land the shell skeleton **before** the copy +
-theme passes so they have a home.
-
-**Problem:** today the app navigation lives **only** on the `/app` home page
-(`(protected)/app/+page.svelte` — a single `<nav class="app-nav">`). Every
-sub-page (`/app/feed`, `/app/dogs`, `/app/profile/[handle]`, `/app/messages`,
-`/app/court`, `/app/help`, `/app/invite`) is a **dead end** — no way back home, no
-cross-navigation, no upload affordance. Users must use the browser back button.
-
-**Also folds in the CONFIRMED default-route decision** (see § Default landing
-route): with the global shell holding the nav AND **The Procession (`/app/feed`)**
-as the new home, the bare `/app` "kennel" hub's only remaining job (holding the
-nav links) is superseded by the shell. So this task ALSO (a) **repoints the `/`
-redirect `/app` → `/app/feed`** and (b) **retires/absorbs the `/app` hub**.
-
-**Acceptance Criteria:**
-
-- [ ] A new **`(protected)/app/+layout.svelte`** renders a **persistent
-      header/nav across all `/app` routes** (it wraps every nested page). It reads
-      `{ user, profile }` from the existing `+layout.server.ts` load (do not add a
-      second crown query — reuse the surfaced `profile`).
-- [ ] The **🌭 is a real home button** that lands on **The Procession** (the new
-      home) — today the emoji is decorative. Target the home route via the project
-      `resolve(...)` path-alias idiom; since `/app` redirects to `/app/feed` (below),
-      linking either `/app` or `/app/feed` lands on The Procession — prefer pointing
-      directly at `/app/feed` (`resolve('/(protected)/app/feed')`) to skip the
-      redirect hop.
-- [ ] Nav links to the core surfaces — **The feed**, **Your hot dogs** (gallery),
-      **Messages**, **How it works** (help) — plus a **visible "＋ Upload"
-      affordance** routing to the hot-dog upload (`/app/dogs`). Exact set/order/labels
-      per the designs.
-- [ ] The **🍔 Hamburger Court** link stays gated on the live, server-derived
-      `is_current_top_dog` crown flag (decision #25) — present only for the crown
-      holder, exactly as today. **Do not** widen who sees it.
-- [ ] The **home page's own inline `<nav class="app-nav">` is removed** (or reduced
-      to non-duplicated home content) once the shell nav exists — no double nav.
-- [ ] **The `/` redirect repoints to The Procession** — change
-      `src/routes/+page.server.ts` from `redirect(307, '/app')` to
-      `redirect(307, '/app/feed')` (one-line). A signed-in member hitting `/` lands on
-      **The Procession (`/app/feed`)**, the new home. The auth cascade still applies
-      (the `(protected)/app` layout guard funnels unauth → `/sign-in`, profile-less →
-      `/app/onboarding` before the feed renders) — **do not** touch that guard.
-- [ ] **The bare `/app` "kennel" hub is retired/absorbed.** With the shell holding
-      the nav and The Procession as home, `/app`'s sole job (holding nav links) is
-      gone. **Recommended:** retire `/app` → **redirect to `/app/feed`** (replace the
-      hub's `+page.svelte` body / add a `+page.server.ts` `redirect(307,'/app/feed')`)
-      so the route still resolves but lands on the home feed. _(Repurposing `/app`
-      as a designed landing surface is the alternative — small call; **flag to the
-      director as a mini open question if the designs imply a distinct hub page**,
-      otherwise default to the redirect.)_ Either way, the home-button target below
-      stays coherent.
-- [ ] **Labels follow the rebrand** (TASK-081 owns the final strings) — the title
-      swap "Top Dog" → "The Anointed Wiener" applies to any crown-referencing nav
-      label. Code identifiers unchanged (see scope box).
-- [ ] Svelte 5 runes (`$props`), `resolve(...)` for links, no `{@html}`. The shell
-      is presentational + navigation only — **no crown logic in the component** (gate
-      stays driven by the server-derived `profile.is_current_top_dog`, mirroring
-      TASK-074's "gate at the parent" pattern).
-- [ ] Keyboard-accessible nav (semantic `<nav>`, real `<a>` links); responsive
-      (collapses sensibly on narrow screens — works with the existing `app.css`
-      `.app-nav` wrap or its redesigned successor from TASK-087).
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      4/4** (the shell wraps the smoke-flow pages — must not break navigation),
-      `@security` green. No migration.
-
-**Notes (for the implementer):**
-
-- **`design-light`:** the _structure_ (a layout with nav + home button + upload
-  affordance) is design-independent; only the exact labels/branding/placement wait
-  on designs. **The `/` redirect repoint and the `/app` hub retirement are fully
-  design-independent** (a one-line redirect change + a route disposition) — they can
-  ship with the skeleton. If the user unblocks this ahead of the full set, build the
-  skeleton with placeholder copy and let TASK-081/087 finalize text + style.
-- **Files this task touches beyond the new layout:** `src/routes/+page.server.ts`
-  (the `/` redirect target → `/app/feed`) and `(protected)/app/+page.svelte` /
-  `(protected)/app/+page.server.ts` (the hub's retirement/redirect). Still **no
-  `load` change** to `(protected)/app/+layout.server.ts` beyond reusing what it
-  already returns.
-- **Route/user-facing only — no infra or code-identifier change.** Repointing a
-  redirect and retiring a hub page changes neither the `(protected)/app` route group,
-  the layout auth guard, nor any internal name. Stays inside the HARD SCOPE
-  CONSTRAINT.
-- No new dependency; no schema; no new architecture-decision row.
-
----
-
 ### TASK-081: Brand & lore copy pass — app name + "The Anointed Wiener" + cult terminology [`blocked`] [`P1`] [`L`]
 
 **Owner:** unassigned
@@ -330,12 +243,12 @@ no infra names.**
       `/app/feed` → **The Procession: Standings of the Blessed**,
       `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**,
       `/app/messages/[handle]` → **Whispers**, `/app/court` → **The Tribunal of the
-      Holy Tube**, `/app/invite` → **Summon a Frank**, `/app/help` → **The Catechism**.
+      Holy Tube**, `/app/invite` → **Summon a Frank**, `/app/help` → **The Catechism**,
+      and **`/app/dogs/[id]` → "The Relic"** (resolved 2026-06-19 — OQ-5 fully closed).
       The **`/app` home/hub is retired** (redirects to The Procession — no name
-      needed). **Only the dog-detail page (`/app/dogs/[id]`) name remains TBD** under
-      **OQ-5** — do **not** invent a name for it; use the user-decided string once
-      OQ-5 fully resolves. URL paths and code identifiers stay UNCHANGED (skin, not
-      skeleton).
+      needed). **Every page name is now confirmed** — apply "The Relic" verbatim to the
+      dog-detail page; do not invent alternatives. URL paths and code identifiers stay
+      UNCHANGED (skin, not skeleton).
 - [ ] **App name** "Snacktum Snacktorum" replaces "Top Dog" as the product/brand
       name in: page `<title>`s, top-level headings, the sign-in/sign-up copy
       ("Top Dog is invite-only" → cult-framed equivalent), the help page, and any
@@ -346,7 +259,8 @@ no infra names.**
     component name)
   - the **"Days as Top Dog"** stat label → "Days as The Anointed Wiener" (or the
     designed phrasing)
-  - the **Top-Dog-privileges notice** (`TopDogPrivilegesNotice.svelte` copy)
+  - _(the Top-Dog-privileges notice was **retired in TASK-080** — Top Dog powers now
+    live in The Catechism, so it is no longer a copy target)_
   - the Court's **"TOP DOG IS THE ADJUDICATOR"** police-tape label
     (`HamburgerAlarmBanner` / court copy)
   - the **feed/leaderboard** crown references
@@ -364,7 +278,11 @@ no infra names.**
       Re-verify every mechanic-bearing line still matches source
       (`voting/ranking.ts`, `mustard/decay.ts`, `reports/verdict.ts`) exactly as
       TASK-075 did. The vote system stays accurately described (one movable vote, no
-      self-vote, most votes → crown, sticky tie-break, the days tally).
+      self-vote, most votes → crown, sticky tie-break, the days tally). **NOTE
+      (OQ-2d, 2026-06-19):** the mustard/Anoint overlay lifespan changes from ~24h →
+      **~6h** (`MUSTARD_LIFESPAN_MS`) — update the Catechism's "~24h" mustard copy to
+      **~6h** in lockstep with whichever of TASK-081 / TASK-086 lands the constant
+      change, so the help page stays accurate.
 - [ ] **No code identifier renamed; no infra name changed.** Grep check at the end:
       `is_current_top_dog`, `days_as_top_dog`, `selectTopDog`, `TopDogBadge`,
       `recompute_top_dog`, table/RPC names — all still present and unchanged. Only
@@ -686,98 +604,137 @@ current page is the "before."
 ### TASK-086: "Anoint" — mustard re-theme [`blocked`] [`P2`] [`M`]
 
 **Owner:** unassigned
-**Dependencies:** `DESIGNS` + **the resolution of OQ-2 (all five sub-decisions —
-OQ-2a..e)**; TASK-085 (profile redesign hosts the overlay **and the wall** the
-anoint-notice composes into), TASK-081 (copy). Touches the mustard surface:
+**Dependencies:** `DESIGNS` (the splat treatment in `design/pages/The Shrine.dc.html`);
+**OQ-2 is now FULLY RESOLVED (2026-06-19)** — all five sub-decisions are decided (see
+the Scope + AC below); TASK-085 (profile redesign hosts the overlay **and the wall**
+the anoint-notice composes into), TASK-081 (copy). Touches the mustard surface:
 `(protected)/app/profile/[handle]/+page.svelte`, the spray action, the render-time
-`mustardOpacity` overlay, **and the wall render** (where the derived, coalesced
-anoint-notice is composed in alongside `wall_messages` — read-only, no write) —
-**NOT** the `mustard_sprays` table, the `wall_messages` table/immutability, the
-`spray` write path's authorization, or `prune_mustard_sprays`, unless OQ-2 explicitly
-decides a behavior change.
+`mustardOpacity` overlay (+ `MUSTARD_LIFESPAN_MS` constant), **and the wall render**
+(where the derived, coalesced anoint-notice is composed in alongside `wall_messages` —
+read-only, no write). **Under Option A (user-approved) it ALSO touches**
+`prune_mustard_sprays` — the prune job is **retired** (one migration + a keep-alive
+workflow edit) so the persisting wall-notice's source rows survive. It does **NOT**
+change the `mustard_sprays` table shape, the `wall_messages` table/immutability, or the
+`spray` write path's authorization.
 
-**Scope (DEFERRED until OQ-2 is decided):** rename the Top-Dog mustard-spray action
-to **"Anoint"** (the champion bestows a blessing — a "splat" of mustard) in
-user-facing copy, re-theme the visual, **and surface a derived, coalesced
-"anoint → wall notice"** on the anointed member's wall (OQ-2e). **Five sub-decisions
-are OPEN — do NOT guess; resolve with the designs (see OQ-2).** Recommended low-risk
-defaults noted, but the call is the user's:
+**Scope (OQ-2 RESOLVED — build to these decided values):** rename the Top-Dog
+mustard-spray action to **"Anoint"** (the champion bestows a blessing — a "splat" of
+mustard) in user-facing copy, re-theme the visual to a **splat**, shorten the overlay
+decay to **~6h**, **and surface a derived, coalesced "anoint → wall notice"** on the
+anointed member's wall. The five sub-decisions are now all decided (2026-06-19):
 
-- **OQ-2a — who may Anoint:** keep it **Top-Dog / "Anointed Wiener"-gated**
-  _(RECOMMENDED — low-risk, preserves the decision #25 `WITH CHECK` authorization on
-  the non-client-writable crown column)_ vs. democratize to everyone _(higher risk —
-  would remove the privilege gate; re-examine RLS)_.
-- **OQ-2b — relationship to reactions:** does "Anoint" **replace** the emoji
-  reactions, **re-theme the existing mustard spray** _(RECOMMENDED — smallest change,
-  pure re-skin of the existing mechanic)_, or **merge** the two surfaces.
-- **OQ-2c — visual:** **splat** vs **drip** mustard treatment (the current overlay
-  is a drip; "splat" is the new framing) — per the designs.
-- **OQ-2d — decay:** does an anointing still **decay (~24h)** _(RECOMMENDED — keep
-  decision #15's render-time decay, no DB/cron change)_ or become **permanent**
-  _(would change the decay model / prune job)_.
-- **OQ-2e — the derived anoint → wall notice** (the new sub-decision): **RESOLVED**
-  (2026-06-18). Render-time derived from `mustard_sprays`, coalesced into one "×N"
-  notice — no schema/write-path (see the AC below). Both specifics are now decided:
+- **OQ-2a — who may Anoint → KEEP GATED.** Only the reigning champion ("The Anointed
+  Wiener" / `is_current_top_dog`) may Anoint — the decision #25 `WITH CHECK`
+  authorization on the non-client-writable crown column is **unchanged**.
+- **OQ-2b — Anoint vs reactions → NO re-mechanic, NO merge.** Anoint stays the
+  **existing mustard spray**, re-copied as "anointing." The emoji reactions surface is
+  **untouched** (no replace, no merge).
+- **OQ-2c — visual → SPLAT.** Reuse the splat animation in
+  `design/pages/The Shrine.dc.html` (replacing the old drip framing).
+- **OQ-2d — decay → DECAYS, but over ~6h (was ~24h).** The overlay still fades at
+  render via `mustardOpacity` (decision #15), but the lifespan shortens from ~24h →
+  **~6h**: a render-time constant change to `MUSTARD_LIFESPAN_MS` in
+  `src/lib/features/mustard/decay.ts` (+ its co-located tests). The DB still stores
+  only the raw `sprayed_at` timestamp — **no migration for the decay change itself.**
+- **OQ-2e — anoint → wall notice → 24h ROLLING STACK; PERSISTS.** Render-time derived
+  from `mustard_sprays`, coalesced into one "×N" notice on the anointed member's wall.
   **(i) coalescing window — a rolling 24h that RESETS at each anointing:** successive
   anoints collapse into the SAME notice as long as each lands within 24h of the
   previous one (the window slides forward with each anoint); a gap of **>24h** ends that
   burst and the next anoint starts a **new** notice. **(ii) the wall notice PERSISTS**
-  as a lasting record — only the visual mustard **overlay** decays (~24h, OQ-2d). Both
-  are render-time-only — **no DB/cron/schema impact.**
+  as a lasting record — only the visual mustard **overlay** decays (~6h, OQ-2d).
 
-**Acceptance Criteria (scoped to the RECOMMENDED defaults — re-scope if OQ-2 chooses
-otherwise):**
+> **‼️ IMPLEMENTATION DIRECTION = Option A (user-approved 2026-06-19) — TASK-086
+> CARRIES ONE MIGRATION.** Because the wall notice PERSISTS and is render-derived from
+> `mustard_sprays` rows, those rows must SURVIVE. So the daily **`prune_mustard_sprays()`
+> job is RETIRED**: TASK-086 ships (a) **one migration** that retires/neuters
+> `prune_mustard_sprays` (drop or no-op the function — keep its EXECUTE lockdown
+> posture; preserve the table's decision #28 grants + decision #12 RLS), (b) a
+> **keep-alive workflow edit** dropping the daily prune step from
+> `.github/workflows/keepalive.yml`, and (c) a **likely NEW architecture-decision row
+> #29** (mustard_sprays retention: rows permanent; overlay decays at render ~6h;
+> wall-notice render-derived, coalesced, permanent). **This means M8 is no longer
+> strictly "no migration."** Batch TASK-086's hosted push onto the standing M7
+> hosted-push gate (see § Standing ops note). Decision #29 is recorded as a **plan**
+> here + in the OQ section; the director adds the real [[PROJECT]] decision-table row
+> when TASK-086 is implemented.
+
+**Acceptance Criteria:**
 
 - [ ] User-facing **"Anoint" copy** replaces "spray mustard" wherever a user reads it
-      (the profile action button, the Top-Dog-privileges notice guidance, any help
-      text). Code identifiers (`mustard_sprays`, `mustardOpacity`, the `spray` action
-      name, `prune_mustard_sprays`) **stay unchanged** (scope box).
-- [ ] **Derived, coalesced "anoint → wall notice" (see OQ-2e).** When a member is
-      anointed, their **wall shows a notice** attributing it to **The Anointed
-      Wiener**; rapid successive anoints **coalesce into ONE notice listing the
-      count** ("The Anointed Wiener anointed you ×N"). **This is RENDER-TIME DERIVED
-      from the existing `mustard_sprays` rows — NO new schema, NO new table, NO new
-      write path, and NO change to `wall_messages` immutability.** The wall render
-      composes the real `wall_messages` with a **synthesized** anoint-notice derived
-      from `mustard_sprays` (which already records every anoint with a timestamp; the
-      sprayer is always the reigning champion per decision #25), grouped/coalesced by
-      a **rolling-24h window that resets at each anointing** (OQ-2e, resolved: a >24h
-      gap ends a burst and starts a new notice) and sorted chronologically among the
-      wall messages. The notice **persists** as a lasting record (only the visual
-      overlay decays, ~24h). **Un-forgeable by construction** — the same derived,
-      no-write pattern as the Reliquary badges (TASK-089) / the alarm summarizer /
-      mustard decay; it stays inside M8's no-schema posture.
-- [ ] **Authorization preserved (if OQ-2a = keep-gated):** only the current crown
-      holder may Anoint — the existing plain owner-scoped RLS write with the Top-Dog
+      (the profile action button, any help/Catechism text). Code identifiers
+      (`mustard_sprays`, `mustardOpacity`, `MUSTARD_LIFESPAN_MS`, the `spray` action
+      name, `prune_mustard_sprays`) **stay unchanged** (scope box) — the prune
+      function is _retired_ (dropped/neutered), not renamed.
+- [ ] **Overlay decay shortened to ~6h (OQ-2d).** `MUSTARD_LIFESPAN_MS` in
+      `src/lib/features/mustard/decay.ts` changes from `24 * 60 * 60 * 1000` →
+      **`6 * 60 * 60 * 1000`**; update the module doc-comment ("fully fades 24h" → "6h")
+      and the co-located `decay.test.ts` boundary cases (the 24h clamp/half-life
+      assertions move to the 6h boundary). The DB stores only the raw timestamp; the
+      decayed splat is computed at render — **no persisted decayed output, no migration
+      for this change.**
+- [ ] **Derived, coalesced "anoint → wall notice" (OQ-2e).** When a member is anointed,
+      their **wall shows a notice** attributing it to **The Anointed Wiener**; rapid
+      successive anoints **coalesce into ONE notice listing the count** ("The Anointed
+      Wiener anointed you ×N"). **RENDER-TIME DERIVED from the existing `mustard_sprays`
+      rows — NO new schema, NO new table, NO new write path, NO change to
+      `wall_messages` immutability.** The wall render composes the real `wall_messages`
+      with a **synthesized** anoint-notice derived from `mustard_sprays` (which already
+      records every anoint with a timestamp; the sprayer is always the reigning champion
+      per decision #25), grouped/coalesced by a **rolling-24h window that resets at each
+      anointing** (a >24h gap ends a burst and starts a new notice) and sorted
+      chronologically among the wall messages. The notice **persists** as a lasting
+      record (only the visual overlay decays, ~6h). **Un-forgeable by construction** —
+      the same derived, no-write pattern as the Reliquary badges (TASK-089) / the alarm
+      summarizer / mustard decay.
+- [ ] **`prune_mustard_sprays()` retired (Option A — REQUIRED for the persisting
+      notice).** Ship **one migration** that retires/neuters the prune function (drop
+      it, or make it a no-op) so anoint rows are NEVER pruned — they are the source of
+      the persisting wall notice. Preserve the `mustard_sprays` table's decision #28
+      base grants and its decision #12 plain owner-scoped RLS (this migration touches
+      only the prune function, not the table's shape/grants). **Edit
+      `.github/workflows/keepalive.yml`** to drop the daily prune step (the keep-alive
+      ping + tally steps stay). **Record decision #29** (mustard_sprays retention) per
+      the normal gate — flag it to the director to add the [[PROJECT]] decision-table
+      row at implementation time.
+- [ ] **Authorization preserved (OQ-2a = keep-gated):** only the current crown holder
+      may Anoint — the existing plain owner-scoped RLS write with the Top-Dog
       `WITH CHECK` conjunct on the non-client-writable `is_current_top_dog` column
       (decision #25) is **untouched**. The `canSpray` UI gate stays driven by the
       server-derived crown flag.
-- [ ] **Render-time decay preserved (if OQ-2d = decay):** the overlay still fades via
-      `mustardOpacity` (full → 0 over ~24h) from the stored `sprayed_at` timestamp
-      (decision #15) — the DB still stores only the raw timestamp; the decayed
-      "splat" is computed at render. **No persisted decayed output.**
-- [ ] **Visual re-theme** (splat vs drip per OQ-2c) applied in the overlay component + theme styles (TASK-087 tokens).
-- [ ] **If OQ-2 decides a behavior change** (democratize / permanent / merge-with-
-      reactions): **STOP and escalate** — a write-path/authorization/decay change is a
-      potential new architecture-decision row and a possible migration; it must be
-      re-scoped and re-approved before implementation, not absorbed silently.
-- [ ] **Tests:** `spray-action.test.ts` stays green (update for copy; if behavior
-      changes, add/adjust coverage + a live-DB `@security` case for any new write
-      authorization). `@smoke` / `@security` green.
+- [ ] **Visual re-theme — SPLAT (OQ-2c)** applied in the overlay component + theme
+      styles (TASK-087 tokens), reusing the splat animation from
+      `design/pages/The Shrine.dc.html`.
+- [ ] **Reactions untouched (OQ-2b):** no change to the emoji-reactions surface — Anoint
+      is a re-skin of the existing mustard spray, not a replacement or merge.
+- [ ] **Hosted-push gate:** the prune-retirement migration must be pushed to hosted via `supabase db push` (batch it with the standing M7 `burger_alarms` /
+      `burger_verdicts` migrations per the per-milestone hosted-push discipline). The
+      keep-alive prune step must be dropped **in lockstep** so a retired/neutered prune
+      function doesn't leave a workflow step calling a missing RPC (avoiding the
+      hosted-schema-drift 404 failure mode in [[CLAUDE]]).
+- [ ] **Tests:** `spray-action.test.ts` stays green (update for copy); `decay.test.ts`
+      updated for the 6h lifespan; add coverage for the pure anoint-notice coalescing
+      (rolling-24h-window grouping, ×N count, >24h gap → new notice). If the prune
+      retirement changes a live-DB guarantee, adjust any affected `@security` case.
+      `@smoke` / `@security` green.
 - [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      4/4, `@security` green. **No migration** under the recommended defaults — flag
-      immediately if a chosen option requires one.
+      4/4, `@security` green. **One migration** (prune retirement) — the only M8 task
+      that carries one.
 
 **Notes (for the implementer):**
 
-- **Default to the recommended low-risk options** (keep-gated, re-theme-the-spray,
-  decay-as-is). Only the _visual_ (splat) and _copy_ (Anoint) change under those —
-  a pure re-skin of an existing, well-tested mechanic with **no DB/RLS change**.
-- **The riskier options touch security/architecture** — democratizing removes a
-  privilege gate (decision #25 surface), permanence changes the decay model
-  (decision #15) and the prune job. Treat any such choice as an escalation, not a
-  silent in-task change.
-- No new dependency; no new architecture-decision row under the recommended path.
+- **OQ-2 is fully decided — build to the resolved values above, do not re-guess.** The
+  user-facing changes are: "Anoint" copy, a **splat** visual, a **6h** overlay decay,
+  and a derived/coalesced/persisting wall notice. The one structural change is the
+  **Option A prune retirement** + its migration + workflow edit + decision #29.
+- **The decay-constant change (6h) needs NO migration** — it's a pure TS constant +
+  tests + a Catechism copy update (~24h → ~6h, in lockstep with TASK-081/this task).
+- **The prune retirement is the load-bearing structural change.** It is what makes the
+  persisting wall notice coherent (the notice is render-derived from `mustard_sprays`,
+  so those rows must never be pruned). Ship the migration, the workflow edit, and the
+  decision-#29 row together; batch the hosted push with the M7 gate.
+- No new dependency. **One migration + a likely new architecture-decision row #29**
+  (the only M8 task that breaks the "no migration / no new decision row" posture).
 
 ---
 
@@ -1082,38 +1039,142 @@ content — see [[tasks/discovered]]).
 
 ---
 
+### TASK-080: Global app shell + persistent navigation [`complete`] [`P1`] [`M`] (`design-light`)
+
+**Owner:** implementer — PR #101 (squash `544b7be`), merged 2026-06-19. Reviewer
+REQUEST_CHANGES → APPROVE after 1 fix cycle (a working crown-gated feature,
+`TopDogPrivilegesNotice`, was orphaned by the hub retirement).
+
+**Problem:** navigation lived only on the bare `/app` hub, so every sub-page was a
+dead end. The shell + The-Procession-as-home decision supersede the hub.
+
+**Acceptance Criteria:**
+
+- [x] New `(protected)/app/+layout.svelte` renders a persistent header/nav across
+      all `/app` routes; reads `{ user, profile }` from the existing
+      `+layout.server.ts` (no second crown query).
+- [x] 🌭 is a real home button → The Procession (`/app/feed`) via `resolve(...)`.
+- [x] Nav to feed / Your Litter (`/app/dogs`) / Epistles (`/app/messages`) / The
+      Catechism (`/app/help`) + a visible ＋ Upload affordance → `/app/dogs`.
+      (Labels are confirmed cult-name placeholders pending TASK-081.)
+- [x] 🍔/☩ Tribunal link stays gated on server-derived `is_current_top_dog`
+      (decision #25), both desktop + mobile nav — not widened.
+- [x] Old inline `<nav class="app-nav">` removed (no double nav); dead `.app-nav`
+      CSS deleted in the fix cycle.
+- [x] `/` redirect repointed `'/app'` → `'/app/feed'`; auth guard untouched.
+- [x] Bare `/app` hub retired → `redirect(307, '/app/feed')`.
+- [x] Svelte 5 runes, `resolve(...)` links, no `{@html}`; accessible nav
+      (semantic `<nav>`, `aria-current`, keyboard focus, mobile `aria-expanded`);
+      responsive collapse.
+- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 775, `@smoke`
+      4/4. No migration. (`@security` not re-run — orthogonal to UI/routing.)
+
+**Decision (user-approved):** the `TopDogPrivilegesNotice` (TASK-074) was
+**intentionally retired in M8** — Top Dog powers are documented in the Catechism
+(`/app/help`) and the crown-gated Tribunal nav link covers adjudication. Component
+
+- helper + tests deleted (783 → 775).
+
+**Notes:**
+
+TASK-080 closes the dead-end-navigation gap: app navigation now lives in a
+**persistent global shell**, and the bare `/app` "kennel" hub is retired. PR #101,
+squash `544b7be`, merged 2026-06-19. **1 fix cycle** (reviewer REQUEST_CHANGES →
+APPROVE).
+
+- **Persistent app shell.** A new `(protected)/app/+layout.svelte` renders a
+  persistent header/nav across **every** `/app` route, reading `{ user, profile }`
+  from the existing `(protected)/app/+layout.server.ts` — **no second crown query**.
+  The 🌭 brand mark is a real home button → **The Procession** (`/app/feed`) via
+  `resolve(...)`; nav links cover feed / **Your Litter** (`/app/dogs`) / **Epistles**
+  (`/app/messages`) / **The Catechism** (`/app/help`), plus a visible ＋ Upload
+  affordance → `/app/dogs`. (Labels are confirmed cult-name placeholders pending the
+  TASK-081 copy pass.) The 🍔/☩ **Tribunal** link stays gated on the server-derived
+  `is_current_top_dog` crown flag (decision #25) in both desktop and mobile nav — the
+  privilege gate is **not** widened. Svelte 5 runes, `resolve(...)` links, no
+  `{@html}`, accessible nav (semantic `<nav>`, `aria-current`, keyboard focus, mobile
+  `aria-expanded`, responsive collapse). The auth guard in `+layout.server.ts` is
+  untouched — the unauthenticated → `/sign-in` and profile-less → `/app/onboarding`
+  cascade is preserved.
+- **Default-route repoint.** The `/` redirect in `src/routes/+page.server.ts` was
+  repointed `redirect(307, '/app')` → `'/app/feed'`, realizing the CONFIRMED
+  "Default landing route = The Procession" decision (no infra / code-identifier
+  change — route only).
+- **Hub retirement.** The bare `/app` "kennel" hub is retired: its `+page.server.ts`
+  now `redirect(307, '/app/feed')`, and the hub `+page.svelte` is reduced to an SSR
+  fallback (its inline `<nav class="app-nav">` removed — the new shell supersedes it,
+  so there is no double nav). The dead `.app-nav` CSS was deleted in the fix cycle.
+- **`TopDogPrivilegesNotice` retirement (user-approved).** The reviewer's one
+  blocking finding was that retiring the hub orphaned `TopDogPrivilegesNotice`
+  (TASK-074) — a working crown-gated feature that had rendered only on the old `/app`
+  home. **User ruling: intentionally RETIRE it.** Top Dog powers are now documented in
+  **The Catechism** (`/app/help`), and the crown-gated **Tribunal** nav link in the new
+  shell covers the adjudication call-to-action — so the standalone nudge is redundant.
+  The fix cycle deleted the `TopDogPrivilegesNotice.svelte` component, the
+  `topDogPrivilegesNotice.ts` helper (`DISMISSED_KEY` / `isNoticeDismissed` /
+  `persistNoticeDismissed`), and its 8 dismissal-helper unit tests — accounting for the
+  test-count drop **783 → 775** (−8 = exactly the retired helper's cases).
+- **Gates (director-run):** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` 775 ·
+  `@smoke` 4/4. `@security` was **not re-run** — TASK-080 is a UI/routing change
+  orthogonal to the live-DB write guards. **No migration, no new dependency, no new
+  architecture-decision row** (the decision table stays at #28).
+- **Forward note:** the M7 `TopDogPrivilegesNotice` wiring-audit statement in
+  [[PROJECT]] is historically true for M7 but no longer matches the tree — the
+  component was retired here. A forward-note was added at the M7 wiring-audit line so
+  the audit statement isn't left silently contradicting the current code.
+
+---
+
 ## Open Questions (REQUIRED — resolve WITH the designs before/at activation)
 
 These are the undecided items the build must not guess. Resolve each **with the
 user, alongside the designs**, then update the affected task(s) and flip them
 `blocked → pending`.
 
-> **Resolution status (2026-06-18, [[Handoffs/handoff-016]]):** **OQ-1, the avatar
-> mechanism, OQ-3, OQ-4, and the reset flow are RESOLVED** (see the RESOLVED rows +
-> notes below). **OQ-5 is now mostly resolved** — `/app/profile/[handle]` → **The
-> Shrine**, `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers**,
-> and the `/sign-in` heading → **Enter the Snacktum** are CONFIRMED (from the user's
-> mockup filenames); `/app` home is **N/A** (retired → The Procession); **only the
-> dog-detail (`/app/dogs/[id]`) name remains OPEN.** **OQ-2 remains OPEN** — the four
-> Anoint sub-decisions OQ-2a–d **plus a new sub-decision OQ-2e** (the derived,
-> coalesced anoint → wall notice; the approach is chosen — render-time from
-> `mustard_sprays`, no schema — only the coalescing window + persist-vs-fade are
-> open). Several in-app page designs are still to be generated from
-> `design/page-design-prompts.md`. The RESOLVED decisions are all user-facing /
-> skin-only — **no migration, no infra/code-identifier rename, no new
-> architecture-decision row** (the [[PROJECT]] decision table stays at #28).
+> **Resolution status (2026-06-19 update):** **OQ-1, the avatar mechanism, OQ-3,
+> OQ-4, and the reset flow** were RESOLVED 2026-06-18 (see the RESOLVED rows + notes
+> below). **OQ-2 and OQ-5 are now FULLY RESOLVED (2026-06-19):**
+>
+> - **OQ-5 (dog-detail page name) → "The Relic"** (`/app/dogs/[id]`). With this the
+>   Page Naming Map is **complete** — every user-facing page name is confirmed; OQ-5
+>   is **fully resolved**.
+> - **OQ-2 — all five sub-decisions RESOLVED:** **OQ-2a** keep Anoint gated to the
+>   reigning champion ("The Anointed Wiener" / `is_current_top_dog`, decision #25
+>   `WITH CHECK` unchanged); **OQ-2b** no re-mechanic / no merge with reactions — it
+>   stays the existing mustard spray, re-copied as "anointing" (reactions untouched);
+>   **OQ-2c** **splat** visual (reuse the splat animation in
+>   `design/pages/The Shrine.dc.html`); **OQ-2d** overlay decays over **6h** (was 24h)
+>   — a render-time constant change to `MUSTARD_LIFESPAN_MS`, no migration; **OQ-2e**
+>   the anoint → wall-notice is a message on the anointed member's wall with a **24h
+>   ROLLING STACK** (an anoint within 24h of the previous one increments the existing
+>   message's ×N count and RESETS the window; a >24h gap starts a fresh message), and
+>   the wall notice **PERSISTS** (only the overlay decays).
+>
+> **‼️ One M8 posture change (2026-06-19):** OQ-2e's **persisting** wall notice is
+> render-derived from `mustard_sprays` rows, so those rows must SURVIVE — which means
+> the daily `prune_mustard_sprays()` job must be **retired** (TASK-086, **Option A**,
+> user-approved). **TASK-086 therefore WILL carry one migration** (retire/neuter
+> `prune_mustard_sprays`) + a keep-alive workflow edit (drop the prune step) + a
+> **likely new architecture-decision row #29** (mustard_sprays retention). So **M8 is
+> no longer strictly "no migration"** — TASK-086 adds one (to be batched onto the
+> standing hosted-push gate with the M7 burger migrations). The decay-constant change
+> itself (OQ-2d, 6h) needs **no** migration. Everything else stays skin-only — no
+> infra / code-identifier rename. (Decision #29 is recorded here as a **plan**; it
+> becomes a real [[PROJECT]] decision-table row only when TASK-086 is implemented — the
+> table stays at #28 until then.) Several in-app page designs are still to be generated
+> from `design/page-design-prompts.md`.
 
-| ID        | Question                                                                                                                                                                                                                                                                                                                                                                                                | Affects                                             | Recommended default                                                                                                                             | Status                                     |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                                                                                                                                                   | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | **RESOLVED** (B-absorb)                    |
-| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                                                                                                                                                 | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | OPEN                                       |
-| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                                                                                                                                          | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | OPEN                                       |
-| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                                                                                                                                               | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | OPEN                                       |
-| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                                                                                                                                              | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | OPEN                                       |
-| **OQ-2e** | **Anoint → wall notice** (derived, coalesced; approach already chosen — render-time from `mustard_sprays`, NO schema/write-path). Two specifics open: **(i)** the **coalescing window** (what counts as "quick succession"); **(ii)** **persist vs. fade** of the wall notice.                                                                                                                          | TASK-086 (wall render — derived, read-only)         | **(i)** rolling "×N within ~an hour" (or a 24h bucket); **(ii)** **persists** as a lasting record (overlay still decays per OQ-2d). No DB/cron. | OPEN                                       |
-| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                                                                                                                                              | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | **RESOLVED** (dark temple)                 |
-| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                                                                                                                                                  | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | **RESOLVED** (self-hosted woff2)           |
-| **OQ-5**  | **Cult display names for the still-TBD pages.** **RESOLVED:** `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers**, `/sign-in` heading → **Enter the Snacktum**. `/app` home → **N/A** (retired → redirects to The Procession). **Still OPEN:** `/app/dogs/[id]` (dog detail) only. The seven other names are CONFIRMED (Page Naming Map). | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | **PARTLY RESOLVED** (only dog-detail OPEN) |
+| ID        | Question                                                                                                                                                                                                                                                                                                                                                                                                 | Affects                                             | Recommended default                                                                                                                             | Status                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                                                                                                                                                    | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | **RESOLVED** (B-absorb)                    |
+| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                                                                                                                                                  | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | **RESOLVED** (keep gated)                  |
+| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                                                                                                                                           | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | **RESOLVED** (re-theme the spray)          |
+| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                                                                                                                                                | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | **RESOLVED** (splat)                       |
+| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                                                                                                                                               | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | **RESOLVED** (decays, but **6h** not 24h)  |
+| **OQ-2e** | **Anoint → wall notice** (derived, coalesced; approach already chosen — render-time from `mustard_sprays`, NO schema/write-path). Two specifics open: **(i)** the **coalescing window** (what counts as "quick succession"); **(ii)** **persist vs. fade** of the wall notice.                                                                                                                           | TASK-086 (wall render — derived, read-only)         | **(i)** rolling "×N within ~an hour" (or a 24h bucket); **(ii)** **persists** as a lasting record (overlay still decays per OQ-2d). No DB/cron. | **RESOLVED** (24h rolling stack; persists) |
+| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                                                                                                                                               | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | **RESOLVED** (dark temple)                 |
+| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                                                                                                                                                   | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | **RESOLVED** (self-hosted woff2)           |
+| **OQ-5**  | **Cult display names for the TBD pages.** **FULLY RESOLVED:** `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers**, `/sign-in` heading → **Enter the Snacktum**, **`/app/dogs/[id]` (dog detail) → "The Relic"** (resolved 2026-06-19). `/app` home → **N/A** (retired → redirects to The Procession). The Page Naming Map is now complete. | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | **RESOLVED** (all page names confirmed)    |
 
 ### RESOLVED decisions (2026-06-18) — bake these into the affected tasks at build time
 
@@ -1186,7 +1247,7 @@ prompt, "The Reliquary" #12, but no mockup yet; the pure module + tests are
 design-independent and buildable first). Per § Next Steps in the handoff, build order
 on the user's "go" is theme → shell → sign-in → reset → ritual.
 
-**OQ-5 — RESOLVED names + the one still-open option:**
+**OQ-5 — FULLY RESOLVED (page names all confirmed):**
 
 CONFIRMED (2026-06-18, from the user's mockup filenames — bake these into TASK-081):
 
@@ -1197,10 +1258,51 @@ CONFIRMED (2026-06-18, from the user's mockup filenames — bake these into TASK
 - **`/app` home/hub** → **N/A** — retired/absorbed (redirects to The Procession; see
   § Default landing route + TASK-080), so no display name is needed.
 
-STILL OPEN (the only remaining OQ-5 item):
+RESOLVED 2026-06-19 (the last remaining OQ-5 item — user's choice):
 
-- **`/app/dogs/[id]`** (dog detail) — _Veneration_ / _The Relic_ (NON-BINDING
-  suggestions; the user chooses the final name).
+- **`/app/dogs/[id]`** (dog detail) → **The Relic**.
+
+With "The Relic" decided, **every user-facing page name is confirmed and OQ-5 is
+fully resolved.** TASK-081 applies "The Relic" verbatim to the `/app/dogs/[id]`
+`<title>` / heading / nav label (URL path + code identifiers UNCHANGED — skin, not
+skeleton). The Page Naming Map above is updated to carry it.
+
+**OQ-2 — FULLY RESOLVED (2026-06-19) — bake into TASK-086:**
+
+- **OQ-2a → keep gated.** Only the reigning champion ("The Anointed Wiener" /
+  `is_current_top_dog`) may Anoint — the decision #25 `WITH CHECK` authorization on
+  the non-client-writable crown column is **unchanged**.
+- **OQ-2b → no re-mechanic, no merge with reactions.** Anoint stays the **existing
+  mustard spray**, re-copied as "anointing." The emoji reactions surface is
+  **untouched** (no replace, no merge).
+- **OQ-2c → splat visual.** Reuse the splat animation in
+  `design/pages/The Shrine.dc.html` (replacing the old "drip" framing).
+- **OQ-2d → decays, but over 6h (not 24h).** The overlay still fades at render via
+  `mustardOpacity` (decision #15), but the lifespan shortens from ~24h → **~6h** — a
+  render-time constant change to `MUSTARD_LIFESPAN_MS` in
+  `src/lib/features/mustard/decay.ts` (+ its co-located tests). The Catechism
+  (`/app/help`) "~24h" mustard copy must update to **~6h** when TASK-081/086 run.
+  **No migration for the decay change itself** (the DB still stores only the raw
+  `sprayed_at`; the decayed splat is computed at render).
+- **OQ-2e → wall message with a 24h ROLLING STACK; persists.** The anoint → wall
+  notice is a message on the **anointed member's wall** attributing it to The Anointed
+  Wiener. Coalescing is a **rolling 24h window that RESETS at each anointing**: an
+  anoint within 24h of the previous one **increments the existing message's ×N count
+  and resets the 24h window**; a **>24h** gap ends that burst and starts a **fresh**
+  message. The wall notice **PERSISTS** as a lasting record — **only the visual
+  overlay decays** (~6h, per OQ-2d).
+
+> **‼️ IMPLEMENTATION DIRECTION (TASK-086) = Option A (user-approved 2026-06-19).**
+> Because the wall notice PERSISTS and is render-derived from `mustard_sprays` rows,
+> those rows must SURVIVE — so the daily **`prune_mustard_sprays()` job is retired**.
+> Consequences for TASK-086 (re-scoped below): it **WILL carry one migration**
+> (retire/neuter `prune_mustard_sprays`) **+** a keep-alive workflow edit (drop the
+> prune step) **+** a **likely new architecture-decision row #29** (mustard_sprays
+> retention: rows permanent; overlay decays at render ~6h; wall-notice render-derived,
+> coalesced, permanent). This **changes M8's posture: it is no longer strictly "no
+> migration."** Batch TASK-086's hosted push onto the standing M7 hosted-push gate.
+> **Decision #29 is recorded here as a PLAN only** — it becomes a real [[PROJECT]]
+> decision-table row when TASK-086 is implemented; the table stays at #28 until then.
 
 ---
 
@@ -1288,10 +1390,17 @@ the **two M7 migrations still await a hosted `supabase db push`** —
 `20260617205453_burger_alarms.sql` (TASK-071) and `20260618120000_burger_verdicts.sql`
 (TASK-073). No auto-pause risk (no scheduled job touches those tables; the daily
 keep-alive `ping` still reads `profiles`), but the report→verdict flow is
-non-functional on hosted until they're pushed (user's hand). **M8 adds no migration
-under its recommended scope**, so it does not extend this gate — but if any M8 task
-unexpectedly needs a migration, batch its hosted push with these two and follow the
-per-milestone hosted-push discipline ([[PROJECT]] Process notes).
+non-functional on hosted until they're pushed (user's hand).
+
+> **‼️ UPDATE (2026-06-19) — M8 now DOES add a migration.** OQ-2's Option A
+> (user-approved) means **TASK-086 retires `prune_mustard_sprays()`**, so it carries
+> **one migration** (prune retirement) **+** a keep-alive workflow edit dropping the
+> daily prune step. **Batch TASK-086's hosted push with the two M7 migrations above**
+> (one `supabase db push`), and drop the prune step from
+> `.github/workflows/keepalive.yml` **in lockstep** so the workflow doesn't keep
+> calling a retired/neutered RPC (which would 404 → the hosted-schema-drift failure
+> mode in [[CLAUDE]]). Follow the per-milestone hosted-push discipline ([[PROJECT]]
+> Process notes). No other M8 task adds a migration.
 
 ---
 

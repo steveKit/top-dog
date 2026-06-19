@@ -32,33 +32,50 @@ new infra, no new deps expected.** 10 tasks (TASK-080…TASK-089; TASK-089 = the
 badge "Reliquary", a purely-derived read-only addition — no schema/migration/dependency,
 un-forgeable by construction).
 
-> **🔨 BUILDING — activated 2026-06-19. TASK-087 complete (1/10); next: TASK-080.**
+> **🔨 BUILDING — activated 2026-06-19. TASK-087 + TASK-080 complete (2/10); next: the
+> auth cluster (TASK-082 sign-in / TASK-083 reset) or TASK-081 (copy).**
 > TASK-087 (base cult visual / theme layer, PR #99 `dcce8c3`) landed the M8 FOUNDATION:
 > a tokenized dark-temple CSS layer (`src/lib/styles/tokens.css`, imported by
 > `src/app.css`) every downstream task consumes via `var(--…)` tokens (accents switch via
 > `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` fonts under
 > `static/fonts/` (no CDN, no npm package), and themed flair-component styling — **no
 > migration, no new dependency, no new architecture-decision row** (decision table stays
-> #28). 1 fix cycle (a WCAG 2.4.7 focus-ring regression on the wall textarea). Next up is
-> **TASK-080 (global app shell + nav)**, then the copy + per-page redesign passes.
+> #28). 1 fix cycle (a WCAG 2.4.7 focus-ring regression on the wall textarea). **TASK-080
+> (global app shell + persistent nav, PR #101 `544b7be`)** then landed the persistent
+> `(protected)/app/+layout.svelte` shell (🌭 home → The Procession; feed / Your Litter /
+> Epistles / The Catechism; ＋ Upload; crown-gated ☩ Tribunal), repointed the `/` redirect
+> `/app` → `/app/feed`, and retired the bare `/app` hub (`redirect(307,'/app/feed')`).
+> **`TopDogPrivilegesNotice` (TASK-074) was intentionally RETIRED** (Top Dog powers now in
+> The Catechism + the crown-gated Tribunal link) — `pnpm test` 783 → 775; 1 fix cycle; no
+> migration / no new dependency / no new decision row.
 >
 > **Designs are mostly in:** almost every page is mocked — the app shell, the auth cluster
 > (Log In, Reset Password, Onboarding), The Procession, The Shrine (profile), Your Litter,
 > the Tribunal, Epistles (DM inbox), Whispers (DM thread), Summon a Frank (invite), The
-> Catechism (help), and The Lost Pilgrim (error/404) — **only the dog-detail page remains
-> to be mocked.** **Open items still to resolve as their tasks come up:** **OQ-2** (the
-> Anoint specifics — sub-decisions OQ-2a–e, including the derived "anoint → wall notice"
-> OQ-2e) and the **dog-detail page name** (the last open part of OQ-5; The Shrine /
-> Epistles / Whispers / the "Enter the Snacktum" sign-in heading are confirmed). Dispatch
-> M8 tasks **only on explicit user instruction**, in the milestone file's sequence — do
-> not auto-chain. See the milestone file's Open Questions + Dependencies & Sequencing
+> Catechism (help), and The Lost Pilgrim (error/404) — **only the dog-detail page (now
+> named "The Relic") remains to be mocked.** **OQ-2 and OQ-5 are now FULLY RESOLVED
+> (2026-06-19):** OQ-5 → the dog-detail page is **"The Relic"** (Page Naming Map now
+> complete); OQ-2 → all five Anoint sub-decisions decided (keep gated, re-theme the spray /
+> no merge, **splat** visual, decay shortened to **~6h**, a 24h-rolling-stack **persisting**
+> wall notice). **‼️ Posture change (OQ-2 Option A, user-approved): TASK-086 will RETIRE
+> `prune_mustard_sprays()` so the persisting wall-notice rows survive — so it CARRIES one
+> migration (prune retirement) + a keep-alive workflow edit + a likely new
+> architecture-decision row #29 (mustard_sprays retention).** Recorded as a plan; batch
+> TASK-086's hosted push onto the standing M7 hosted-push gate (below). Dispatch M8 tasks
+> **only on explicit user instruction**, in the milestone file's sequence — do not
+> auto-chain. See the milestone file's Open Questions + Dependencies & Sequencing
 > sections.
 
-> **Open ops action (user) — unrelated to M8:** the two M7 migrations
+> **Open ops action (user):** the two M7 migrations
 > (`20260617205453_burger_alarms.sql`, `20260618120000_burger_verdicts.sql`) still need a
 > hosted `supabase db push` before the report→verdict flow works on hosted. No
-> keep-alive / auto-pause risk (no scheduled job touches these tables). M8 adds no
-> migration under its recommended scope, so it does not extend this gate.
+> keep-alive / auto-pause risk (no scheduled job touches these tables). **UPDATE
+> (2026-06-19): M8 now DOES add a migration** — OQ-2 Option A means **TASK-086 retires
+> `prune_mustard_sprays()`** (one migration + a keep-alive workflow edit dropping the
+> daily prune step). **Batch TASK-086's hosted push with the two M7 migrations** (one
+> `supabase db push`) and drop the prune step from `.github/workflows/keepalive.yml` in
+> lockstep so the workflow doesn't keep calling a retired RPC (which would 404). No other
+> M8 task adds a migration.
 
 ## Planned Milestones
 

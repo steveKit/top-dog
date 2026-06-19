@@ -1,0 +1,178 @@
+/*
+ * Snacktum Snacktorum — design tokens (TASK-087, M8 "dark temple" rebrand).
+ *
+ * THE canonical token layer for the whole rebrand. Every downstream M8 task
+ * styles against the custom properties declared here — no magic hex, no magic
+ * durations in component <style> blocks. Components reference `var(--…)`.
+ *
+ * Grounded in the design system preamble (design/page-design-prompts.md) and the
+ * auth/page mockups (design/pages/*.dc.html). The mockups expose a `--accent` /
+ * `--glow` custom prop and a `PAL` palette object with three themes
+ * (Mustard Gold / Relic Crimson / Verdigris); those map directly onto the
+ * `--accent*` / `--glow` tokens below. Switch the active accent by setting
+ * `data-accent="crimson"` or `data-accent="verdigris"` on a root element; the
+ * default (no attribute) is Mustard Gold, the one true accent.
+ */
+
+:root {
+	/* ---- Raw palette (the fixed temple surfaces) -------------------------- */
+	--color-bg: #17120e; /* the sanctuary background */
+	--color-bg-deep: #120d09; /* deepest corner of the radial glow */
+	--color-bg-mid: #1a130d; /* mid stop of the radial glow */
+	--color-bg-lift: #271c12; /* lit top of the radial glow */
+	--color-bg-chrome: #0e0b07; /* darker chrome behind the app frame */
+
+	/* The dark-temple background paint: a radial gold-lit gradient. */
+	--surface-temple: radial-gradient(
+		125% 80% at 50% -5%,
+		var(--color-bg-lift) 0%,
+		var(--color-bg-mid) 52%,
+		var(--color-bg-deep) 100%
+	);
+
+	/* ---- Parchment text ramp -------------------------------------------- */
+	--color-text: #f3e9d2; /* body parchment */
+	--color-heading: #f6ecd2; /* headings (a touch brighter) */
+	--color-text-muted: rgba(243, 233, 210, 0.7);
+	--color-text-faint: rgba(243, 233, 210, 0.5);
+	--color-text-fainter: rgba(243, 233, 210, 0.28); /* placeholders, footnotes */
+
+	/* ---- The three accent themes (mirror the mockups' PAL object) -------- */
+	/* Mustard Gold — the one true accent (default). */
+	--accent-gold: #e0a82e;
+	--accent-gold-dim: #b9842a;
+	--glow-gold: rgba(224, 168, 46, 0.45);
+	/* Relic Crimson. */
+	--accent-crimson: #cf4636;
+	--accent-crimson-dim: #a3392c;
+	--glow-crimson: rgba(207, 70, 54, 0.45);
+	/* Verdigris. */
+	--accent-verdigris: #57b59a;
+	--accent-verdigris-dim: #3f8e79;
+	--glow-verdigris: rgba(87, 181, 154, 0.45);
+
+	/* ---- Active accent (themeable via [data-accent]) --------------------- */
+	/* Defaults to Mustard Gold. Components reference --accent / --accent-dim /
+	   --glow and never the per-theme tokens directly, so the theme switch is a
+	   single attribute flip. */
+	--accent: var(--accent-gold);
+	--accent-dim: var(--accent-gold-dim);
+	--glow: var(--glow-gold);
+
+	/* Derived accent tints used across borders, fills, dividers (gold at the
+	   canonical alphas the mockups use). These track --accent's hue only at the
+	   gold default; the crimson/verdigris themes re-point them below. */
+	--accent-strong: rgba(224, 168, 46, 0.85); /* label eyebrows */
+	--accent-soft: rgba(224, 168, 46, 0.45); /* ornament rules, ring glow */
+	--accent-border: rgba(224, 168, 46, 0.22); /* input borders */
+	--accent-plaque-border: rgba(224, 168, 46, 0.3); /* card / plaque borders */
+	--accent-divider: rgba(224, 168, 46, 0.18); /* chrome dividers */
+	--accent-fill: rgba(224, 168, 46, 0.05); /* faint plaque fill */
+	--accent-fill-strong: rgba(224, 168, 46, 0.18);
+
+	/* ---- Status colors --------------------------------------------------- */
+	--color-error: #e0795f; /* warm-rust validation / error text */
+	--color-on-accent: #17120e; /* dark text on a gold fill (buttons) */
+	--color-selection: rgba(224, 168, 46, 0.3); /* ::selection */
+
+	/* Police-tape / heresy brand palette (kept literal — these are the
+	   excommunication marks, not theme-tinted). */
+	--tape-alarm: #f5c518; /* hamburger-alarm yellow */
+	--tape-confirmed: #d12; /* confirmed-hamburger red */
+	--tape-stripe-dark: #111;
+	--mustard-splat: #e0a82e; /* an anointing splotch reads as gold */
+
+	/* ---- Type families --------------------------------------------------- */
+	--font-display: 'Cinzel', Georgia, 'Times New Roman', serif; /* ALL-CAPS, letter-spaced */
+	--font-body: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; /* prose */
+
+	/* ---- Type scale (clamped where the mockups clamp the hero) ----------- */
+	--text-eyebrow: 0.6875rem; /* 11px — Cinzel uppercase eyebrow */
+	--text-label: 0.75rem; /* 12px — Cinzel labels / buttons */
+	--text-sm: 0.9375rem; /* 15px */
+	--text-base: 1.125rem; /* 18px — Cormorant body / inputs */
+	--text-lg: 1.25rem; /* 20px — lead prose */
+	--text-xl: 1.5rem; /* 24px */
+	--text-h2: clamp(1.5rem, 4vw, 2rem); /* section headings */
+	--text-h1: clamp(1.875rem, 6vw, 3.25rem); /* hero h1 (30–52px) */
+
+	/* Cinzel letter-spacing steps (the mockups use 2–4px). */
+	--tracking-tight: 1px;
+	--tracking-label: 2px;
+	--tracking-eyebrow: 3px;
+	--tracking-wide: 4px;
+
+	/* ---- Spacing scale --------------------------------------------------- */
+	--space-2xs: 0.25rem;
+	--space-xs: 0.5rem;
+	--space-sm: 0.75rem;
+	--space-md: 1rem;
+	--space-lg: 1.5rem;
+	--space-xl: 2rem;
+	--space-2xl: 2.75rem;
+	--space-3xl: 4rem;
+
+	/* ---- Radii (the mockups pin a tight 2px on controls) ---------------- */
+	--radius-control: 2px; /* buttons, inputs */
+	--radius-card: 4px; /* plaques / cards / frames */
+	--radius-pill: 999px;
+
+	/* ---- Shadows / glow -------------------------------------------------- */
+	--shadow-button: 0 8px 24px rgba(0, 0, 0, 0.25);
+	--shadow-button-glow: 0 8px 28px rgba(224, 168, 46, 0.22);
+	--shadow-card: 0 24px 60px rgba(0, 0, 0, 0.5);
+	--shadow-plaque: 0 14px 30px rgba(0, 0, 0, 0.4);
+	--text-shadow-hero: 0 2px 34px rgba(224, 168, 46, 0.16);
+	--ring-focus: 2px solid var(--accent); /* visible focus outline */
+	--ring-focus-offset: 3px;
+
+	/* ---- Layout measures ------------------------------------------------- */
+	--measure-form: 35rem; /* ~560px — forms / single column */
+	--measure-content: 48rem; /* ~768px — reading / galleries */
+	--measure-wide: 73.75rem; /* ~1180px — feed / chrome */
+
+	/* ---- Motion / animation timing -------------------------------------- */
+	--motion-fast: 0.18s;
+	--motion-base: 0.35s; /* the "unroll" scroll */
+	--motion-entrance: 0.55s; /* fadeUp entrances */
+	--motion-glow-pulse: 6s; /* the hero glow breathing */
+	--ease-standard: ease;
+	--ease-out: ease-out;
+	--ease-in-out: ease-in-out;
+}
+
+/* Relic Crimson theme. */
+:root[data-accent='crimson'],
+[data-accent='crimson'] {
+	--accent: var(--accent-crimson);
+	--accent-dim: var(--accent-crimson-dim);
+	--glow: var(--glow-crimson);
+	--accent-strong: rgba(207, 70, 54, 0.85);
+	--accent-soft: rgba(207, 70, 54, 0.45);
+	--accent-border: rgba(207, 70, 54, 0.22);
+	--accent-plaque-border: rgba(207, 70, 54, 0.3);
+	--accent-divider: rgba(207, 70, 54, 0.18);
+	--accent-fill: rgba(207, 70, 54, 0.05);
+	--accent-fill-strong: rgba(207, 70, 54, 0.18);
+	--shadow-button-glow: 0 8px 28px rgba(207, 70, 54, 0.22);
+	--text-shadow-hero: 0 2px 34px rgba(207, 70, 54, 0.16);
+	--color-selection: rgba(207, 70, 54, 0.3);
+}
+
+/* Verdigris theme. */
+:root[data-accent='verdigris'],
+[data-accent='verdigris'] {
+	--accent: var(--accent-verdigris);
+	--accent-dim: var(--accent-verdigris-dim);
+	--glow: var(--glow-verdigris);
+	--accent-strong: rgba(87, 181, 154, 0.85);
+	--accent-soft: rgba(87, 181, 154, 0.45);
+	--accent-border: rgba(87, 181, 154, 0.22);
+	--accent-plaque-border: rgba(87, 181, 154, 0.3);
+	--accent-divider: rgba(87, 181, 154, 0.18);
+	--accent-fill: rgba(87, 181, 154, 0.05);
+	--accent-fill-strong: rgba(87, 181, 154, 0.18);
+	--shadow-button-glow: 0 8px 28px rgba(87, 181, 154, 0.22);
+	--text-shadow-hero: 0 2px 34px rgba(87, 181, 154, 0.16);
+	--color-selection: rgba(87, 181, 154, 0.3);
+}

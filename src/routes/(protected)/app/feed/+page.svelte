@@ -90,16 +90,16 @@
 				<ReactionBar dogId={dog.id} summaries={dog.reactions} />
 
 				{#if isVoted}
-					<p>Voted ✓</p>
+					<p class="voted-marker">Voted ✓</p>
 					<form method="POST" action="?/remove" use:enhance={submitRemove}>
-						<button type="submit" disabled={pending !== null}>
+						<button type="submit" class="btn-text" disabled={pending !== null}>
 							{pending === 'remove' ? 'Removing…' : 'Remove vote'}
 						</button>
 					</form>
 				{:else}
 					<form method="POST" action="?/vote" use:enhance={() => submitVote(dog.id)}>
 						<input type="hidden" name="id" value={dog.id} />
-						<button type="submit" disabled={pending !== null}>
+						<button type="submit" class="btn-relic" disabled={pending !== null}>
 							{#if pending === dog.id}
 								Saving…
 							{:else if hasVote}
@@ -116,11 +116,45 @@
 {/if}
 
 <style>
+	/* Ranked feed as gold-edged plaque cards. */
+	ul {
+		list-style: none;
+		margin: var(--space-xl) 0 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-lg);
+	}
+
+	li {
+		border: 1px solid var(--accent-plaque-border);
+		background: var(--accent-fill);
+		border-radius: var(--radius-card);
+		padding: var(--space-lg);
+	}
+
 	/* Positioned wrapper so the absolutely-positioned alarm overlay covers the
 	   dog image exactly (the banner component is inset:0 within this box). */
 	.dog-image {
 		position: relative;
 		display: inline-block;
 		line-height: 0;
+		border: 1px solid var(--accent-plaque-border);
+		border-radius: var(--radius-card);
+		overflow: hidden;
+	}
+
+	.voted-marker {
+		font-family: var(--font-display);
+		font-size: var(--text-label);
+		font-weight: 600;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+
+	.adjudicated-note {
+		font-style: italic;
+		color: var(--color-text-muted);
 	}
 </style>

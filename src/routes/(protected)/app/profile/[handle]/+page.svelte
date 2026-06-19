@@ -246,9 +246,26 @@
 </article>
 
 <style>
+	/* The sigil (avatar) in a thin gold ring, per the Shrine design. */
 	.spray-area {
 		position: relative;
 		display: inline-block;
+		border-radius: var(--radius-pill);
+		overflow: hidden;
+		border: 2px solid var(--accent);
+		box-shadow: 0 0 0 4px var(--accent-fill-strong);
+		line-height: 0;
+	}
+
+	.avatar-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 96px;
+		height: 96px;
+		font-size: 2.5rem;
+		background: var(--accent-fill);
+		line-height: 1;
 	}
 
 	.mustard-layer {
@@ -257,10 +274,12 @@
 		pointer-events: none;
 	}
 
+	/* Themed BASE for the anointing splotches (the full splat re-theme is
+	   TASK-086). Tokenized size/position only; opacity stays render-time decay. */
 	.mustard-splotch {
 		position: absolute;
 		transform: translate(-50%, -50%);
-		font-size: 1.5rem;
+		font-size: var(--text-xl);
 		line-height: 1;
 	}
 
@@ -273,5 +292,182 @@
 		border: 0;
 		background: transparent;
 		cursor: crosshair;
+	}
+
+	.handle {
+		font-family: var(--font-body);
+		font-size: var(--text-lg);
+		color: var(--color-text-muted);
+	}
+
+	.joined {
+		color: var(--color-text-faint);
+		font-style: italic;
+	}
+
+	/* Stat ledger plaque — Cinzel labels over big gold numbers. */
+	.stats {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-lg);
+		margin: var(--space-lg) 0;
+		padding: var(--space-lg);
+		border: 1px solid var(--accent-plaque-border);
+		background: var(--accent-fill);
+		border-radius: var(--radius-card);
+	}
+
+	.stats dt {
+		font-family: var(--font-display);
+		font-size: var(--text-eyebrow);
+		font-weight: 600;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--accent-strong);
+	}
+
+	.stats dd {
+		margin: var(--space-2xs) 0 0;
+		font-family: var(--font-display);
+		font-size: var(--text-xl);
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.spray-hint {
+		font-style: italic;
+		color: var(--color-text-muted);
+	}
+
+	/* Message wall. */
+	.wall {
+		margin-top: var(--space-2xl);
+		padding-top: var(--space-lg);
+		border-top: 1px solid var(--accent-divider);
+	}
+
+	.wall-post {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-xs);
+		margin-bottom: var(--space-lg);
+	}
+
+	.wall-post label {
+		font-family: var(--font-display);
+		font-size: var(--text-eyebrow);
+		font-weight: 600;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		color: var(--accent-strong);
+	}
+
+	.wall-post textarea {
+		background: rgba(243, 233, 210, 0.04);
+		border: 1px solid var(--accent-border);
+		border-bottom: 1.5px solid var(--accent);
+		border-radius: var(--radius-control);
+		padding: var(--space-sm) var(--space-md);
+		color: var(--color-text);
+		font-family: var(--font-body);
+		font-size: var(--text-base);
+		resize: vertical;
+	}
+
+	.wall-post textarea:focus {
+		outline: none;
+		background: rgba(243, 233, 210, 0.07);
+	}
+
+	.wall-post button {
+		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-xs);
+		padding: var(--space-sm) var(--space-lg);
+		background: var(--accent);
+		color: var(--color-on-accent);
+		border: none;
+		border-radius: var(--radius-control);
+		font-family: var(--font-display);
+		font-size: var(--text-label);
+		font-weight: 600;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
+		cursor: pointer;
+		box-shadow: var(--shadow-button-glow);
+	}
+
+	.wall-post button:hover:not(:disabled) {
+		filter: brightness(1.08);
+	}
+
+	.wall-post button:disabled {
+		opacity: 0.35;
+		cursor: not-allowed;
+	}
+
+	.wall-empty {
+		color: var(--color-text-faint);
+		font-style: italic;
+	}
+
+	.wall-messages {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-md);
+	}
+
+	.wall-message {
+		padding: var(--space-md);
+		border: 1px solid var(--accent-plaque-border);
+		background: var(--accent-fill);
+		border-radius: var(--radius-card);
+	}
+
+	.wall-message-body {
+		margin: 0 0 var(--space-xs);
+	}
+
+	.wall-message-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs);
+		align-items: baseline;
+		margin: 0;
+		font-size: var(--text-sm);
+	}
+
+	.wall-message-date {
+		color: var(--color-text-faint);
+		font-style: italic;
+	}
+
+	.wall-message-delete {
+		margin-top: var(--space-xs);
+		background: none;
+		border: none;
+		padding: 0;
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		color: var(--color-text-faint);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
+	}
+
+	.wall-message-delete:hover {
+		color: var(--color-error);
+	}
+
+	.message-link a {
+		font-family: var(--font-display);
+		font-size: var(--text-label);
+		font-weight: 600;
+		letter-spacing: var(--tracking-label);
+		text-transform: uppercase;
 	}
 </style>

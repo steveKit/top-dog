@@ -62,10 +62,16 @@
 	.tape {
 		width: 160%;
 		transform: rotate(var(--angle, 0deg));
-		background: repeating-linear-gradient(45deg, #f5c518 0, #f5c518 14px, #111 14px, #111 28px);
-		border-top: 2px solid #111;
-		border-bottom: 2px solid #111;
-		padding: 0.25rem 0;
+		background: repeating-linear-gradient(
+			45deg,
+			var(--tape-alarm) 0,
+			var(--tape-alarm) 14px,
+			var(--tape-stripe-dark) 14px,
+			var(--tape-stripe-dark) 28px
+		);
+		border-top: 2px solid var(--tape-stripe-dark);
+		border-bottom: 2px solid var(--tape-stripe-dark);
+		padding: var(--space-2xs) 0;
 		text-align: center;
 		white-space: nowrap;
 		overflow: hidden;
@@ -73,10 +79,11 @@
 
 	.tape-text {
 		display: inline-block;
-		padding: 0.1rem 0.4rem;
-		font-weight: 800;
+		padding: 0.1rem var(--space-2xs);
+		font-family: var(--font-display);
+		font-weight: 700;
 		letter-spacing: 0.08em;
-		color: #111;
+		color: var(--tape-stripe-dark);
 		background: rgba(245, 197, 24, 0.9);
 		text-transform: uppercase;
 	}

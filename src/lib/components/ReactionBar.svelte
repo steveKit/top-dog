@@ -81,3 +81,59 @@
 		</ul>
 	{/if}
 </div>
+
+<style>
+	/* Cosmetic reaction flair, themed against the temple tokens. Chips read as
+	   faint gold plaques; the viewer's own reaction (aria-pressed) lights gold. */
+	.reaction-bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-sm);
+		margin: var(--space-sm) 0;
+	}
+
+	.chips,
+	.picker {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-xs);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.reaction-bar button {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2xs);
+		padding: var(--space-2xs) var(--space-xs);
+		background: var(--accent-fill);
+		border: 1px solid var(--accent-border);
+		border-radius: var(--radius-control);
+		font-family: var(--font-display);
+		font-size: var(--text-eyebrow);
+		letter-spacing: var(--tracking-tight);
+		color: var(--color-text-muted);
+		cursor: pointer;
+		line-height: 1.4;
+	}
+
+	.reaction-bar button:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--color-text);
+	}
+
+	/* The viewer's own reaction reads gold — not by color alone: the chip also
+	   carries a trailing "✓" from the markup. */
+	.chips button[aria-pressed='true'] {
+		background: var(--accent-fill-strong);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.reaction-bar button:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+</style>

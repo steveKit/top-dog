@@ -306,7 +306,7 @@ no infra names.**
 
 ---
 
-### TASK-082: Build `/sign-in` — real email/password form + server action [`blocked`] [`P1`] [`M`] (`design-light`)
+### TASK-082: Build `/sign-in` — real email/password form + server action [`in_progress`] [`P1`] [`M`] (`design-light`)
 
 **Owner:** unassigned
 **Dependencies:** `DESIGNS` (sign-in page design); mirror the existing

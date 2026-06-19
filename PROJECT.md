@@ -80,6 +80,19 @@ decision table stays at **#28** until TASK-086 is implemented (TASK-087 and TASK
 added no migration / no new dependency / no new decision row). See
 [[tasks/milestone-08-snacktum-snacktorum-rebrand]].
 
+**Ad-hoc M8 follow-up (not a numbered task) — themed inline form validation landed
+and is now an app-wide convention (PR #109, squash `6c00c1c`, 2026-06-19).** A themed,
+accessible, **inline client-side validation layer** replaced the browser's native
+HTML5 validation bubble on the auth-gate forms — new modules
+`src/lib/features/forms/` (`validationMessage.ts` pure + `createFormValidation()`
+rune) and `src/lib/motion/reducedMotion.ts` (`errorSlideFade`). It is recorded as a
+**binding convention** (see the [[CLAUDE]] "Forms & validation" subsection): **themed
+inline validation is the standard for EVERY form with required / empty-able fields;
+the native bubble is never used**, applied as each form-bearing page is built /
+reworked (rollout tracked as DW-032). **M8 stays 4/10** (not a queued task); **no
+migration, no new dependency, no new architecture-decision row** (the decision table
+stays at **#28**).
+
 The carried-over open follow-up is the standing hosted bring-up gate: the **two
 outstanding M7 hosted pushes** (`burger_alarms` + `burger_verdicts`, user's hand — no
 auto-pause risk; see Process notes), **plus a TASK-083 hosted CONFIG item — the hosted

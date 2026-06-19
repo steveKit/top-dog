@@ -213,7 +213,7 @@ verbatim — like the page names above, they are decided, not open:
 > pre-design estimates and may move once designs land. Do **not** dispatch until
 > the user activates after delivering designs.
 
-### TASK-080: Global app shell + persistent navigation [`blocked`] [`P1`] [`M`] (`design-light`)
+### TASK-080: Global app shell + persistent navigation [`in_progress`] [`P1`] [`M`] (`design-light`)
 
 **Owner:** unassigned
 **Dependencies:** `DESIGNS` (nav layout / branding); pairs with the existing

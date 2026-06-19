@@ -32,8 +32,10 @@ new infra, no new deps expected.** 10 tasks (TASK-080…TASK-089; TASK-089 = the
 badge "Reliquary", a purely-derived read-only addition — no schema/migration/dependency,
 un-forgeable by construction).
 
-> **🔨 BUILDING — activated 2026-06-19. TASK-087 + TASK-080 + TASK-083 complete (3/10);
-> next: TASK-082 (sign-in) or TASK-081 (copy).**
+> **🔨 BUILDING — activated 2026-06-19. TASK-087 + TASK-080 + the auth cluster
+> TASK-083 + TASK-082 complete (4/10) — auth is now functional end-to-end (sign-in /
+> forgot / reset); next: TASK-081 (copy), TASK-084 (ritual sign-up), or TASK-085
+> (profile).**
 > TASK-087 (base cult visual / theme layer, PR #99 `dcce8c3`) landed the M8 FOUNDATION:
 > a tokenized dark-temple CSS layer (`src/lib/styles/tokens.css`, imported by
 > `src/app.css`) every downstream task consumes via `var(--…)` tokens (accents switch via
@@ -56,7 +58,16 @@ un-forgeable by construction).
 > `otp_length = 6`), director-verified by a live Mailpit round-trip; `pnpm test` 793; **no
 > migration / no new dependency / no new decision row** (the template + `otp_length` are
 > config). Adds a hosted CONFIG item to the standing ops gate (below) + DW-029
-> (`MIN_PASSWORD_LENGTH` duplication).
+> (`MIN_PASSWORD_LENGTH` duplication). **TASK-082 (build `/sign-in`, PR #105 `5445002`)**
+> then CLOSED the auth cluster: the real themed sign-in form ("Enter the Snacktum") with a
+> default action → `signInWithPassword` on `event.locals.supabase` → on success
+> `redirect(303,'/app')` through the auth cascade (profile-less → `/app/onboarding`),
+> **non-enumerating** (one generic error; password never echoed; raw errors server-side
+> only). A new `tests/sign-in.e2e.ts` `@smoke` spec signs a seeded user in through the
+> real form and asserts the onboarding funnel — live suite now **5/5**. Reviewer APPROVE,
+> **0 fix cycles**; `pnpm test` 801 (8 new action tests); **no migration / no new
+> dependency / no new decision row** (table stays #28) + DW-030 (untyped `form` prop /
+> `ActionData` across the auth pages). **Auth is now functional end-to-end.**
 >
 > **Designs are mostly in:** almost every page is mocked — the app shell, the auth cluster
 > (Log In, Reset Password, Onboarding), The Procession, The Shrine (profile), Your Litter,

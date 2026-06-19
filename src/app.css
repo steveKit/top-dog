@@ -176,7 +176,7 @@ img {
 }
 
 /* ===================================================================== */
-/* Layout system — the redesigned successor to .page-container / .app-nav     */
+/* Layout system — the .page-container reading column                          */
 /* ===================================================================== */
 
 /* Centered single column. Caps the reading measure on wide screens with
@@ -186,34 +186,6 @@ img {
 	max-width: var(--measure-content);
 	margin: 0 auto;
 	padding: var(--space-xl) var(--space-lg) var(--space-3xl);
-}
-
-/* App navigation: a horizontal bar of Cinzel uppercase links that wraps onto
-   multiple lines instead of overflowing on narrow viewports. */
-.app-nav {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-sm) var(--space-xl);
-	align-items: center;
-	padding-bottom: var(--space-md);
-	margin-bottom: var(--space-xl);
-	border-bottom: 1px solid var(--accent-divider);
-}
-
-.app-nav a {
-	font-family: var(--font-display);
-	font-size: var(--text-label);
-	font-weight: 600;
-	letter-spacing: var(--tracking-label);
-	text-transform: uppercase;
-	color: var(--color-text-muted);
-	text-decoration: none;
-	white-space: nowrap;
-	padding: var(--space-2xs) 0;
-}
-
-.app-nav a:hover {
-	color: var(--color-heading);
 }
 
 /* ===================================================================== */

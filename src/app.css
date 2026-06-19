@@ -162,6 +162,53 @@ select:focus-visible,
 	border-radius: var(--radius-control);
 }
 
+/* Autofill: keep the dark-temple theme when a password manager fills a field.
+   The UA stylesheet paints :-webkit-autofill with a SOLID white/yellow
+   background and its own text fill + font, overriding our input styling.
+   `background-color` can't win against the UA rule, so we MASK it with an inset
+   box-shadow the full size of the field.
+
+   The mask MUST be opaque. The resting input fill is --accent-fill, a very
+   translucent gold tint (rgba(…, 0.05)) that reads correctly ONLY because it
+   sits over the opaque dark temple surface. A single inset shadow in that
+   translucent color does NOT hide the UA's solid white autofill background — the
+   white bleeds through the ~5%-opaque mask. (The earlier single-shadow version
+   looked fine while the password-manager preview was open, then turned white the
+   instant autofill committed.) We therefore STACK two inset shadows to rebuild
+   the resting appearance from opaque pixels up: an opaque dark base
+   (--color-bg, the sanctuary surface the inputs sit on) first, then the
+   translucent --accent-fill gold tint on top — visually identical to a
+   normally-typed field (--accent-fill over --color-bg), with zero white in BOTH
+   the preview and committed states.
+
+   Text color must go through -webkit-text-fill-color (plain `color` is ignored
+   on autofill); the font is forced back to --font-body. The 9999s
+   background-color transition is a belt-and-suspenders guard against the UA bg
+   flashing back. Spread bumped to 1000px for safety. Global base rule so it
+   covers the gate-page inputs AND any in-app inputs. The mask is INSET (inside
+   the border) so the separate :focus-visible outline ring is unaffected.
+   `input:autofill` (unprefixed standard selector) is added for non-Chromium
+   engines that support it. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+input:autofill,
+input:autofill:hover,
+input:autofill:focus,
+input:autofill:active {
+	-webkit-text-fill-color: var(--color-text);
+	-webkit-box-shadow:
+		inset 0 0 0 1000px var(--color-bg),
+		inset 0 0 0 1000px var(--accent-fill);
+	box-shadow:
+		inset 0 0 0 1000px var(--color-bg),
+		inset 0 0 0 1000px var(--accent-fill);
+	caret-color: var(--color-text);
+	font-family: var(--font-body);
+	transition: background-color 9999s ease-in-out 0s;
+}
+
 /* Validation / error text reads in warm rust (never color alone — callers pair
    it with role="alert" / explicit copy). */
 [role='alert'] {

@@ -248,6 +248,11 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# Password-recovery email: code flow (emits the 6-digit {{ .Token }}, not a link).
+[auth.email.template.recovery]
+subject = "Your recovery rite — Snacktum Snacktorum"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

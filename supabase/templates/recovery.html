@@ -1,0 +1,155 @@
+<!--
+  Password-recovery email template for Top Dog ("Snacktum Snacktorum" cult voice).
+  CODE FLOW, not link flow: emits the 6-digit {{ .Token }} only.
+  Do NOT reference {{ .ConfirmationURL }} here — the reset page verifies the typed code.
+  HTML-email-safe: inline styles only, no external CSS/fonts, only the Supabase
+  {{ .Token }} variable is interpolated (no user-controlled input).
+-->
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Your recovery rite</title>
+	</head>
+	<body style="margin: 0; padding: 0; background-color: #0b0b0d">
+		<table
+			role="presentation"
+			width="100%"
+			cellpadding="0"
+			cellspacing="0"
+			style="background-color: #0b0b0d; padding: 32px 0"
+		>
+			<tr>
+				<td align="center">
+					<table
+						role="presentation"
+						width="100%"
+						cellpadding="0"
+						cellspacing="0"
+						style="
+							max-width: 480px;
+							background-color: #161618;
+							border: 1px solid #2a2a2e;
+							border-radius: 12px;
+							overflow: hidden;
+						"
+					>
+						<tr>
+							<td
+								style="
+									padding: 28px 32px 8px 32px;
+									font-family: Georgia, 'Times New Roman', serif;
+									color: #f5c518;
+									font-size: 13px;
+									letter-spacing: 2px;
+									text-transform: uppercase;
+								"
+							>
+								Snacktum Snacktorum
+							</td>
+						</tr>
+						<tr>
+							<td
+								style="
+									padding: 0 32px 16px 32px;
+									font-family: Georgia, 'Times New Roman', serif;
+									color: #ffffff;
+									font-size: 22px;
+									font-weight: bold;
+								"
+							>
+								A recovery rite has been opened
+							</td>
+						</tr>
+						<tr>
+							<td
+								style="
+									padding: 0 32px 20px 32px;
+									font-family: Arial, Helvetica, sans-serif;
+									color: #c7c7cc;
+									font-size: 15px;
+									line-height: 1.5;
+								"
+							>
+								The temple has heard your plea. To reclaim your place at the altar, speak the sacred
+								six-digit sigil below upon the reset-password page.
+							</td>
+						</tr>
+						<tr>
+							<td style="padding: 0 32px 8px 32px">
+								<table
+									role="presentation"
+									width="100%"
+									cellpadding="0"
+									cellspacing="0"
+									style="background-color: #000000; border: 1px solid #f5c518; border-radius: 8px"
+								>
+									<tr>
+										<td
+											align="center"
+											style="
+												padding: 22px 16px;
+												font-family: 'Courier New', Courier, monospace;
+												color: #f5c518;
+												font-size: 38px;
+												font-weight: bold;
+												letter-spacing: 10px;
+											"
+										>
+											{{ .Token }}
+										</td>
+									</tr>
+								</table>
+							</td>
+						</tr>
+						<tr>
+							<td
+								style="
+									padding: 16px 32px 4px 32px;
+									font-family: Arial, Helvetica, sans-serif;
+									color: #c7c7cc;
+									font-size: 14px;
+									line-height: 1.5;
+								"
+							>
+								Enter this code on the
+								<span style="color: #f5c518">/reset-password</span> page to set a new password.
+							</td>
+						</tr>
+						<tr>
+							<td
+								style="
+									padding: 0 32px 24px 32px;
+									font-family: Arial, Helvetica, sans-serif;
+									color: #8e8e93;
+									font-size: 13px;
+									line-height: 1.5;
+								"
+							>
+								This sigil expires in <strong style="color: #c7c7cc">1 hour</strong>. If you did not
+								summon a recovery rite, ignore this message and your vigil remains unbroken.
+							</td>
+						</tr>
+						<tr>
+							<td
+								style="
+									padding: 16px 32px;
+									background-color: #0e0e10;
+									border-top: 1px solid #2a2a2e;
+									font-family: Georgia, 'Times New Roman', serif;
+									color: #6c6c70;
+									font-size: 11px;
+									letter-spacing: 1px;
+									text-transform: uppercase;
+								"
+							>
+								Devour. Ascend. Reign as Top Dog.
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

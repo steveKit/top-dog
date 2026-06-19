@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
+	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
+	import { errorSlideFade } from '$lib/motion/reducedMotion';
 
 	let { form } = $props();
 
@@ -11,6 +13,10 @@
 
 	// Loading affordance for use:enhance — disabled + relabelled while in flight.
 	let submitting = $state(false);
+
+	// Themed inline client-side validation (replaces the native bubble). The
+	// server still validates authoritatively; this is purely the UX layer.
+	const validation = createFormValidation();
 </script>
 
 <svelte:head>
@@ -28,13 +34,14 @@
 
 	<form
 		method="POST"
-		use:enhance={() => {
+		novalidate
+		use:enhance={validation.enhance(() => {
 			submitting = true;
 			return async ({ update }) => {
 				await update();
 				submitting = false;
 			};
-		}}
+		})}
 	>
 		<label>
 			<span class="field-label">Mustard Address</span>
@@ -45,7 +52,20 @@
 				autocomplete="email"
 				placeholder="you@mustard.condiment"
 				required
+				aria-invalid={validation.invalid('email')}
+				aria-describedby={validation.describedBy('email')}
+				oninput={validation.clearOnInput}
 			/>
+			{#if validation.errors.email}
+				<p
+					class="field-error"
+					role="alert"
+					id={validation.errorId('email')}
+					transition:errorSlideFade
+				>
+					{validation.errors.email}
+				</p>
+			{/if}
 		</label>
 
 		<label>
@@ -56,7 +76,20 @@
 				autocomplete="current-password"
 				placeholder="known only to thee and the Tube"
 				required
+				aria-invalid={validation.invalid('password')}
+				aria-describedby={validation.describedBy('password')}
+				oninput={validation.clearOnInput}
 			/>
+			{#if validation.errors.password}
+				<p
+					class="field-error"
+					role="alert"
+					id={validation.errorId('password')}
+					transition:errorSlideFade
+				>
+					{validation.errors.password}
+				</p>
+			{/if}
 		</label>
 
 		<button class="btn-relic" type="submit" disabled={submitting}>

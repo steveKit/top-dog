@@ -121,25 +121,25 @@ For grounding — the current user-facing routes (≈14 pages) the copy/theme/re
 pass must cover (all under `src/routes`). The **Cult name** column carries the
 CONFIRMED themed display names where the user has decided one; see the
 **Page Naming Map** below for the full mapping + rationale, and **OQ-5** for the
-six pages still TBD.
+one page name still TBD (dog detail; the other OQ-5 pages are now resolved).
 
-| Route                            | File(s)                                               | Cult name                                                  | Touched by                                        |
-| -------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------- |
-| `/sign-up`                       | `sign-up/+page.svelte` (+ `+page.server.ts`)          | **Take the Casing**                                        | copy, ritual sign-up, theme                       |
-| `/sign-in`                       | `sign-in/+page.svelte` (**stub — no action**)         | _TBD (OQ-5)_                                               | **build the form/action**, copy, theme            |
-| `/forgot-password`               | **does not exist**                                    | _(new — name w/ designs)_                                  | **new**                                           |
-| `/reset-password`                | **does not exist**                                    | _(new — name w/ designs)_                                  | **new**                                           |
-| `/app` (home / "kennel")         | `(protected)/app/+page.svelte`                        | _TBD (OQ-5)_ — **see note: retired/absorbed by the shell** | copy, app-shell, theme                            |
-| `/app` shell                     | `(protected)/app/+layout.svelte` (**does not exist**) | _(chrome, not a page)_                                     | **new app-shell + nav**                           |
-| `/app/onboarding`                | `(protected)/app/onboarding/+page.svelte`             | **Choose Your Frank Name**                                 | ritual sign-up (may absorb), copy, theme          |
-| `/app/feed`                      | `(protected)/app/feed/+page.svelte`                   | **The Procession: Standings of the Blessed**               | copy (title swap), theme                          |
-| `/app/dogs` (+ `/app/dogs/[id]`) | `(protected)/app/dogs/...`                            | **Your Litter** (`/app/dogs`); `[id]` _TBD (OQ-5)_         | copy, theme                                       |
-| `/app/profile/[handle]`          | `(protected)/app/profile/[handle]/+page.svelte`       | _TBD (OQ-5)_                                               | **profile redesign**, display-name, Anoint, theme |
-| `/app/messages` (+ `/[handle]`)  | `(protected)/app/messages/...`                        | _TBD (OQ-5)_                                               | copy, theme                                       |
-| `/app/invite`                    | `(protected)/app/invite/+page.svelte`                 | **Summon a Frank**                                         | copy, theme                                       |
-| `/app/court`                     | `(protected)/app/court/+page.svelte`                  | **The Tribunal of the Holy Tube**                          | copy (title swap), theme                          |
-| `/app/help`                      | `(protected)/app/help/+page.svelte`                   | **The Catechism**                                          | copy (title swap + lore), theme                   |
-| error / 404                      | `+error.svelte` (**does not exist**)                  | _(new — name w/ designs)_                                  | **new**                                           |
+| Route                            | File(s)                                               | Cult name                                                   | Touched by                                        |
+| -------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| `/sign-up`                       | `sign-up/+page.svelte` (+ `+page.server.ts`)          | **Take the Casing**                                         | copy, ritual sign-up, theme                       |
+| `/sign-in`                       | `sign-in/+page.svelte` (**stub — no action**)         | **Enter the Snacktum** (heading)                            | **build the form/action**, copy, theme            |
+| `/forgot-password`               | **does not exist**                                    | _(new — name w/ designs)_                                   | **new**                                           |
+| `/reset-password`                | **does not exist**                                    | _(new — name w/ designs)_                                   | **new**                                           |
+| `/app` (home / "kennel")         | `(protected)/app/+page.svelte`                        | **N/A** — retired/absorbed by the shell (redirects to feed) | copy, app-shell, theme                            |
+| `/app` shell                     | `(protected)/app/+layout.svelte` (**does not exist**) | _(chrome, not a page)_                                      | **new app-shell + nav**                           |
+| `/app/onboarding`                | `(protected)/app/onboarding/+page.svelte`             | **Choose Your Frank Name**                                  | ritual sign-up (may absorb), copy, theme          |
+| `/app/feed`                      | `(protected)/app/feed/+page.svelte`                   | **The Procession: Standings of the Blessed**                | copy (title swap), theme                          |
+| `/app/dogs` (+ `/app/dogs/[id]`) | `(protected)/app/dogs/...`                            | **Your Litter** (`/app/dogs`); `[id]` _TBD (OQ-5)_          | copy, theme                                       |
+| `/app/profile/[handle]`          | `(protected)/app/profile/[handle]/+page.svelte`       | **The Shrine**                                              | **profile redesign**, display-name, Anoint, theme |
+| `/app/messages` (+ `/[handle]`)  | `(protected)/app/messages/...`                        | **Epistles** (inbox) / **Whispers** (thread)                | copy, theme                                       |
+| `/app/invite`                    | `(protected)/app/invite/+page.svelte`                 | **Summon a Frank**                                          | copy, theme                                       |
+| `/app/court`                     | `(protected)/app/court/+page.svelte`                  | **The Tribunal of the Holy Tube**                           | copy (title swap), theme                          |
+| `/app/help`                      | `(protected)/app/help/+page.svelte`                   | **The Catechism**                                           | copy (title swap + lore), theme                   |
+| error / 404                      | `+error.svelte` (**does not exist**)                  | _(new — name w/ designs)_                                   | **new**                                           |
 
 > **`/` redirect:** `/` currently redirects to `/app` (post-M7 scaffold cleanup,
 > PR #89). **M8 repoints it to `/app/feed`** — see the **Default landing route**
@@ -161,20 +161,27 @@ names** — the copy pass MUST use the confirmed strings below verbatim (subject
 the designs' final voice/casing) and MUST NOT invent alternatives for the
 already-decided routes.
 
-| Route (UNCHANGED) | Cult display name (CONFIRMED)                |
-| ----------------- | -------------------------------------------- |
-| `/sign-up`        | **Take the Casing**                          |
-| `/app/onboarding` | **Choose Your Frank Name**                   |
-| `/app/dogs`       | **Your Litter**                              |
-| `/app/feed`       | **The Procession: Standings of the Blessed** |
-| `/app/court`      | **The Tribunal of the Holy Tube**            |
-| `/app/invite`     | **Summon a Frank**                           |
-| `/app/help`       | **The Catechism**                            |
+| Route (UNCHANGED)        | Cult display name (CONFIRMED)                |
+| ------------------------ | -------------------------------------------- |
+| `/sign-up`               | **Take the Casing**                          |
+| `/sign-in`               | **Enter the Snacktum** (page heading)        |
+| `/app/onboarding`        | **Choose Your Frank Name**                   |
+| `/app/dogs`              | **Your Litter**                              |
+| `/app/feed`              | **The Procession: Standings of the Blessed** |
+| `/app/profile/[handle]`  | **The Shrine**                               |
+| `/app/messages`          | **Epistles**                                 |
+| `/app/messages/[handle]` | **Whispers**                                 |
+| `/app/court`             | **The Tribunal of the Holy Tube**            |
+| `/app/invite`            | **Summon a Frank**                           |
+| `/app/help`              | **The Catechism**                            |
 
-> Six further pages are **not yet themed** — `/app` home/hub, `/sign-in`,
-> `/app/dogs/[id]`, `/app/profile/[handle]`, `/app/messages`, `/app/messages/[handle]`.
-> Their names are tracked as **OQ-5** (with non-binding suggested options) and must
-> be resolved with the user before TASK-081 finalizes their copy.
+> **OQ-5 is now mostly resolved** (2026-06-18, from the user's mockup filenames):
+> `/sign-in` → **Enter the Snacktum**, `/app/profile/[handle]` → **The Shrine**,
+> `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers** are all
+> CONFIRMED above. The `/app` home/hub is **retired/absorbed** (redirects to The
+> Procession — see § Default landing route), so it needs no display name. **Only the
+> dog-detail page (`/app/dogs/[id]`) name remains OPEN** under **OQ-5** — resolve it
+> with the user before TASK-081 finalizes that page's copy.
 
 ### Confirmed cult copy beyond page names (verdict / brand labels)
 
@@ -318,14 +325,16 @@ no infra names.**
       **source of truth** for those strings — apply the **CONFIRMED** names verbatim
       (subject to the designs' final casing/voice) to each route's `<title>`,
       top-level heading, and nav label:
-      `/sign-up` → **Take the Casing**, `/app/onboarding` → **Choose Your Frank
-      Name**, `/app/dogs` → **Your Litter**, `/app/feed` → **The Procession:
-      Standings of the Blessed**, `/app/court` → **The Tribunal of the Holy Tube**,
-      `/app/invite` → **Summon a Frank**, `/app/help` → **The Catechism**.
-      The **six TBD pages** (`/app` home, `/sign-in`, `/app/dogs/[id]`,
-      `/app/profile/[handle]`, `/app/messages`, `/app/messages/[handle]`) await
-      **OQ-5** — do **not** invent names for them; use the user-decided strings once
-      OQ-5 resolves. URL paths and code identifiers stay UNCHANGED (skin, not
+      `/sign-up` → **Take the Casing**, `/sign-in` heading → **Enter the Snacktum**,
+      `/app/onboarding` → **Choose Your Frank Name**, `/app/dogs` → **Your Litter**,
+      `/app/feed` → **The Procession: Standings of the Blessed**,
+      `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**,
+      `/app/messages/[handle]` → **Whispers**, `/app/court` → **The Tribunal of the
+      Holy Tube**, `/app/invite` → **Summon a Frank**, `/app/help` → **The Catechism**.
+      The **`/app` home/hub is retired** (redirects to The Procession — no name
+      needed). **Only the dog-detail page (`/app/dogs/[id]`) name remains TBD** under
+      **OQ-5** — do **not** invent a name for it; use the user-decided string once
+      OQ-5 fully resolves. URL paths and code identifiers stay UNCHANGED (skin, not
       skeleton).
 - [ ] **App name** "Snacktum Snacktorum" replaces "Top Dog" as the product/brand
       name in: page `<title>`s, top-level headings, the sign-in/sign-up copy
@@ -677,18 +686,22 @@ current page is the "before."
 ### TASK-086: "Anoint" — mustard re-theme [`blocked`] [`P2`] [`M`]
 
 **Owner:** unassigned
-**Dependencies:** `DESIGNS` + **the resolution of OQ-2 (all four sub-decisions)**;
-TASK-085 (profile redesign hosts the overlay), TASK-081 (copy). Touches the
-mustard surface: `(protected)/app/profile/[handle]/+page.svelte`, the spray action,
-and the render-time `mustardOpacity` overlay — **NOT** the `mustard_sprays` table,
-the `spray` write path's authorization, or `prune_mustard_sprays`, unless OQ-2
-explicitly decides a behavior change.
+**Dependencies:** `DESIGNS` + **the resolution of OQ-2 (all five sub-decisions —
+OQ-2a..e)**; TASK-085 (profile redesign hosts the overlay **and the wall** the
+anoint-notice composes into), TASK-081 (copy). Touches the mustard surface:
+`(protected)/app/profile/[handle]/+page.svelte`, the spray action, the render-time
+`mustardOpacity` overlay, **and the wall render** (where the derived, coalesced
+anoint-notice is composed in alongside `wall_messages` — read-only, no write) —
+**NOT** the `mustard_sprays` table, the `wall_messages` table/immutability, the
+`spray` write path's authorization, or `prune_mustard_sprays`, unless OQ-2 explicitly
+decides a behavior change.
 
 **Scope (DEFERRED until OQ-2 is decided):** rename the Top-Dog mustard-spray action
 to **"Anoint"** (the champion bestows a blessing — a "splat" of mustard) in
-user-facing copy and re-theme the visual. **Four sub-decisions are OPEN — do NOT
-guess; resolve with the designs (see OQ-2).** Recommended low-risk defaults noted,
-but the call is the user's:
+user-facing copy, re-theme the visual, **and surface a derived, coalesced
+"anoint → wall notice"** on the anointed member's wall (OQ-2e). **Five sub-decisions
+are OPEN — do NOT guess; resolve with the designs (see OQ-2).** Recommended low-risk
+defaults noted, but the call is the user's:
 
 - **OQ-2a — who may Anoint:** keep it **Top-Dog / "Anointed Wiener"-gated**
   _(RECOMMENDED — low-risk, preserves the decision #25 `WITH CHECK` authorization on
@@ -702,6 +715,15 @@ but the call is the user's:
 - **OQ-2d — decay:** does an anointing still **decay (~24h)** _(RECOMMENDED — keep
   decision #15's render-time decay, no DB/cron change)_ or become **permanent**
   _(would change the decay model / prune job)_.
+- **OQ-2e — the derived anoint → wall notice** (the new sub-decision): **RESOLVED**
+  (2026-06-18). Render-time derived from `mustard_sprays`, coalesced into one "×N"
+  notice — no schema/write-path (see the AC below). Both specifics are now decided:
+  **(i) coalescing window — a rolling 24h that RESETS at each anointing:** successive
+  anoints collapse into the SAME notice as long as each lands within 24h of the
+  previous one (the window slides forward with each anoint); a gap of **>24h** ends that
+  burst and the next anoint starts a **new** notice. **(ii) the wall notice PERSISTS**
+  as a lasting record — only the visual mustard **overlay** decays (~24h, OQ-2d). Both
+  are render-time-only — **no DB/cron/schema impact.**
 
 **Acceptance Criteria (scoped to the RECOMMENDED defaults — re-scope if OQ-2 chooses
 otherwise):**
@@ -710,6 +732,21 @@ otherwise):**
       (the profile action button, the Top-Dog-privileges notice guidance, any help
       text). Code identifiers (`mustard_sprays`, `mustardOpacity`, the `spray` action
       name, `prune_mustard_sprays`) **stay unchanged** (scope box).
+- [ ] **Derived, coalesced "anoint → wall notice" (see OQ-2e).** When a member is
+      anointed, their **wall shows a notice** attributing it to **The Anointed
+      Wiener**; rapid successive anoints **coalesce into ONE notice listing the
+      count** ("The Anointed Wiener anointed you ×N"). **This is RENDER-TIME DERIVED
+      from the existing `mustard_sprays` rows — NO new schema, NO new table, NO new
+      write path, and NO change to `wall_messages` immutability.** The wall render
+      composes the real `wall_messages` with a **synthesized** anoint-notice derived
+      from `mustard_sprays` (which already records every anoint with a timestamp; the
+      sprayer is always the reigning champion per decision #25), grouped/coalesced by
+      a **rolling-24h window that resets at each anointing** (OQ-2e, resolved: a >24h
+      gap ends a burst and starts a new notice) and sorted chronologically among the
+      wall messages. The notice **persists** as a lasting record (only the visual
+      overlay decays, ~24h). **Un-forgeable by construction** — the same derived,
+      no-write pattern as the Reliquary badges (TASK-089) / the alarm summarizer /
+      mustard decay; it stays inside M8's no-schema posture.
 - [ ] **Authorization preserved (if OQ-2a = keep-gated):** only the current crown
       holder may Anoint — the existing plain owner-scoped RLS write with the Top-Dog
       `WITH CHECK` conjunct on the non-client-writable `is_current_top_dog` column
@@ -1015,24 +1052,30 @@ user, alongside the designs**, then update the affected task(s) and flip them
 
 > **Resolution status (2026-06-18, [[Handoffs/handoff-016]]):** **OQ-1, the avatar
 > mechanism, OQ-3, OQ-4, and the reset flow are RESOLVED** (see the RESOLVED rows +
-> notes below). **OQ-2 (all four Anoint sub-decisions) and OQ-5 (the six TBD page
-> names) remain OPEN**, as do the not-yet-generated in-app page designs (Procession,
-> profile, Your Litter, dog detail, the Tribunal, messages inbox + thread, invite,
-> the Catechism, the error/404 page — to be generated from
-> `design/page-design-prompts.md`). The RESOLVED decisions are all user-facing /
+> notes below). **OQ-5 is now mostly resolved** — `/app/profile/[handle]` → **The
+> Shrine**, `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers**,
+> and the `/sign-in` heading → **Enter the Snacktum** are CONFIRMED (from the user's
+> mockup filenames); `/app` home is **N/A** (retired → The Procession); **only the
+> dog-detail (`/app/dogs/[id]`) name remains OPEN.** **OQ-2 remains OPEN** — the four
+> Anoint sub-decisions OQ-2a–d **plus a new sub-decision OQ-2e** (the derived,
+> coalesced anoint → wall notice; the approach is chosen — render-time from
+> `mustard_sprays`, no schema — only the coalescing window + persist-vs-fade are
+> open). Several in-app page designs are still to be generated from
+> `design/page-design-prompts.md`. The RESOLVED decisions are all user-facing /
 > skin-only — **no migration, no infra/code-identifier rename, no new
 > architecture-decision row** (the [[PROJECT]] decision table stays at #28).
 
-| ID        | Question                                                                                                                                                                                                                                                                      | Affects                                             | Recommended default                                                                                                                             | Status                           |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                         | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | **RESOLVED** (B-absorb)          |
-| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                       | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | OPEN                             |
-| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | OPEN                             |
-| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                     | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | OPEN                             |
-| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                    | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | OPEN                             |
-| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                    | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | **RESOLVED** (dark temple)       |
-| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                        | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | **RESOLVED** (self-hosted woff2) |
-| **OQ-5**  | **Cult display names for the six still-TBD pages** — `/app` home, `/sign-in`, `/app/dogs/[id]` (dog detail), `/app/profile/[handle]` (profile), `/app/messages` (DM inbox), `/app/messages/[handle]` (DM thread). The other seven page names are CONFIRMED (Page Naming Map). | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | OPEN                             |
+| ID        | Question                                                                                                                                                                                                                                                                                                                                                                                                | Affects                                             | Recommended default                                                                                                                             | Status                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **OQ-1**  | **Ritual sign-up scope:** cosmetic re-theme of the existing steps (Option A) vs. a multi-step "rite" (Option B) vs. a rite that **absorbs** the `/app/onboarding` `@handle`+avatar step into sign-up?                                                                                                                                                                                                   | TASK-084 (size + funnel-guard risk)                 | **A** (cosmetic re-theme) unless designs clearly call for a guided rite; **B-with-absorb** only if the designs show a single flowing initiation | **RESOLVED** (B-absorb)                    |
+| **OQ-2a** | **Who may "Anoint"?** Keep Top-Dog/"Anointed Wiener"-gated, or democratize to everyone?                                                                                                                                                                                                                                                                                                                 | TASK-086 (decision #25 authorization)               | **Keep gated** (preserves the non-client-writable-crown `WITH CHECK`; low-risk)                                                                 | OPEN                                       |
+| **OQ-2b** | **Anoint vs reactions:** does Anoint **replace** reactions, **re-theme the mustard spray**, or **merge** them?                                                                                                                                                                                                                                                                                          | TASK-086 (+ reactions surface)                      | **Re-theme the mustard spray** (smallest change; reactions untouched)                                                                           | OPEN                                       |
+| **OQ-2c** | **Anoint visual:** **splat** vs **drip**?                                                                                                                                                                                                                                                                                                                                                               | TASK-086, TASK-087                                  | Per designs (no architectural impact either way)                                                                                                | OPEN                                       |
+| **OQ-2d** | **Anoint decay:** still **decays ~24h**, or **permanent**?                                                                                                                                                                                                                                                                                                                                              | TASK-086 (decision #15 + prune job)                 | **Decays ~24h** (keeps render-time decay; no DB/cron change)                                                                                    | OPEN                                       |
+| **OQ-2e** | **Anoint → wall notice** (derived, coalesced; approach already chosen — render-time from `mustard_sprays`, NO schema/write-path). Two specifics open: **(i)** the **coalescing window** (what counts as "quick succession"); **(ii)** **persist vs. fade** of the wall notice.                                                                                                                          | TASK-086 (wall render — derived, read-only)         | **(i)** rolling "×N within ~an hour" (or a 24h bucket); **(ii)** **persists** as a lasting record (overlay still decays per OQ-2d). No DB/cron. | OPEN                                       |
+| **OQ-3**  | **Overall visual theme** — palette, type scale, ceremonial font, density, the cult "vibe."                                                                                                                                                                                                                                                                                                              | TASK-087 (and every page's look)                    | **Pending the designs** — this is the core thing the designs deliver                                                                            | **RESOLVED** (dark temple)                 |
+| **OQ-4**  | **Custom display/ceremonial font?** If yes, self-hosted `.woff2` vs. a font package (dependency gate).                                                                                                                                                                                                                                                                                                  | TASK-087 (§ Possible Dependencies)                  | Self-hosted single `.woff2` or a system-font stack → **no new dependency**; only propose a package if designs require it                        | **RESOLVED** (self-hosted woff2)           |
+| **OQ-5**  | **Cult display names for the still-TBD pages.** **RESOLVED:** `/app/profile/[handle]` → **The Shrine**, `/app/messages` → **Epistles**, `/app/messages/[handle]` → **Whispers**, `/sign-in` heading → **Enter the Snacktum**. `/app` home → **N/A** (retired → redirects to The Procession). **Still OPEN:** `/app/dogs/[id]` (dog detail) only. The seven other names are CONFIRMED (Page Naming Map). | TASK-081 (applies the strings); the Page Naming Map | **Non-binding** director suggestions, user decides (see below)                                                                                  | **PARTLY RESOLVED** (only dog-detail OPEN) |
 
 ### RESOLVED decisions (2026-06-18) — bake these into the affected tasks at build time
 
@@ -1096,24 +1139,30 @@ Chrome.dc.html`.
   (+ the RESOLVED OQ-3 dark-temple palette + OQ-4 self-hosted Cinzel/Cormorant fonts).
 
 **Still NOT design-ready** (need the remaining in-app designs and/or the OPEN OQs):
-TASK-081 (copy — blocked on OQ-5's six page names), TASK-085 (profile redesign — needs
-the profile mockup), TASK-086 (Anoint — blocked on OQ-2's four sub-decisions),
-TASK-088 (error/404 — has a prompt, "The Lost Pilgrim", but no mockup yet), TASK-089
-(the derived badge reliquary — has a prompt, "The Reliquary" #12, but no mockup yet; the
-pure module + tests are design-independent and buildable first). Per § Next Steps in the
-handoff, build order on the user's "go" is theme → shell → sign-in → reset → ritual.
+TASK-081 (copy — OQ-5 now mostly resolved; only the dog-detail page name is still
+open), TASK-085 (profile redesign — needs the profile/The Shrine mockup), TASK-086
+(Anoint — blocked on OQ-2's sub-decisions OQ-2a–e, including the new derived
+anoint → wall-notice sub-decision OQ-2e), TASK-088 (error/404 — has a prompt, "The
+Lost Pilgrim", but no mockup yet), TASK-089 (the derived badge reliquary — has a
+prompt, "The Reliquary" #12, but no mockup yet; the pure module + tests are
+design-independent and buildable first). Per § Next Steps in the handoff, build order
+on the user's "go" is theme → shell → sign-in → reset → ritual.
 
-**OQ-5 — suggested options (NON-BINDING prompts; the user chooses the final names):**
+**OQ-5 — RESOLVED names + the one still-open option:**
 
-- **`/app` home/hub** (currently "kennel") — _The Sanctum_ / _The Inner Temple_ /
-  _Your Pew_. \_(Note: the hub is being retired/absorbed (see § Default landing route
-  - TASK-080); a name is only needed if the user keeps `/app` as a distinct landing
-    surface rather than redirecting it to The Procession.)\_
-- **`/sign-in`** — _Return to the Fold_
-- **`/app/dogs/[id]`** (dog detail) — _Veneration_ / _The Relic_
-- **`/app/profile/[handle]`** (profile) — _The Shrine_ / _Reliquary of the Faithful_
-- **`/app/messages`** + **`/app/messages/[handle]`** (DM inbox / thread) — _Epistles_
-  / _Whispers in the Sanctum_
+CONFIRMED (2026-06-18, from the user's mockup filenames — bake these into TASK-081):
+
+- **`/app/profile/[handle]`** (profile) → **The Shrine**
+- **`/app/messages`** (DM inbox) → **Epistles**
+- **`/app/messages/[handle]`** (DM thread) → **Whispers**
+- **`/sign-in`** heading → **Enter the Snacktum** (from the Log In design)
+- **`/app` home/hub** → **N/A** — retired/absorbed (redirects to The Procession; see
+  § Default landing route + TASK-080), so no display name is needed.
+
+STILL OPEN (the only remaining OQ-5 item):
+
+- **`/app/dogs/[id]`** (dog detail) — _Veneration_ / _The Relic_ (NON-BINDING
+  suggestions; the user chooses the final name).
 
 ---
 

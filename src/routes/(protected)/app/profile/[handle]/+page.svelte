@@ -375,7 +375,6 @@
 	}
 
 	.wall-post textarea:focus {
-		outline: none;
 		background: rgba(243, 233, 210, 0.07);
 	}
 

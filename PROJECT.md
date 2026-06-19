@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING** (activated 2026-06-19; TASK-087 theme + TASK-080 app shell + TASK-083 password recovery complete, 3/10)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING** (activated 2026-06-19; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in complete, 4/10 — auth is now functional end-to-end)
 **Last Updated:** 2026-06-19
 
 Invite-only social app for showing off homemade hot dogs. Users upload photos,
@@ -49,8 +49,24 @@ fix cycle added the load-bearing piece: a code-emitting recovery email template
 / `otp_length = 6` in `config.toml`), since Supabase's default email sends a link not a
 code — director-verified by a **live Mailpit round-trip** (a real 6-digit, code-only
 email; `pnpm test` 793; no migration, no new dependency, decision table stays #28). The
-user chose **6 digits over the design's 4-mark**. Next up is the rest of the auth cluster
-(TASK-082 sign-in) or TASK-081 (copy). **All design questions are now RESOLVED:** the ritual sign-up rite, the
+user chose **6 digits over the design's 4-mark**. **The fourth M8 task has now landed:
+TASK-082 — the real `/sign-in` (4/10), the second half of the auth cluster, which CLOSES
+it.** `/sign-in` was a non-functional stub (the dead destination of every unauthenticated
+bounce); it is now a real themed form ("Enter the Snacktum") with a default action calling
+**`signInWithPassword` on `event.locals.supabase`** → on success `redirect(303, '/app')`
+through the auth cascade (a profile-less member funnels on to `/app/onboarding`). The auth
+design is **non-enumerating** (a single generic error never distinguishing "no account"
+from "wrong password"; password never echoed; raw errors server-side only), matching the
+posture TASK-083 set for forgot/reset — so the whole cluster now reads as one consistent
+boundary. A new `tests/sign-in.e2e.ts` `@smoke` spec drives a **seeded user through the
+real form** and asserts the profile-less → `/app/onboarding` funnel (reusing the seeded
+inviter — no new fixture), growing the live suite to **5/5**. Reviewer APPROVE, **0 fix
+cycles** (two minor non-blocking notes); `pnpm check` 0, `pnpm lint` clean, `pnpm test`
+**801** (8 new sign-in action tests), `@smoke` 5/5 live on a fresh `supabase db reset`; **no
+migration, no new dependency, no new architecture-decision row** (table stays #28). **With
+this the M8 auth cluster is COMPLETE and functional end-to-end** — sign-in / forgot / reset
+all live-tested; a member can now log in through the UI for the first time. **Next: TASK-081
+(copy), TASK-084 (ritual sign-up), or TASK-085 (profile).** **All design questions are now RESOLVED:** the ritual sign-up rite, the
 5-sigil avatar mechanism, the dark-temple theme, the self-hosted Cinzel/Cormorant fonts,
 the 6-digit-OTP reset flow, plus (2026-06-19) **OQ-5** — the dog-detail page is **"The
 Relic"** — and **OQ-2** (all five Anoint sub-decisions: keep gated, re-theme the spray /

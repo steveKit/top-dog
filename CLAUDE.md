@@ -455,15 +455,15 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   no new decision row. Reuse this layering for any future hard upload/quota limit.
 - **Local dev (WSL).** `pnpm dev` binds the Vite server **inside WSL**, so a
   **Windows-native browser cannot reach the default bind** — run **`pnpm dev --host`**
-  and open `http://localhost:5173` (or the WSL IP) from Windows. **`/sign-in` is
-  currently a non-functional stub** (no form, no action — TASK-082 builds it in M8), so
-  there is **no working login UI yet**: to get into the app locally, use the \*\*sign-up
-  - invite path** (mint an invite at `/app/invite`, redeem via `/sign-up?token=…`). A
-    seeded dev login (`dev@topdog.test`) created via the service-role client becomes
-    directly usable **once sign-in is built**; **a `supabase db reset` wipes any seeded
-    user** — re-seed, or run `pnpm test:e2e --grep @smoke` (it mints
-    `smoke-inviter@topdog.test`). Password-recovery (reset) emails land in **Mailpit\*\*
-    (`http://localhost:54324`).
+  and open `http://localhost:5173` (or the WSL IP) from Windows. **`/sign-in` is now a
+  real working login form** (email/password → `signInWithPassword`, M8 TASK-082), so a
+  seeded dev login (`dev@topdog.test`, created via the service-role client) is directly
+  usable through the UI — or you can still use the **sign-up + invite path** (mint an
+  invite at `/app/invite`, redeem via `/sign-up?token=…`). **A `supabase db reset` wipes
+  any seeded user** — re-seed, or run `pnpm test:e2e --grep @smoke` (it mints
+  `smoke-inviter@topdog.test`). **Forgot/reset password also exist** (M8 TASK-083):
+  `/forgot-password` → a **6-digit recovery code** delivered locally to **Mailpit**
+  (`http://localhost:54324`) → enter it at `/reset-password` with a new password.
 - **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080).**
   `(protected)/app/+layout.svelte` renders the persistent header/nav across every
   `/app` route (🌭 home → The Procession `/app/feed`; feed / Your Litter / Epistles /

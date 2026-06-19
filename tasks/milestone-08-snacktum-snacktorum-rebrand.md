@@ -1,6 +1,6 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme) + TASK-080 (app shell) + TASK-083 (password reset) **complete** — 3/10. Next: TASK-082 (sign-in). **OQ-2 + OQ-5 FULLY RESOLVED (2026-06-19); dog-detail page = "The Relic"; TASK-086 adopts Option A — it WILL carry one migration (retire `prune_mustard_sprays`) + a likely decision #29.**
+> **Status:** `active` — **BUILDING** (activated 2026-06-19). TASK-087 (theme) + TASK-080 (app shell) + the **auth cluster** TASK-083 (reset) + TASK-082 (sign-in) **complete** — 4/10. Auth is now functional end-to-end (sign-in / forgot / reset). Next: TASK-081 (copy), TASK-084 (ritual sign-up), or TASK-085 (profile). **OQ-2 + OQ-5 FULLY RESOLVED (2026-06-19); dog-detail page = "The Relic"; TASK-086 adopts Option A — it WILL carry one migration (retire `prune_mustard_sprays`) + a likely decision #29.**
 > Index: [[TASKS]] · Architecture: [[PROJECT]] · Conventions: [[CLAUDE]]
 > **Goal:** Rebrand "Top Dog" → the hot-dog **CULT** app "Snacktum Snacktorum", and
 > redesign the user-facing surface — a global app shell + nav, the auth cluster
@@ -303,64 +303,6 @@ no infra names.**
   text (headings, button labels). Changing a string without updating its assertion
   turns a suite red — update both together.
 - No new dependency; no schema; no new architecture-decision row (copy only).
-
----
-
-### TASK-082: Build `/sign-in` — real email/password form + server action [`in_progress`] [`P1`] [`M`] (`design-light`)
-
-**Owner:** unassigned
-**Dependencies:** `DESIGNS` (sign-in page design); mirror the existing
-`sign-up/+page.server.ts` action structure.
-
-**Problem:** `/sign-in` is a **non-functional stub** — `sign-in/+page.svelte` is two
-lines (a heading + one sentence), with **no form and no `+page.server.ts`**. There
-is no way to actually sign in. The app guard redirects unauthenticated `/app`
-requests to `/sign-in` (`(protected)/app/+layout.server.ts` line 24), so this dead
-stub is the destination of every bounce — a real gap.
-
-**Acceptance Criteria:**
-
-- [ ] New **`sign-in/+page.server.ts`** with a default form action that calls
-      **`supabase.auth.signInWithPassword({ email, password })`** on
-      `event.locals.supabase` (the RLS-scoped per-request client), mirroring the
-      sign-up action's shape.
-- [ ] **Boundary validation** before the call (email format, non-empty password),
-      returning `fail(400, { email, error })` with friendly messages and echoing the
-      submitted `email` back to the form (mirror sign-up's pattern — never echo the
-      password).
-- [ ] On success, **`throw redirect(303, '/app')`**. On auth failure, a friendly,
-      **non-enumerating** error (e.g. "Those credentials didn't work." — do **not**
-      reveal whether the email exists). Raw Supabase errors logged server-side only,
-      never surfaced to the client (project error-handling convention).
-- [ ] **`sign-in/+page.svelte`** renders the real form (email + password inputs,
-      submit), wired with `use:enhance` and a submitting/loading affordance
-      (consistent with TASK-072's `use:enhance` patterns), Svelte 5 runes.
-- [ ] Links to **`/sign-up`** ("have an invite?") and **`/forgot-password`** (built
-      in TASK-083) per the designs.
-- [ ] **Auth-trust boundary respected:** the action uses `event.locals.supabase`;
-      the post-login session is established via the SSR cookie flow (hooks), and any
-      session read elsewhere goes through `safeGetSession()` (never raw
-      `getSession()`) — no change to that boundary, just don't regress it.
-- [ ] **Tests (the missing coverage):**
-  - unit/action coverage for the sign-in action: invalid email → `fail(400)`,
-    empty password → `fail(400)`, success → `redirect(303,'/app')`, auth error →
-    friendly non-enumerating `fail`. Model on `sign-up/signup-action.test.ts`.
-  - an **`@smoke` sign-in path**: a known seeded user signs in through the real
-    form and reaches `/app`. Extend the E2E harness/global-setup as needed (the
-    smoke harness already mints an invite + creates a user — reuse that user's
-    credentials to sign in). Keep the existing M1 `@smoke` slice green.
-- [ ] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      ≥ 4/4 + the new sign-in path**, `@security` green. No migration.
-
-**Notes (for the implementer):**
-
-- **`design-light`:** the action logic + tests are design-independent; only the page
-  markup/styling waits on designs. The user may unblock this early.
-- **Security (L2):** non-enumerating auth errors matter — do not leak
-  "no account with that email" vs "wrong password". Supabase's
-  `signInWithPassword` returns a generic invalid-credentials error; surface a single
-  friendly message for all failure modes.
-- No new dependency; no schema; no new architecture-decision row.
 
 ---
 
@@ -1146,6 +1088,82 @@ auth cluster. PR #103, squash `3e236be`, merged 2026-06-19. Reviewer APPROVE aft
 **Discovered during this task:** DW-029 (`MIN_PASSWORD_LENGTH` + the email pattern are
 duplicated across the auth pages — extract a shared `$lib/features/auth` validation
 module; see [[tasks/discovered]]).
+
+---
+
+### TASK-082: Build `/sign-in` — real email/password form + server action [`complete`] [`P1`] [`M`] (`design-light`)
+
+**Owner:** implementer — PR #105 (squash `5445002`), merged 2026-06-19. Reviewer
+APPROVE, 0 fix cycles (two minor non-blocking notes).
+
+**Problem:** `/sign-in` was a non-functional stub — the destination of every
+unauthenticated bounce was a dead page. Built the real sign-in.
+
+**Acceptance Criteria:**
+
+- [x] `sign-in/+page.server.ts` — default action → `signInWithPassword` on
+      `event.locals.supabase`.
+- [x] Boundary validation (email format + non-empty password) → `fail(400)` echoing
+      the email, never the password. (No password-length policy on login.)
+- [x] Success → `redirect(303, '/app')` (auth cascade routes profile-less →
+      `/app/onboarding`); non-enumerating generic error; raw errors server-side only.
+- [x] `sign-in/+page.svelte` — real themed form ("Enter the Snacktum"),
+      `use:enhance` + loading, Svelte 5 runes, no `{@html}`.
+- [x] Links to `/sign-up` + `/forgot-password` (both exist).
+- [x] Auth-trust boundary respected (`event.locals.supabase`; no secret key client-side).
+- [x] Tests: 8 action tests + `tests/sign-in.e2e.ts` `@smoke` sign-in path (reuses
+      the seeded inviter; asserts the onboarding funnel).
+- [x] Gates green: `pnpm check` 0, `pnpm lint` clean, `pnpm test` 801, **`@smoke` 5/5
+      live** (incl. the new sign-in path). No migration.
+
+**Notes:**
+
+The real `/sign-in` — the fourth M8 task (4/10) and the second half of the auth
+cluster. PR #105, squash `5445002`, merged 2026-06-19. Reviewer APPROVE, **0 fix
+cycles** (two minor non-blocking notes). **No migration, no new dependency, no new
+architecture-decision row** (the decision table stays at #28).
+
+- **Real sign-in action — replacing the dead stub.** `/sign-in` was previously a
+  non-functional stub (no form, no action), yet it is the destination of every
+  unauthenticated bounce from the `(protected)/app` layout guard — so the bounce
+  landed on a dead page. `sign-in/+page.server.ts` now adds a default action that
+  calls **`signInWithPassword` on `event.locals.supabase`** (the RLS-scoped,
+  auth-trust-boundary client — no secret key on the client). On success it
+  **`redirect(303, '/app')`**, letting the existing auth cascade do the routing: a
+  signed-in but **profile-less** member is funneled on to `/app/onboarding`, an
+  established member to The Procession (`/app/feed`).
+- **Non-enumerating auth design.** Boundary validation (email format + non-empty
+  password) returns `fail(400, { email, error })` with the **password never echoed**;
+  a failed `signInWithPassword` surfaces a single **generic** auth error that does not
+  distinguish "no such account" from "wrong password" (no account enumeration). Raw
+  Supabase errors are logged **server-side only**, never surfaced to the client. There
+  is no password-length policy on the login path (length is a sign-up/reset concern,
+  not a sign-in one). This mirrors the non-enumeration posture TASK-083 established for
+  the forgot/reset pages — the whole auth cluster now reads as one consistent boundary.
+- **The themed form.** `sign-in/+page.svelte` is a real cult-themed form ("Enter the
+  Snacktum"), Svelte 5 runes, `use:enhance` with a loading state, no `{@html}`
+  (XSS-safe), with links to `/sign-up` (Take the Casing) and `/forgot-password` — both
+  of which now exist, so the auth surface is internally fully linked.
+- **The `@smoke` sign-in path (live-tested).** A new `tests/sign-in.e2e.ts` `@smoke`
+  spec drives a **seeded user through the real form** and asserts they reach the app —
+  specifically the **profile-less → `/app/onboarding` funnel**, proving the success
+  redirect threads the auth cascade correctly. It **reuses the seeded inviter** the
+  smoke harness already mints (no new fixture), so the live-stack suite grows from 4 to
+  **5/5** with no new global setup.
+- **Gates (director-run):** `pnpm check` 0 · `pnpm lint` clean · `pnpm test` **801**
+  (8 new sign-in action tests covering validation, non-enumeration, no-password-echo,
+  and the success redirect) · **`@smoke` 5/5 live** on a fresh `supabase db reset`
+  (incl. the new sign-in path). No migration; no new dependency.
+- **This CLOSES the M8 auth cluster.** With sign-in built, the cluster is complete and
+  functional end-to-end — **sign-in (TASK-082) / forgot-password / reset-password
+  (TASK-083)** — all live-tested. A real member can now log in through the UI for the
+  first time (the prior workaround was the sign-up + invite path). The stale [[CLAUDE]]
+  "Local dev (WSL)" note calling `/sign-in` a non-functional stub is now corrected.
+
+**Discovered during this task:** DW-030 (annotate the `form` prop with `ActionData`
+across the auth pages — `sign-in` / `sign-up` / `forgot-password` / `reset-password`
+all use an untyped `let { form } = $props()`; type it for compile-time checking of the
+echoed fields; see [[tasks/discovered]]).
 
 ---
 

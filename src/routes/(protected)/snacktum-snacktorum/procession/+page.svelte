@@ -61,9 +61,7 @@
 		<span class="eyebrow">Standings of the Blessed</span>
 		<h1>The Procession</h1>
 		<div class="ornament-divider" aria-hidden="true">✦</div>
-		<p class="procession-lead">
-			Cast thy single vote upon the worthiest link — moving it anoints another.
-		</p>
+		<p class="procession-lead">Cast thy vote upon the worthiest link.</p>
 	</header>
 
 	{#if form?.error}

@@ -65,6 +65,34 @@ export async function getProfileById(
 }
 
 /**
+ * Fetches the current Top Dog ("The Anointed Wiener") for the app-chrome
+ * champion sub-bar. `is_current_top_dog` is server-maintained and
+ * non-client-writable (decision #25) and public info — a plain RLS-scoped read
+ * is correct here, no anonymity concern. Returns `{ ok: true, data: null }`
+ * when the throne sits empty (no member is crowned). Real errors surface as
+ * `ok: false` so the caller can degrade to "no champion" without hard-failing
+ * the app-shell guard.
+ *
+ * `maybeSingle()` tolerates zero rows; the crown is a global singleton
+ * (decision: at most one current Top Dog), so at most one row is ever returned.
+ */
+export async function getCurrentChampion(
+	supabase: SupabaseClient
+): Promise<ProfileResult<Profile | null>> {
+	const { data, error } = await supabase
+		.from('profiles')
+		.select(PROFILE_COLUMNS)
+		.eq('is_current_top_dog', true)
+		.maybeSingle();
+
+	if (error) {
+		return { ok: false, error: error.message };
+	}
+
+	return { ok: true, data: (data as Profile | null) ?? null };
+}
+
+/**
  * Fetches a profile by handle (case-insensitive at the DB via citext). Returns
  * `{ ok: true, data: null }` when no such handle exists so the profile page can
  * 404 cleanly. Real errors surface as `ok: false`.

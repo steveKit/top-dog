@@ -91,6 +91,7 @@
 
 html {
 	background: var(--color-bg);
+	scrollbar-gutter: stable;
 }
 
 body {
@@ -246,6 +247,24 @@ img {
 	max-width: var(--measure-content);
 	margin: 0 auto;
 	padding: var(--space-xl) var(--space-lg) var(--space-3xl);
+}
+
+/* App-chrome width: the persistent shell (header + champion sub-bar) is FULL-BLEED
+   — its background bars span the viewport edge-to-edge while their inner content is
+   re-centered at --measure-shell (1600px) by the shell itself (.shell-inner). Scope
+   ONLY to a .page-container that holds a .shell-header — mirroring the gate-page
+   `:has(> .gate-center)` pattern — so ONLY the authenticated app area goes full
+   width and the gate pages (.gate-center) keep their reading measure untouched.
+
+   Full-bleed is achieved by dropping the container's max-width AND its horizontal
+   padding (so the chrome backgrounds reach the edges) WITHOUT a 100vw hack — 100vw
+   would ignore the vertical scrollbar's width and force a horizontal scrollbar. Top
+   padding is also dropped so the header sits flush at the top; the shell content
+   re-caps itself to --measure-content (.shell-content) and the chrome bars re-center
+   to --measure-shell (.shell-inner), so not-yet-rebuilt pages don't sprawl. */
+.page-container:has(.shell-header) {
+	max-width: none;
+	padding: 0 0 var(--space-3xl);
 }
 
 /* Gate-center: vertically + horizontally center a short single-form page in

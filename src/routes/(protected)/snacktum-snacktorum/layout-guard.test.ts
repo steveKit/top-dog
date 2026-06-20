@@ -18,10 +18,33 @@ import { load } from './+layout.server';
 const ONBOARDING_URL = new URL('https://x/sign-up');
 const APP_URL = new URL('https://x/snacktum-snacktorum');
 
-/** A fake supabase whose profile lookup resolves the supplied row (or null). */
-function makeSupabase(profileRow: unknown, error: unknown = null) {
-	const maybeSingle = vi.fn().mockResolvedValue({ data: profileRow, error });
-	const eq = vi.fn(() => ({ maybeSingle }));
+/**
+ * A fake supabase whose `profiles` reads are QUERY-AWARE: the load now issues two
+ * distinct `profiles` lookups off the same client —
+ *   - `getProfileById`     filters `.eq('id', <uid>)`
+ *   - `getCurrentChampion` filters `.eq('is_current_top_dog', true)`
+ * so a single shared `maybeSingle` mock would wrongly resolve the champion from
+ * the profile-by-id row (and vice versa). We branch on the filtered COLUMN at
+ * `.eq(...)`: the by-id query resolves `profileRow`; the champion query resolves
+ * `championRow` (default `null` = empty throne). `error` applies to the by-id
+ * lookup; `championError` to the champion lookup, so each degradation path can be
+ * exercised independently.
+ */
+function makeSupabase(
+	profileRow: unknown,
+	error: unknown = null,
+	opts: { championRow?: unknown; championError?: unknown } = {}
+) {
+	const { championRow = null, championError = null } = opts;
+	const eq = vi.fn((column: string) => {
+		const isChampionQuery = column === 'is_current_top_dog';
+		const maybeSingle = vi
+			.fn()
+			.mockResolvedValue(
+				isChampionQuery ? { data: championRow, error: championError } : { data: profileRow, error }
+			);
+		return { maybeSingle };
+	});
 	const select = vi.fn(() => ({ eq }));
 	const from = vi.fn(() => ({ select }));
 	return { from, eq };
@@ -60,7 +83,10 @@ describe('(protected)/snacktum-snacktorum/+layout.server load', () => {
 
 		const result = await callLoad({ safeGetSession, supabase: makeSupabase(A_PROFILE) });
 
-		expect(result).toEqual({ user, profile: A_PROFILE });
+		// The shared fake's champion query (filtered on is_current_top_dog) returns
+		// its own result — `null` by default (empty throne) — distinct from the
+		// profile-by-id lookup, so `champion` must NOT leak A_PROFILE here.
+		expect(result).toEqual({ user, profile: A_PROFILE, champion: null });
 	});
 
 	it('redirects even if a user object is present but the session is null', async () => {
@@ -107,7 +133,7 @@ describe('(protected)/snacktum-snacktorum/+layout.server load', () => {
 			url: ONBOARDING_URL
 		});
 
-		expect(result).toEqual({ user, profile: null });
+		expect(result).toEqual({ user, profile: null, champion: null });
 	});
 
 	it('redirects a profile-less user on a deep /snacktum-snacktorum sub-path (not just /snacktum-snacktorum)', async () => {
@@ -153,6 +179,113 @@ describe('(protected)/snacktum-snacktorum/+layout.server load', () => {
 			url: ONBOARDING_URL
 		});
 
-		expect(result).toEqual({ user, profile: null });
+		expect(result).toEqual({ user, profile: null, champion: null });
+	});
+});
+
+// The app-chrome champion sub-bar (TASK app-chrome-rebuild). The load reads the
+// current Top Dog AFTER the profile-funnel guard and surfaces a thin view object
+// — degrading to `champion: null` on an empty throne OR a champion-query error,
+// never hard-failing the guard.
+describe('(protected)/snacktum-snacktorum/+layout.server load — champion sub-bar', () => {
+	const user = { id: 'u1', email: 'chef@topdog.test' };
+	const session = { access_token: 'valid', user };
+	const authed = () => vi.fn(async () => ({ session, user }));
+
+	it('surfaces the current champion (sigil avatar resolved to a sigilId, no storage URL)', async () => {
+		const champion = {
+			id: 'champ',
+			handle: 'topdog',
+			display_name: 'The Top Dog',
+			avatar_path: 'sigil:tube'
+		};
+		const supabase = makeSupabase(A_PROFILE, null, { championRow: champion });
+
+		const result = await callLoad({ safeGetSession: authed(), supabase });
+
+		expect(result).toEqual({
+			user,
+			profile: A_PROFILE,
+			champion: {
+				handle: 'topdog',
+				displayName: 'The Top Dog',
+				sigilId: 'tube',
+				avatarUrl: null
+			}
+		});
+	});
+
+	it('resolves a real uploaded avatar to its public URL (non-sigil branch)', async () => {
+		const champion = {
+			id: 'champ',
+			handle: 'topdog',
+			display_name: 'The Top Dog',
+			avatar_path: 'champ/avatar.webp'
+		};
+		// getPublicUrl reads the avatars bucket via client.storage; stub the chain so
+		// the non-sigil branch resolves to a concrete public URL.
+		const publicUrl = 'https://stack.local/storage/v1/object/public/avatars/champ/avatar.webp';
+		const supabase = {
+			...makeSupabase(A_PROFILE, null, { championRow: champion }),
+			storage: {
+				from: vi.fn(() => ({
+					getPublicUrl: vi.fn(() => ({ data: { publicUrl } }))
+				}))
+			}
+		};
+
+		const result = await callLoad({ safeGetSession: authed(), supabase });
+
+		expect(result).toEqual({
+			user,
+			profile: A_PROFILE,
+			champion: {
+				handle: 'topdog',
+				displayName: 'The Top Dog',
+				sigilId: null,
+				avatarUrl: publicUrl
+			}
+		});
+	});
+
+	it('surfaces champion: null when the throne sits empty', async () => {
+		// championRow defaults to null in the fake — empty throne.
+		const supabase = makeSupabase(A_PROFILE);
+
+		const result = await callLoad({ safeGetSession: authed(), supabase });
+
+		expect(result).toEqual({ user, profile: A_PROFILE, champion: null });
+	});
+
+	it('degrades to champion: null on a champion-query error (never hard-fails the shell)', async () => {
+		const supabase = makeSupabase(A_PROFILE, null, {
+			championError: { message: 'champion boom', code: '500' }
+		});
+
+		const result = await callLoad({ safeGetSession: authed(), supabase });
+
+		expect(result).toEqual({ user, profile: A_PROFILE, champion: null });
+	});
+
+	it('a champion-query error does NOT disturb the profile-funnel redirect (guard unaffected)', async () => {
+		// Profile-less user on a deep app path: the !profile -> /sign-up redirect must
+		// fire as normal even though the champion query errors. (In practice the
+		// redirect throws before the champion read, but this pins that a champion
+		// failure can never swallow or alter the funnel.)
+		let thrown: unknown;
+		try {
+			await callLoad({
+				safeGetSession: authed(),
+				supabase: makeSupabase(null, null, {
+					championError: { message: 'champion boom', code: '500' }
+				}),
+				url: new URL('https://x/snacktum-snacktorum/profile/someone')
+			});
+		} catch (e) {
+			thrown = e;
+		}
+
+		expect(isRedirect(thrown)).toBe(true);
+		expect((thrown as { location: string }).location).toBe('/sign-up');
 	});
 });

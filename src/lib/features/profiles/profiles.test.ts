@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import {
 	getProfileById,
+	getCurrentChampion,
 	getProfileByHandle,
 	isHandleAvailable,
 	createProfile,
@@ -82,6 +83,43 @@ describe('getProfileById', () => {
 		const { client } = makeMaybeSingleClient({ data: null, error: SDK_ERROR });
 
 		const result = await getProfileById(client, 'user-uuid');
+
+		expect(result).toEqual({ ok: false, error: 'boom' });
+	});
+});
+
+describe('getCurrentChampion', () => {
+	it('queries the profiles table filtered by is_current_top_dog = true', async () => {
+		const champion = { ...A_PROFILE, is_current_top_dog: true };
+		const { client, from, eq } = makeMaybeSingleClient({ data: champion, error: null });
+
+		await getCurrentChampion(client);
+
+		expect(from).toHaveBeenCalledWith('profiles');
+		expect(eq).toHaveBeenCalledWith('is_current_top_dog', true);
+	});
+
+	it('returns { ok: true, data: <profile> } when a member holds the crown', async () => {
+		const champion = { ...A_PROFILE, is_current_top_dog: true };
+		const { client } = makeMaybeSingleClient({ data: champion, error: null });
+
+		const result = await getCurrentChampion(client);
+
+		expect(result).toEqual({ ok: true, data: champion });
+	});
+
+	it('returns { ok: true, data: null } when the throne sits empty', async () => {
+		const { client } = makeMaybeSingleClient({ data: null, error: null });
+
+		const result = await getCurrentChampion(client);
+
+		expect(result).toEqual({ ok: true, data: null });
+	});
+
+	it('surfaces a query error as { ok: false } (degrade, never swallow)', async () => {
+		const { client } = makeMaybeSingleClient({ data: null, error: SDK_ERROR });
+
+		const result = await getCurrentChampion(client);
 
 		expect(result).toEqual({ ok: false, error: 'boom' });
 	});

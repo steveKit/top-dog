@@ -36,9 +36,9 @@ new deps.** **Skin not skeleton:**
 each rebuild preserves its `+page.server.ts` (load + actions) and re-wires all data/feature
 plumbing; no table/RPC/TS-symbol or infra rename.
 
-> **Task set (re-scoped): 5 complete + 11 pending.** Complete: TASK-087 (theme) + TASK-080
-> (shell) + TASK-083 (recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite). Pending: **TASK-090** foundational
-> slug refactor (lands first), then per-page rebuilds — **TASK-091** Procession,
+> **Task set (re-scoped): 6 complete + 10 pending.** Complete: TASK-087 (theme) + TASK-080
+> (shell) + TASK-083 (recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) + TASK-090
+> (slug refactor — PR #115). Pending: per-page rebuilds — **TASK-091** Procession,
 > **TASK-093** Shrine, **TASK-094** Anoint
 > (THE migration), **TASK-094-R** Reliquary (derived module), **TASK-095** Your Litter,
 > **TASK-096** The Relic, **TASK-097** Epistles+Whispers, **TASK-098** Summon, **TASK-099**
@@ -46,9 +46,13 @@ plumbing; no table/RPC/TS-symbol or infra rename.
 > pending tasks TASK-081/084/085/086/088/089 are **superseded/folded** (TASK-081 copy →
 > carried by the per-page rebuilds; 084→092, 085→093, 086→094, 088→101, 089→094-R).
 
-> **🔨 BUILDING + RE-SCOPED — 2026-06-19. 5/16 complete** (theme + shell + the auth
-> cluster: sign-in / forgot / reset — auth is functional end-to-end). The remaining work
-> is the slug refactor + the per-page rebuilds from the delivered mockups.
+> **🔨 BUILDING + RE-SCOPED — 2026-06-19 (slug refactor landed 2026-06-20). 6/16 complete**
+> (theme + shell + the auth cluster: sign-in / forgot / reset — auth is functional
+> end-to-end — + the onboarding rite + the foundational slug refactor). TASK-090 moved the
+> in-app route prefix `/app` → `/snacktum-snacktorum` (PR #115, `38c8844`; directory +
+> auth-guard prefix; leaf names unchanged, deferred to the per-page rebuilds). The
+> remaining work is the per-page rebuilds from the delivered mockups (**TASK-091 The
+> Procession next**).
 > TASK-087 (theme, PR #99 `dcce8c3`): the M8 FOUNDATION — a tokenized dark-temple CSS layer
 > (`src/lib/styles/tokens.css`) every rebuild consumes via `var(--…)` tokens (accents via
 > `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` (no CDN/package).
@@ -66,15 +70,18 @@ plumbing; no table/RPC/TS-symbol or infra rename.
 > TASK-094 (formerly TASK-086) RETIRES `prune_mustard_sprays()` so the persisting Anoint
 > wall-notice rows survive — it CARRIES one migration (prune retirement) + a keep-alive
 > workflow edit + a likely new architecture-decision row #29.** Recorded as a plan; batch
-> TASK-094's hosted push onto the standing M7 hosted-push gate (below). **‼️ The
-> slug refactor (TASK-090) is a RISKY cross-cutting rename** — it MUST update the
-> `hooks.server.ts` `startsWith('/app')` auth-guard **prefix** → `'/snacktum-snacktorum'`
-> (else the protected area goes unguarded), the root redirect, the shell `resolve(...)`
-> links, the per-page `/app/...` references, and the E2E + unit `/app/...` path assertions;
-> a **checkpoint tag is warranted at execution**. **The `/sign-in` redirect targets are
-> KEPT (not retargeted) and the recovery email template is unchanged** — the auth slugs
-> stay descriptive; the guard change is prefix-only. The profile-funnel guard retargets to
-> `/sign-up` (the onboarding rite, TASK-092). Pre-launch (invite-only, not deployed) →
+> TASK-094's hosted push onto the standing M7 hosted-push gate (below). **The slug refactor
+> (TASK-090) LANDED 2026-06-20** (PR #115, `38c8844`; checkpoint tag
+> `checkpoint-2026-06-20-pre-slug-refactor`): it moved the in-app route **prefix** `/app` →
+> `/snacktum-snacktorum` (directory + the `hooks.server.ts` `startsWith` auth-guard prefix,
+> so the protected area stays guarded in lockstep), repointed the root redirect to
+> `/snacktum-snacktorum/feed` (the live leaf — TASK-091 renames it to `procession` and
+> retargets), re-wired the shell `resolve(...)` links, and swept the `/app/...` references
+> in code, E2E + unit tests, and the live docs. **Leaf names are UNCHANGED** (deferred to
+> the per-page rebuilds). **The `/sign-in` redirect targets were KEPT and the recovery
+> email template is unchanged** — the auth slugs stay descriptive; the guard change was
+> prefix-only. The profile-funnel guard targets `/sign-up` (the onboarding rite, TASK-092).
+> Pre-launch (invite-only, not deployed) →
 > **no old→new redirects needed.** Dispatch M8 tasks **only on explicit user instruction**,
 > in the milestone file's § Dependencies & Sequencing order — do not auto-chain. **The
 > slug map is FINALIZED by the user** (see the milestone file § Slug Map): auth slugs

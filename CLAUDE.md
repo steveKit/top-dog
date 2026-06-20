@@ -128,7 +128,7 @@ top-dog/
 │   │   ├── styles/            # tokens.css — CSS-custom-property theme layer (M8)
 │   │   └── components/        # shared Svelte components (incl. Sigil.svelte — inline SVG sigil avatar, no {@html}, M8 TASK-092)
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
-│       └── (protected)/app/+layout.svelte  # persistent app shell + nav (M8 TASK-080)
+│       └── (protected)/snacktum-snacktorum/+layout.svelte  # persistent app shell + nav (M8 TASK-080; prefix renamed TASK-090)
 ├── static/
 │   ├── fonts/                 # self-hosted SIL OFL .woff2 (Cinzel, Cormorant) + OFL licenses
 │   └── favicon.svg, favicon-32/64.png, apple-touch-icon.png  # wired in +layout.svelte (M8)
@@ -378,13 +378,14 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   read, NOT on minting it. For the `hotdogs` **private** bucket (owner-only SELECT,
   `hotdogs_select_own`), the viewer's RLS-scoped client (`event.locals.supabase`)
   can only sign the viewer's OWN objects — so any **cross-member view of
-  private-bucket content** (the `/app/feed` and `/app/dogs/[id]` loads, which show
+  private-bucket content** (the `/snacktum-snacktorum/feed` and
+  `/snacktum-snacktorum/dogs/[id]` loads, which show
   OTHER members' dogs) MUST mint signed URLs **server-side with the service client**
   (`$lib/server` `getServiceClient()`), constructed **AFTER** the `safeGetSession()`
   gate, signing only `image_path` from rows the member's own RLS query already
   returned (no exposure widening). Keep the dog/owner/reaction QUERIES on the
   RLS-scoped client — only the storage signing uses the service client; the
-  `/app/dogs` own-dogs gallery correctly stays fully on the RLS client. This
+  `/snacktum-snacktorum/dogs` own-dogs gallery correctly stays fully on the RLS client. This
   preserves decision #6 (bucket private, 1h TTL signed URLs, service client
   server-only) with no storage RLS / bucket change. (Caught as a P0 in TASK-033 —
   the storage-baseline migration comment claiming "signed URL bypasses RLS" was
@@ -494,26 +495,31 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   real working login form** (email/password → `signInWithPassword`, M8 TASK-082), so a
   seeded dev login (`dev@topdog.test`, created via the service-role client) is directly
   usable through the UI — or you can still use the **sign-up + invite path** (mint an
-  invite at `/app/invite`, redeem via `/sign-up?token=…`). **A `supabase db reset` wipes
+  invite at `/snacktum-snacktorum/invite`, redeem via `/sign-up?token=…`). **A `supabase db reset` wipes
   any seeded user** — re-seed, or run `pnpm test:e2e --grep @smoke` (it mints
   `smoke-inviter@topdog.test`). **Forgot/reset password also exist** (M8 TASK-083):
   `/forgot-password` → a **6-digit recovery code** delivered locally to **Mailpit**
   (`http://localhost:54324`) → enter it at `/reset-password` with a new password.
-- **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080).**
-  `(protected)/app/+layout.svelte` renders the persistent header/nav across every
-  `/app` route (🌭 home → The Procession `/app/feed`; feed / Your Litter / Epistles /
-  The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on the server-derived
-  `is_current_top_dog` crown flag**, decision #25). It reads `{ user, profile }` from
-  `(protected)/app/+layout.server.ts` — **don't add a second crown query** for nav. The
-  bare `/app` "kennel" hub is **retired** (`redirect(307, '/app/feed')`) and `/`
-  redirects to `/app/feed` (`src/routes/+page.server.ts`); there is **no inline
-  `.app-nav`** anymore (the old hub nav + its CSS were removed). New `/app` pages
-  inherit the shell automatically — do not re-add a page-level nav.
+- **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080; in-app
+  prefix renamed to `/snacktum-snacktorum` by TASK-090).**
+  `(protected)/snacktum-snacktorum/+layout.svelte` renders the persistent header/nav across
+  every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/feed`;
+  feed / Your Litter / Epistles / The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on
+  the server-derived `is_current_top_dog` crown flag**, decision #25). It reads
+  `{ user, profile }` from `(protected)/snacktum-snacktorum/+layout.server.ts` — **don't add
+  a second crown query** for nav. The bare `/snacktum-snacktorum` "kennel" hub is **retired**
+  (`redirect(307, '/snacktum-snacktorum/feed')`) and `/` redirects to
+  `/snacktum-snacktorum/feed` (`src/routes/+page.server.ts`); there is **no inline
+  `.app-nav`** anymore (the old hub nav + its CSS were removed). New `/snacktum-snacktorum`
+  pages inherit the shell automatically — do not re-add a page-level nav. **Note: TASK-090
+  renamed only the `/app` PREFIX → `/snacktum-snacktorum`; the leaf names (`feed`, `dogs`,
+  `profile/[handle]`, `messages`, `invite`, `court`, `help`) are UNCHANGED — the leaf
+  renames (feed→procession, etc.) come with the per-page rebuilds, TASK-091+.**
 - **`TopDogPrivilegesNotice` was RETIRED (M8 TASK-080).** The TASK-074 crown-holder
   nudge component, its `topDogPrivilegesNotice.ts` helper, and its tests were deleted
-  when the `/app` hub it rendered on was retired — Top Dog powers are documented in **The
-  Catechism** (`/app/help`) and the crown-gated Tribunal nav link covers adjudication.
-  Don't reference or re-introduce it.
+  when the `/snacktum-snacktorum` hub it rendered on was retired — Top Dog powers are
+  documented in **The Catechism** (`/snacktum-snacktorum/help`) and the crown-gated Tribunal
+  nav link covers adjudication. Don't reference or re-introduce it.
 - **Brand assets live in `src/lib/assets/` and `static/` (M8 PR #107; gate-page wiring
   changed by TASK-092).** Brand marks live under `src/lib/assets/brand/`; the 5 avatar
   sigils under `src/lib/assets/sigils/*.svg`. **The four auth/gate pages (`/sign-up`,

@@ -131,6 +131,7 @@
 	--measure-form: 35rem; /* ~560px — forms / single column */
 	--measure-content: 48rem; /* ~768px — reading / galleries */
 	--measure-wide: 73.75rem; /* ~1180px — feed / chrome */
+	--measure-shell: 100rem; /* 1600px — full-bleed app chrome inner content column */
 
 	/* ---- Motion / animation timing -------------------------------------- */
 	--motion-fast: 0.18s;

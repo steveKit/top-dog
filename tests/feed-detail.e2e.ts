@@ -409,7 +409,15 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		await expect(page.getByText(caption)).toBeVisible();
 
 		// (2) The signed-URL image actually renders and decodes in the browser.
-		const detailImage = page.locator('img').first();
+		// Scope to the detail page's own image container (.dog-image, the
+		// dogs/[id]/+page.svelte wrapper around the signed-URL <img>) — NOT a bare
+		// page.locator('img'). The rebuilt persistent shell (App Chrome) renders
+		// <img> elements that precede the page content in the DOM — always the brand
+		// wordmark (img.shell-brand-mark in the shell +layout.svelte), and possibly
+		// the champion sub-bar avatar — so img.first() would now resolve to the shell
+		// brand mark (no signed token=), not the dog image. .dog-image lives inside
+		// .shell-content, so this targets only the actual dog detail image.
+		const detailImage = page.locator('.dog-image img');
 		await expect(detailImage).toBeVisible({ timeout: 15000 });
 		const src = await detailImage.getAttribute('src');
 		expect(src, 'detail image should have a src').toBeTruthy();

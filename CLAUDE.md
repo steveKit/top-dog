@@ -119,14 +119,14 @@ top-dog/
 │   │   ├── server/            # server-only secret-key client
 │   │   ├── storage/           # SWAPPABLE storage module (hotdogs/avatars)
 │   │   ├── features/          # one folder per domain
-│   │   │   ├── auth/  invites/  profiles/  hotdogs/
+│   │   │   ├── auth/  invites/  profiles/  hotdogs/   # profiles/ adds sigils.ts (M8) — 5 built-in sigil ids stored as `sigil:<id>` in avatar_path
 │   │   │   ├── voting/        # pure ranking/tie-break logic + vote RPC wrappers + feed/leaderboard queries
 │   │   │   ├── reactions/  mustard/  walls/  dms/
 │   │   │   ├── emoji/         # render-time filter + sprinkle (TDD)
 │   │   │   └── forms/         # themed inline validation: validationMessage.ts (pure) + createFormValidation() rune (M8)
 │   │   ├── motion/            # reducedMotion.ts — errorSlideFade transition + prefers-reduced-motion helpers (M8)
 │   │   ├── styles/            # tokens.css — CSS-custom-property theme layer (M8)
-│   │   └── components/        # shared Svelte components
+│   │   └── components/        # shared Svelte components (incl. Sigil.svelte — inline SVG sigil avatar, no {@html}, M8 TASK-092)
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
 │       └── (protected)/app/+layout.svelte  # persistent app shell + nav (M8 TASK-080)
 ├── static/
@@ -514,14 +514,34 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   when the `/app` hub it rendered on was retired — Top Dog powers are documented in **The
   Catechism** (`/app/help`) and the crown-gated Tribunal nav link covers adjudication.
   Don't reference or re-introduce it.
-- **Brand assets live in `src/lib/assets/` and `static/` (M8 PR #107).** Brand marks
-  (the `the-holy-tube.svg` relic mark + the logo/header marks) live under
-  `src/lib/assets/brand/`; the 5 avatar sigils under `src/lib/assets/sigils/*.svg`
-  (ready for TASK-084's "Choose Thy Sigil" picker). **Favicons live in `static/`**
-  (`favicon.svg` + `favicon-32/64.png` + `apple-touch-icon.png`), wired via `<link>`s
-  in `src/routes/+layout.svelte`. The relic mark + favicons are wired; the sigils and
-  brand-logo SVGs are committed but **not yet referenced** (tracked as DW-031) — wire or
-  prune them, don't assume they're dead.
+- **Brand assets live in `src/lib/assets/` and `static/` (M8 PR #107; gate-page wiring
+  changed by TASK-092).** Brand marks live under `src/lib/assets/brand/`; the 5 avatar
+  sigils under `src/lib/assets/sigils/*.svg`. **The four auth/gate pages (`/sign-up`,
+  `/sign-in`, `/forgot-password`, `/reset-password`) now render `ordo-sancti-tubi-seal.svg`
+  (the `.gate-mark`, 15rem) + `snacktum-snacktorum-header.svg` (the `.gate-header`
+  wordmark)** via shared `.gate-mark`/`.gate-header` in `app.css`. So as of TASK-092:
+  `snacktum-snacktorum-header.svg` is **WIRED**, and **`the-holy-tube.svg` is now
+  ORPHANED in app code** (only in `design/` mockups). The 5 sigil SVGs are **inlined by
+  `Sigil.svelte`** (the component ports the art verbatim — it does NOT import the asset
+  files), so the `assets/sigils/*.svg` files themselves are effectively unreferenced.
+  **Favicons live in `static/`** (`favicon.svg` + `favicon-32/64.png` + `apple-touch-icon.png`),
+  wired via `<link>`s in `src/routes/+layout.svelte`. DW-031 tracks the remaining orphans
+  (brand-logo SVGs, `the-holy-tube.svg`, the now-inlined sigil files) — wire or prune,
+  don't assume they're dead.
+- **Onboarding-rite control flow: `createProfile` RETURNS, it does NOT redirect; advance
+  the client WITHOUT re-running `load` (M8 TASK-092, `/sign-up`).** The `/sign-up` rite
+  (Summoned → Inscribe → Choose Thy Sigil → Renounce → Received) forges the profile at the
+  **Sigil** step via a `createProfile` action that returns `{ created, handle }` rather
+  than `throw redirect`. The client then advances Sigil→Renounce→Received from local
+  `$state` **without re-running `load` / without `invalidateAll`** — on purpose: the rite's
+  `load` `throw redirect`s a profile-bearing member out of the rite, so re-running it after
+  the profile exists would skip the Renounce oath and the Received step. **Renounce is a
+  pure-UI oath** gated only on the sworn state (no session check there); the explicit
+  "Enter →" on Received is the single deliberate navigation into the app. A `createProfile`
+  failure recovers in place on the Sigil step. **Don't "fix" this by making `createProfile`
+  redirect or by adding an `invalidate` after it** — that reintroduces the load-redirect
+  that swallows the oath/Received. (A session-less hit at the Sigil step currently
+  dead-ends with `fail(401)` and no in-rite recovery — DW-033.)
 - **Autofill inputs are kept on-theme via STACKED inset `box-shadow`s (M8, `src/app.css`).**
   Browsers paint `:-webkit-autofill` / `:autofill` with a solid white/yellow UA background
   that ignores `background-color`. The fix layers **two** inset shadows: an **opaque

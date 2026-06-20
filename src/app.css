@@ -399,7 +399,7 @@ img {
    their content in the viewport, so the default top-anchored .glow-orb reads
    as mismatched. Scope ONLY to a .page-container that holds a .gate-center
    (the four auth/gate pages) and halo the decorative glow behind the UPPER
-   TEXT — the the-holy-tube mark + heading at the top of the centered content
+   TEXT — the Ordo Sancti Tubi seal + wordmark header at the top of the centered content
    block — rather than the form middle. The vertically-centered content begins
    above the viewport midline, so anchor the glow's center near the upper third
    (28%); the token nudge lifts it onto the mark itself. In-app pages wrap their

@@ -456,95 +456,6 @@ feature plumbing into the new markup, and rename the leaf slug.
 
 ---
 
-### TASK-092: The Snacktum Onboarding rite — rebuild `/sign-up` as the rite (absorbs onboarding) [`in_progress`] [`P1`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (final paths); mockup `design/pages/Snacktum Onboarding.dc.html`;
-**OQ-1 RESOLVED = Option B-with-absorb** (a multi-step rite that absorbs onboarding); the
-5 sigils in `src/lib/assets/sigils/` (`cowled` / `haloed` / `shadowed` / `tube` / `candle`).
-**`@smoke`-critical** (the slice STARTS here: invite → profile). **The rite IS the
-`/sign-up` route** — touches `src/routes/sign-up/...`. **The standalone
-`(protected)/app/onboarding/` route is REMOVED/absorbed** (no
-`/snacktum-snacktorum/onboarding` leaf); this task owns that removal and the funnel-guard
-retarget to `/sign-up`.
-
-**Scope (Option B-absorb — user-approved):** rebuild the invite-redemption + onboarding
-sequence as a single flowing **initiation rite AT `/sign-up`** from the mockup:
-**Summoned** (invite token) → **Inscribe Thy Name** (Casing Name = `@handle` + email +
-password) → **Choose Thy Sigil** (pick 1 of 5 built-in SVG sigils) → **Renounce the
-Patty** (a pure-UX oath, **no data persisted**) → **Received.** The rite **subsumes** the
-former `/app/onboarding` `@handle`+avatar step into `/sign-up`, and the standalone
-onboarding route is removed.
-
-**Acceptance Criteria:**
-
-- [ ] **Rebuilt rite UI from `Snacktum Onboarding.dc.html`** — the multi-step ceremony
-      with step beads, the wax-seal "SWORN" stamp moment, the haloed relic mark, eyebrow
-      → h1 per step. Port `sc-if` step gating → `{#if currentStep === …}`, the
-      `DCLogic`-style step state → `$state`/`$derived`.
-- [ ] **Invite-redemption mechanics UNCHANGED and intact** (decisions #17/#22/#23): the
-      pre-check → `signUp` → atomic `redeem_invite` RPC → orphan-cleanup-on-lost-race →
-      session-branch redirect sequence still works end-to-end. **No change to
-      `redeem_invite` / invite RLS / the redemption ordering.**
-- [ ] **Handle validation UNCHANGED:** charset `^[A-Za-z0-9_]{2,32}$` at the boundary,
-      case-insensitive uniqueness via `citext`, `HANDLE_TAKEN` sentinel on `23505`. The
-      themed copy must not weaken validation.
-- [ ] **Sigil avatar (OQ-1 resolution):** "Choose Thy Sigil" offers the **5 built-in
-      SVG sigils** rendered inline from `src/lib/assets/sigils/*.svg`; the selection is
-      stored as a **small sigil id reusing the `avatar_path` column** — **NO migration,
-      NO storage upload** (user-uploaded avatars remain deferred). The Shrine + shell +
-      Procession render the chosen sigil inline.
-- [ ] **‼️ Profile-funnel guard target = `/sign-up`, and the rite is RESUMABLE** (the
-      B-absorb core): an authenticated-but-profile-less member is funneled to **`/sign-up`**
-      (not a separate onboarding route — there is none), and the rite **resumes at the
-      naming/sigil step** — it must **NOT** force such a member to re-do the
-      invite-token/credentials steps they already completed (they are already authenticated;
-      detect that and skip Summoned/Inscribe, landing them on Choose Thy Sigil / the
-      profile-creation step). Update the guard in
-      `(protected)/snacktum-snacktorum/+layout.server.ts` so `ONBOARDING_PATH` → `'/sign-up'`,
-      a user who completed the rite **has a profile** and is NOT funneled, one who didn't
-      is funneled to the resumable rite, and there is **no redirect loop**. Re-test the
-      funnel (authenticated-profile-less → `/sign-up` at the naming/sigil step → creates
-      profile → returns into the app). **This task OWNS finalizing the guard target**
-      (TASK-090 defaults it to `/sign-up`; this task confirms + makes the rite resumable).
-- [ ] **Standalone onboarding route REMOVED:** the former `(protected)/app/onboarding/`
-      route does **not** survive the absorb — there is **no `/snacktum-snacktorum/onboarding`
-      or `/initiation` leaf.** Remove the leaf and ensure every internal reference points at
-      `/sign-up` (the guard, any "complete your profile" link). Carry the onboarding
-      route's `load`/`action` logic into the `/sign-up` rite (do not silently drop the
-      handle-validation / avatar-set behavior — it moves into the rite's profile step).
-- [ ] **Form-validation CANON** applied to every required-field step (email / password /
-      handle): `novalidate` + `createFormValidation()` + `errorSlideFade` + per-field
-      a11y; extend `validationMessage.ts` label special-cases for any new themed field
-      (e.g. **Casing Name**) rather than hand-writing strings.
-- [ ] **Security (L2):** no secret key on the client; the orphan-cleanup path keeps the
-      service client **server-side only**; non-enumerating where the existing flow is.
-- [ ] **`@smoke` slice updated in lockstep:** the slice walks invite → set handle → … —
-      the rite is at **`/sign-up`** (that slug is UNCHANGED), but the steps/copy and the
-      **post-rite paths change**. It currently expects "Sign up" / "Create account" / "Set
-      up your profile" / "Create profile" and navigates `/sign-up?token=` →
-      `**/app/onboarding` → `**/app/profile/${handle}`. Update `tests/smoke.e2e.ts` so:
-      the `/sign-up?token=` entry stays, the `**/app/onboarding` wait becomes the rite's
-      in-page naming/sigil step (no separate onboarding URL — the rite is single-route at
-      `/sign-up`), and `**/app/profile/${handle}` → `**/snacktum-snacktorum/shrine/${handle}`.
-      Match the new rite copy. The slice MUST stay green end-to-end.
-- [ ] **Tests:** `sign-up/signup-action.test.ts` stays green (update for the absorbed
-      flow); the former `onboarding/onboarding-action.test.ts` coverage **moves into the
-      `/sign-up` rite's tests** as the onboarding route is removed (don't drop its
-      handle-validation / profile-creation assertions — relocate them). Add coverage for
-      the new step sequence + the updated `/sign-up` funnel guard (incl. the resumable
-      authenticated-profile-less path).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      green**, `@security` green. **No migration** (sigil reuses `avatar_path`).
-
-**Notes (for the implementer):** this is the most flow-sensitive task — it sits on the
-invite/auth critical path AND the `@smoke` slice start. Preserve the redemption ordering
-and the profile funnel above all; treat the funnel-guard change as the riskiest part and
-cover it with tests. The avatar step is a pure skin change (sigil id in `avatar_path`).
-No new dependency; no schema; no new decision row.
-
----
-
 ### TASK-093: The Shrine (profile) — rebuild from design + display-name + stat ledger + Reliquary slot [`pending`] [`P2`] [`L`]
 
 **Owner:** unassigned
@@ -1104,6 +1015,35 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-092: The Snacktum Onboarding rite — rebuild `/sign-up` as the rite (absorbs onboarding) [`complete`] [`P1`] [`L`]
+
+**Owner:** implementer — PR #112 (squash `a5fd084`), merged 2026-06-19. Reviewer APPROVE.
+
+Rebuilt `/sign-up` as a single multi-step **rite** (Summoned → Inscribe → Choose Thy
+Sigil → Renounce → Received), **absorbing and deleting** the standalone
+`(protected)/app/onboarding/` route; the profile-funnel guard (`ONBOARDING_PATH`) now
+targets `/sign-up`, and an authenticated-but-profile-less **resumer** picks the rite back
+up at a handle-only Inscribe (handle carried forward to `createProfile` via client
+`$state`; forward-only flow). Two non-obvious control-flow decisions: (a) the profile is
+forged at the **Sigil** step and **Renounce is a pure-UI oath** gated only on the sworn
+state (no session check there); (b) `createProfile` **returns `{ created, handle }`
+instead of redirecting**, and the client advances Sigil→Renounce→Received **without
+re-running `load`** — because re-running `load` would `throw redirect` on the now-existing
+profile and skip the oath/Received (Received has an explicit "Enter →" into the app); a
+`createProfile` failure recovers in place on the Sigil step. The chosen sigil is stored as
+`sigil:<id>` in `avatar_path` (no upload, no migration); new `src/lib/components/Sigil.svelte`
+(inline SVG, no `{@html}`) + `src/lib/features/profiles/sigils.ts`. The Ordo Sancti Tubi
+**seal** (15rem) + **wordmark header** (24rem, top-anchored) are unified across the four
+auth/gate pages via shared `.gate-mark`/`.gate-header` in `app.css`. No migration, no new
+dependency, **no new decision row** (table stays #28). Gates at merge: `pnpm check` 0,
+lint clean, 830 unit, `@smoke` 5/5, `@security` 94/94. **Deferred to TASK-090:** the
+post-rite path slug rename (→ `/snacktum-snacktorum/shrine/<handle>`) rides with the slug
+refactor — `@smoke` currently lands on `/app/profile/<handle>` (correct until TASK-090
+runs). Discovered: a session-less hit at the Sigil step dead-ends with `fail(401)` and no
+in-rite recovery (logged DW-033); DW-031 brand-asset wiring updated.
+
+---
 
 ### TASK-087: Base cult visual / theme layer [`complete`] [`P2`] [`L`]
 

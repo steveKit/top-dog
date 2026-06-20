@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in complete, 4/16 — auth is functional end-to-end; the remaining work is a foundational slug refactor + per-page rebuilds from the delivered mockups)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` complete, 5/16 — auth is functional end-to-end and the first rebuild-from-design page has landed; the remaining work is a foundational slug refactor + the rest of the per-page rebuilds from the delivered mockups)
 **Last Updated:** 2026-06-19
 
 > **‼️ M8 RE-SCOPE (2026-06-19, user-directed) — rebuild-from-design + re-slug.** The
@@ -96,8 +96,34 @@ cycles** (two minor non-blocking notes); `pnpm check` 0, `pnpm lint` clean, `pnp
 **801** (8 new sign-in action tests), `@smoke` 5/5 live on a fresh `supabase db reset`; **no
 migration, no new dependency, no new architecture-decision row** (table stays #28). **With
 this the M8 auth cluster is COMPLETE and functional end-to-end** — sign-in / forgot / reset
-all live-tested; a member can now log in through the UI for the first time. **Next: TASK-081
-(copy), TASK-084 (ritual sign-up), or TASK-085 (profile).** **All design questions are now RESOLVED:** the ritual sign-up rite, the
+all live-tested; a member can now log in through the UI for the first time. **The fifth M8
+task has now landed: TASK-092 — the Snacktum Onboarding rite at `/sign-up` (5/16), the first
+of the rebuild-from-design pages.** `/sign-up` was rebuilt as a single multi-step **rite**
+(Summoned → Inscribe → Choose Thy Sigil → Renounce → Received) that **absorbs and deletes**
+the standalone `(protected)/app/onboarding/` route — the profile-funnel guard
+(`ONBOARDING_PATH`) now points at `/sign-up`, and an authenticated-but-profile-less
+**resumer** picks the rite up at a handle-only Inscribe (handle carried to `createProfile`
+via client `$state`; forward-only). Two non-obvious **control-flow decisions** are worth
+recording: (a) the profile is forged at the **Sigil** step and **Renounce is a pure-UI
+oath** gated only on the sworn state (no session check there); (b) `createProfile`
+**returns `{ created, handle }` instead of redirecting**, so the client advances
+Sigil→Renounce→Received **without re-running `load`** — because re-running `load` would
+`throw redirect` on the now-existing profile and skip the oath/Received (Received has an
+explicit "Enter →" into the app; a `createProfile` failure recovers in place on the Sigil
+step). The chosen sigil is stored as `sigil:<id>` in `avatar_path` (no upload, no
+migration); new `src/lib/components/Sigil.svelte` (inline SVG, no `{@html}`) +
+`src/lib/features/profiles/sigils.ts`. The Ordo Sancti Tubi **seal** + **wordmark header**
+are unified across the four auth/gate pages via shared `.gate-mark`/`.gate-header` in
+`app.css`. Reviewer APPROVE (heavy interactive UI iteration, no formal fix cycles); `pnpm
+check` 0, `pnpm lint` clean, `pnpm test` **830**, `@smoke` 5/5, `@security` 94/94. **No
+migration, no new dependency, no new architecture-decision row** (table stays #28). **The
+post-rite path slug rename (→ `/snacktum-snacktorum/shrine/<handle>`) rides with TASK-090's
+slug refactor** — `@smoke` currently lands on `/app/profile/<handle>` (correct until
+TASK-090 runs). Discovered: a session-less hit at the Sigil step dead-ends with `fail(401)`
+and no in-rite recovery (DW-033); DW-031 brand-asset wiring updated
+(`snacktum-snacktorum-header.svg` now wired; `the-holy-tube.svg` newly orphaned). **Next:
+TASK-090 (slug refactor) or another per-page rebuild (TASK-091 Procession / TASK-093
+Shrine).** **All design questions are now RESOLVED:** the ritual sign-up rite, the
 5-sigil avatar mechanism, the dark-temple theme, the self-hosted Cinzel/Cormorant fonts,
 the 6-digit-OTP reset flow, plus (2026-06-19) **OQ-5** — the dog-detail page is **"The
 Relic"** — and **OQ-2** (all five Anoint sub-decisions: keep gated, re-theme the spray /

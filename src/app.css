@@ -278,8 +278,10 @@ img {
 	justify-content: center;
 	/* Breathing room so the form never butts against the viewport edges on
 	   short screens before scrolling kicks in. --space-lg (down from --space-xl)
-	   recovers the ~22px the 6.5rem .gate-mark needs to clear an 800px viewport
-	   without a scrollbar. */
+	   keeps the gate pages compact. With the 15rem .gate-mark seal these pages
+	   are taller than a short viewport and legitimately scroll (body scroll via
+	   min-height: 100svh below); this padding only sets the edge breathing room,
+	   not the overflow behavior. */
 	padding-block: var(--space-lg);
 }
 
@@ -302,32 +304,63 @@ img {
 	overflow: clip;
 }
 
-/* The Holy Tube — a decorative brand mark crowning each gate page, sized as a
-   tasteful relic above the title. Shared across all four gate pages (sign-in,
-   sign-up, forgot-password, reset-password) so size tweaks are one line.
-   6.5rem (~1.6x the old --space-3xl/4rem) for a bolder presence; no token sits
-   at this size. margin-inline:auto centers it even inside sign-up's
-   .gate-center, which doesn't center its cross axis. max-width keeps it
-   scroll-safe on very narrow viewports. */
+/* The Ordo Sancti Tubi seal — a decorative brand mark crowning each gate page,
+   sized as a tasteful relic above the title. Shared across the three login/
+   recovery gate pages (sign-in, forgot-password, reset-password) so size tweaks
+   are one line. Sign-up renders the same seal via its own .rite-relic rule; this
+   matches it: 15rem (ordo-sancti-tubi-seal.svg's 260x260 viewBox) plus a
+   --space-sm bottom margin that stacks on the .gate-center flex gap to open the
+   seal->eyebrow spacing exactly as the sign-up rite does. margin-inline:auto
+   centers it; max-width keeps it scroll-safe on very narrow viewports. */
 .gate-mark {
-	width: 6.5rem;
-	height: 6.5rem;
+	width: 15rem;
+	height: 15rem;
 	max-width: 100%;
 	display: block;
 	margin-inline: auto;
-	/* the-holy-tube.svg has a 200x200 viewBox, but the visible relic only
-	   reaches ~y=147.5 (bun bottom + half stroke), leaving ~52.5 of the 200
-	   units (~26%) as transparent padding BELOW the artwork. At the rendered
-	   6.5rem height that dead space is 6.5rem * (52.5/200) ≈ 1.706rem, which
-	   stacks ON TOP of the .gate-center flex gap — so the *visual* icon->eyebrow
-	   gap reads as ~2.7rem while every other row gap (eyebrow->h1, etc.) is the
-	   --space-md (1rem) flex gap. A negative margin-bottom collapses exactly that
-	   intrinsic bottom padding, then ADDS one extra --space-md so the under-icon
-	   spacing is DOUBLE the standard gap — the visible-mark-to-eyebrow spacing
-	   reads as 2 x --space-md (twice every other row gap). (The SVG also has
-	   ~0.4rem top padding, left as-is: the request is the spacing UNDER the
-	   icon.) */
-	margin-bottom: calc(-1.706rem + var(--space-md));
+	margin-bottom: var(--space-sm);
+}
+
+/* The Snacktum Snacktorum wordmark, pinned at the top of the three login/
+   recovery gate pages (sign-in, forgot-password, reset-password), above the
+   .gate-mark seal. Mirrors the sign-up rite's .rite-header / .rite-header-mark
+   (those are component-scoped to that page, so the shared gate pages need their
+   own classes here). Same 24rem width and --space-2xl bottom gap as the rite so
+   the wordmark reads identically across the whole gate. */
+.gate-header {
+	margin-bottom: var(--space-2xl);
+}
+
+.gate-header-mark {
+	display: block;
+	/* Plain literal rem — the wordmark's natural sizing knob, matching the rite's
+	   .rite-header-mark (intentionally outside the token scale so it dials
+	   directly). */
+	width: 24rem;
+	max-width: 100%;
+	height: auto;
+	margin-inline: auto;
+}
+
+/* Top-anchor ONLY the gate pages that now carry the wordmark header. The base
+   .gate-center utility vertically centers a short single-form column; with the
+   24rem header + 15rem seal + form these three pages are tall, so the design
+   wants the header pinned at the TOP of the page (as the sign-up rite does)
+   rather than floating in the viewport middle with empty space above it.
+
+   Scoped via :has(> .gate-header) so it targets exactly the three gate pages
+   that gained the header — the sign-up rite uses .rite-header (NOT .gate-header)
+   and keeps its own .rite.gate-center top-anchor override, so it is untouched.
+   This does not change the base .gate-center rule.
+
+   Scroll-safety is unchanged: .gate-center keeps min-height: 100svh (never a
+   fixed height) and the parent overflow: clip trims only transient animation
+   paint, so when the top-anchored column exceeds a short viewport the BODY
+   scrolls and nothing is clipped at the top. padding-top restores top breathing
+   room so the wordmark isn't jammed against the viewport edge. */
+.gate-center:has(> .gate-header) {
+	justify-content: flex-start;
+	padding-top: var(--space-xl);
 }
 
 /* ===================================================================== */

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
+	import ordoSeal from '$lib/assets/brand/ordo-sancti-tubi-seal.svg';
+	import snacktumHeader from '$lib/assets/brand/snacktum-snacktorum-header.svg';
 	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
 	import { errorSlideFade } from '$lib/motion/reducedMotion';
 
@@ -25,7 +26,10 @@
 <div class="glow-orb" aria-hidden="true"></div>
 
 <main class="recovery fade-up gate-center">
-	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
+	<header class="gate-header">
+		<img class="gate-header-mark" src={snacktumHeader} alt="Snacktum Snacktorum" />
+	</header>
+	<img class="gate-mark" src={ordoSeal} alt="" aria-hidden="true" />
 	{#if form?.success}
 		<span class="eyebrow">A Rite Dispatched</span>
 		<h1>Check Thy Mustard</h1>

@@ -26,28 +26,66 @@ test('@smoke redeem invite, set handle, upload a dog, and see it rendered', asyn
 	const password = 'smoke-user-password-123';
 	const handle = `smoke_${stamp}`.slice(0, 32);
 
-	// (1) Redeem the invite via the public sign-up form.
+	// (1) Begin the Snacktum Onboarding rite at the public /sign-up route. The rite
+	// is a single-route, multi-step ceremony (Summoned → Inscribe → Sigil →
+	// Renounce → Received); the old standalone /app/onboarding URL is gone — the
+	// naming/sigil step now happens IN-PAGE at /sign-up.
+	//
+	// This walks the EXACT user path — type the Casing (@handle) ONCE at Inscribe,
+	// never re-typing it later — so the slice catches the TASK-092 flow bug where
+	// the handle typed at Inscribe failed to carry forward to the createProfile
+	// submission, surfacing "Please choose a handle." at the final Continue. If the
+	// handle does not survive Inscribe → register → Sigil → Renounce, the rite
+	// never reaches /app/profile/<handle> and this test fails.
 	await page.goto(`/sign-up?token=${encodeURIComponent(token)}`);
-	await expect(page.getByRole('heading', { name: 'Sign up' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'You Have Been Summoned' })).toBeVisible();
 
-	// Token should be pre-filled from the query string.
+	// The summoning token is pre-filled from the query string.
 	await expect(page.locator('input[name="token"]')).toHaveValue(token);
 
+	// Pass from Summoned into the Inscribe step.
+	await page.getByRole('button', { name: 'Take a Bite →' }).click();
+	await expect(page.getByRole('heading', { name: 'Inscribe Thy Name' })).toBeVisible();
+
+	// Inscribe: the Casing Name (@handle), mustard-address (email), and secret word
+	// (password). This is the ONLY place the smoke test types the handle — it must
+	// carry forward unaided to the createProfile submission. Submitting redeems the
+	// invite and signs the member up, then the rite advances IN-PAGE to Choose Thy
+	// Sigil (no separate onboarding URL).
+	await page.locator('input[name="handle"]').fill(handle);
 	await page.locator('input[name="email"]').fill(email);
 	await page.locator('input[name="password"]').fill(password);
-	await page.getByRole('button', { name: 'Create account' }).click();
+	await page.getByRole('button', { name: 'Continue →' }).click();
 
-	// Local stack has email confirmation disabled, so signUp returns a session and
-	// the action redirects into /app. The app-layout guard then funnels a
-	// profile-less user to onboarding.
-	await page.waitForURL('**/app/onboarding');
-	await expect(page.getByRole('heading', { name: 'Set up your profile' })).toBeVisible();
+	// (2) Choose Thy Sigil — the built-in SVG sigil avatar (no upload), stored as a
+	// `sigil:<id>` in avatar_path. Pick the Tube sigil, then Continue. The Sigil
+	// step's Continue is where the profile is FORGED (TASK-092): createProfile fires
+	// here — NOT on the oath screen — so the action's legitimate session check never
+	// surfaces on the pure-UI Renounce step. The Casing typed once at Inscribe rides
+	// hidden from client state straight to createProfile; the test does NOT re-type
+	// the handle anywhere, so a regression that drops the carried handle would submit
+	// an empty handle, fail with "Please choose a handle." IN PLACE here, and never
+	// advance to the oath. On success the rite advances to Renounce.
+	await expect(page.getByRole('heading', { name: 'Choose Thy Sigil' })).toBeVisible();
+	await page.getByRole('radio', { name: 'The Tube Sigil' }).click();
+	await page.getByRole('button', { name: 'Continue →' }).click();
 
-	// (2) Set a unique handle (skip the optional avatar).
-	await page.locator('input[name="handle"]').fill(handle);
-	await page.getByRole('button', { name: 'Create profile' }).click();
+	// Renounce the Patty — now PURE UI. No form, no action, no session check: the
+	// profile was already forged at Sigil. The Continue here is a plain button gated
+	// SOLELY on the oath having been sworn (it is disabled until the seal is pressed).
+	// Swear the oath, then Continue advances to Received. This exercises the
+	// session/oath SPLIT end-to-end: the session-dependent createProfile ran at
+	// Sigil; this screen only checks the oath.
+	await expect(page.getByRole('heading', { name: 'Renounce the Patty' })).toBeVisible();
+	await page.getByRole('button', { name: 'Press to Swear the Oath' }).click();
+	await page.getByRole('button', { name: 'Continue →' }).click();
 
-	// Onboarding redirects to the new profile page.
+	// Received — the rite no longer redirects (createProfile returns so the oath +
+	// Received are not skipped). Click the explicit "Enter →" into the app to reach
+	// the new profile page with the typed handle — proof the Casing carried
+	// end-to-end through register + the in-page Sigil-forge advance.
+	await expect(page.getByRole('heading', { name: `Welcome, ${handle}` })).toBeVisible();
+	await page.getByRole('link', { name: 'Enter →' }).click();
 	await page.waitForURL(`**/app/profile/${handle}`);
 	await expect(page.getByRole('heading', { name: handle, exact: false })).toBeVisible();
 	await expect(page.getByText(`@${handle}`)).toBeVisible();

@@ -2,50 +2,43 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { isActionFailure, isRedirect } from '@sveltejs/kit';
 import { actions, load } from './+page.server';
 import { generateInviteToken } from '$lib/features/invites/token';
+import { HANDLE_TAKEN } from '$lib/features/profiles/profiles';
 
+// Test-after coverage for the Snacktum Onboarding RITE at /sign-up (TASK-092).
+// The single route now drives the ceremony with TWO actions:
+//
+//   register      — Summoned + Inscribe: the invite-redemption flow (mechanics
+//                   UNCHANGED from the old sign-up; only the success-with-session
+//                   branch differs — it returns { registered: true } so the rite
+//                   advances IN-PAGE instead of redirecting to /app).
+//   createProfile — Sigil + Renounce: the absorbed onboarding logic — handle
+//                   validation + profile creation, with the chosen sigil stored
+//                   as `sigil:<id>` in avatar_path (no upload, no migration).
+//
+// The redemption order under register is:
+//   validate token shape -> validate email -> validate password ->
+//   invite_is_redeemable pre-check (best-effort) -> supabase.auth.signUp() ->
+//   redeem_invite RPC keyed to the new user id.
+//
 // Mock the server-only service client so the orphan-cleanup path can be exercised
-// without a real secret-key Supabase client. The default deleteUser succeeds;
-// individual tests can re-stub it via the exposed spy.
+// without a real secret-key Supabase client.
 const deleteUser = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock('$lib/server/supabase', () => ({
 	getServiceClient: () => ({ auth: { admin: { deleteUser } } })
 }));
 
-// Test-after coverage for the public sign-up + invite redemption flow (the
-// integration AC: redemption is wired into sign-up). The action is exercised
-// with a fake `event` exposing `locals.supabase` (auth.signUp + rpc) and a
-// `request.formData()`. The redemption order under test is:
-//   validate token shape -> validate email -> validate password ->
-//   invite_is_redeemable pre-check (best-effort) -> supabase.auth.signUp() ->
-//   redeem_invite RPC keyed to the new user id.
-// Invariants:
-//   - a valid token path pre-checks, calls signUp THEN the redeem RPC, then
-//     redirects to /app when signUp returned a session
-//   - an invalid/empty/used token returns fail() with a friendly message; a token
-//     already used at submit time is rejected by the pre-check BEFORE any account
-//     is created
-//   - a token lost to a concurrent redemption AFTER signUp triggers orphan
-//     cleanup (deleteUser) so the email is reusable
-//   - no session from signUp (email confirmation) returns a success "confirm
-//     email" state instead of redirecting into /app
-//   - input validation (missing token, bad email, short password) fails BEFORE
-//     any signUp call
-
-const signUp = actions.default;
+const register = actions.register;
+const createProfile = actions.createProfile;
 
 const A_TOKEN = generateInviteToken();
 const NEW_USER = { id: 'new-user-uuid', email: 'newchef@topdog.test' };
 const A_SESSION = { access_token: 'tok', refresh_token: 'ref' };
 
-/**
- * Builds a fake sign-up event. `request.formData()` resolves a FormData built
- * from the supplied fields; `supabase.auth.signUp` resolves `signUpResult` and
- * `supabase.rpc` routes by function name: `invite_is_redeemable` resolves
- * `redeemableResult` (default: redeemable), `redeem_invite` resolves
- * `rpcResult` (default: success). Spies are exposed so tests can assert call
- * order / payloads.
- */
-function makeEvent(opts: {
+// ---------------------------------------------------------------------------
+// register (invite-redemption) — fake event
+// ---------------------------------------------------------------------------
+
+function makeRegisterEvent(opts: {
 	fields: Record<string, string>;
 	signUpResult?: { data: { user: unknown; session?: unknown } | { user: null }; error: unknown };
 	rpcResult?: { data: unknown; error: unknown };
@@ -79,95 +72,206 @@ function makeEvent(opts: {
 
 const GOOD_FIELDS = { token: A_TOKEN, email: 'newchef@topdog.test', password: 'hunter2hunter2' };
 
-describe('sign-up load', () => {
-	it('surfaces a token from the ?token= query param so the field pre-fills', async () => {
+// ---------------------------------------------------------------------------
+// createProfile (absorbed onboarding) — fake event
+// ---------------------------------------------------------------------------
+
+const PROFILE_USER = { id: '11111111-1111-1111-1111-111111111111', email: 'chef@topdog.test' };
+const PROFILE_SESSION = { access_token: 'tok', user: PROFILE_USER };
+
+const NEW_PROFILE = {
+	id: PROFILE_USER.id,
+	handle: 'ChefDog',
+	display_name: 'ChefDog',
+	avatar_path: 'sigil:tube',
+	joined_at: '2026-06-09T00:00:00Z',
+	days_as_top_dog: 0,
+	is_current_top_dog: false,
+	top_dog_since: null
+};
+
+function makeProfileEvent(opts: {
+	fields: Record<string, string>;
+	session?: unknown;
+	existingProfile?: { data: unknown; error: unknown };
+	insertResult?: { data: unknown; error: unknown };
+}) {
+	const formData = new FormData();
+	for (const [k, v] of Object.entries(opts.fields)) {
+		formData.set(k, v);
+	}
+
+	const existingProfile = opts.existingProfile ?? { data: null, error: null };
+	const insertResult = opts.insertResult ?? { data: NEW_PROFILE, error: null };
+
+	// select -> eq -> maybeSingle (the isHandleAvailable pre-check)
+	const maybeSingle = vi.fn().mockResolvedValue(existingProfile);
+	const eq = vi.fn(() => ({ maybeSingle }));
+	// insert -> select -> single (createProfile)
+	const single = vi.fn().mockResolvedValue(insertResult);
+	const insertSelect = vi.fn(() => ({ single }));
+	const insert = vi.fn(() => ({ select: insertSelect }));
+	const select = vi.fn(() => ({ eq }));
+	const from = vi.fn(() => ({ select, insert }));
+
+	const safeGetSession = vi.fn(async () => {
+		const session = 'session' in opts ? opts.session : PROFILE_SESSION;
+		return { session, user: session ? PROFILE_USER : null };
+	});
+
+	// A raw getSession spy: the action MUST NOT use this (auth-trust boundary).
+	const rawGetSession = vi.fn(async () => ({ data: { session: PROFILE_SESSION }, error: null }));
+	const getUser = vi.fn(async () => ({ data: { user: PROFILE_USER }, error: null }));
+
+	const event = {
+		request: { formData: vi.fn().mockResolvedValue(formData) },
+		locals: {
+			supabase: { from, auth: { getSession: rawGetSession, getUser } },
+			safeGetSession
+		}
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const result = await load({ url: new URL('https://x/sign-up?token=abc123') } as any);
-		expect(result).toEqual({ token: 'abc123' });
+	} as any;
+
+	return { event, from, insert, safeGetSession, rawGetSession };
+}
+
+// ---------------------------------------------------------------------------
+// load
+// ---------------------------------------------------------------------------
+
+describe('sign-up rite load', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('surfaces a ?token= for an anonymous visitor and does NOT resume at profile', async () => {
+		const safeGetSession = vi.fn(async () => ({ session: null, user: null }));
+		const result = await load({
+			url: new URL('https://x/sign-up?token=abc123'),
+			locals: { supabase: {}, safeGetSession }
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any);
+
+		expect(result).toEqual({ token: 'abc123', resumeAtProfile: false });
 	});
 
 	it('defaults to an empty token when none is supplied', async () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const result = await load({ url: new URL('https://x/sign-up') } as any);
-		expect(result).toEqual({ token: '' });
+		const safeGetSession = vi.fn(async () => ({ session: null, user: null }));
+		const result = await load({
+			url: new URL('https://x/sign-up'),
+			locals: { supabase: {}, safeGetSession }
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any);
+
+		expect(result).toEqual({ token: '', resumeAtProfile: false });
 	});
-});
 
-describe('sign-up default action — happy path', () => {
-	beforeEach(() => vi.clearAllMocks());
+	it('resumes at the profile step for an authenticated, profile-less visitor', async () => {
+		// The app guard funnels a profile-less member here; the rite skips the
+		// invite/credential steps and resumes at naming/sigil.
+		const safeGetSession = vi.fn(async () => ({ session: PROFILE_SESSION, user: PROFILE_USER }));
+		const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+		const eq = vi.fn(() => ({ maybeSingle }));
+		const select = vi.fn(() => ({ eq }));
+		const from = vi.fn(() => ({ select }));
 
-	it('pre-checks, signs the user up, then redeems the invite for the new user id, then redirects to /app', async () => {
-		const { event, signUpFn, rpc } = makeEvent({ fields: GOOD_FIELDS });
+		const result = await load({
+			url: new URL('https://x/sign-up'),
+			locals: { supabase: { from }, safeGetSession }
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any);
+
+		expect(result).toEqual({ token: '', resumeAtProfile: true });
+	});
+
+	it('redirects an already-onboarded visitor straight to their profile', async () => {
+		const safeGetSession = vi.fn(async () => ({ session: PROFILE_SESSION, user: PROFILE_USER }));
+		const maybeSingle = vi.fn().mockResolvedValue({ data: NEW_PROFILE, error: null });
+		const eq = vi.fn(() => ({ maybeSingle }));
+		const select = vi.fn(() => ({ eq }));
+		const from = vi.fn(() => ({ select }));
 
 		let thrown: unknown;
 		try {
-			await signUp(event);
+			await load({
+				url: new URL('https://x/sign-up'),
+				locals: { supabase: { from }, safeGetSession }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
 		} catch (e) {
 			thrown = e;
 		}
 
-		// signUp received the credentials.
+		expect(isRedirect(thrown)).toBe(true);
+		expect((thrown as { location: string }).location).toBe('/app/profile/ChefDog');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// register — invite redemption (mechanics UNCHANGED)
+// ---------------------------------------------------------------------------
+
+describe('register — happy path', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('pre-checks, signs up, redeems for the new user id, then returns registered (no /app redirect)', async () => {
+		const { event, signUpFn, rpc } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		const result = await register(event);
+
 		expect(signUpFn).toHaveBeenCalledWith({
 			email: 'newchef@topdog.test',
 			password: 'hunter2hunter2'
 		});
-		// best-effort pre-check ran with the token.
 		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: A_TOKEN });
-		// redemption is keyed to the freshly created user id (not client-supplied).
 		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
 			invite_token: A_TOKEN,
 			redeemer_id: 'new-user-uuid'
 		});
-		// pre-check happens before signUp, which happens before redemption.
+		// pre-check before signUp before redemption.
 		const preCheckOrder = rpc.mock.invocationCallOrder[0];
 		const redeemOrder = rpc.mock.invocationCallOrder[1];
 		const signUpOrder = signUpFn.mock.invocationCallOrder[0];
 		expect(preCheckOrder).toBeLessThan(signUpOrder);
 		expect(signUpOrder).toBeLessThan(redeemOrder);
-		// success ends in a redirect into the app (signUp returned a session).
-		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { status: number }).status).toBe(303);
-		expect((thrown as { location: string }).location).toBe('/app');
+		// The single-route rite advances IN-PAGE: a registered flag, not a redirect.
+		expect(isActionFailure(result)).toBe(false);
+		expect(result).toEqual({ registered: true });
 	});
 });
 
-describe('sign-up default action — invalid / used token rejection', () => {
+describe('register — invalid / used token rejection', () => {
 	beforeEach(() => vi.clearAllMocks());
 
 	it('rejects a malformed token before any signUp call', async () => {
-		const { event, signUpFn, rpc } = makeEvent({
+		const { event, signUpFn, rpc } = makeRegisterEvent({
 			fields: { ...GOOD_FIELDS, token: 'too short' }
 		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
 		expect((result as { data: { error: string } }).data.error).toMatch(/valid invite link/i);
-		// No account is created when the token is malformed.
 		expect(signUpFn).not.toHaveBeenCalled();
 		expect(rpc).not.toHaveBeenCalled();
 	});
 
 	it('rejects an empty token before any signUp call', async () => {
-		const { event, signUpFn } = makeEvent({ fields: { ...GOOD_FIELDS, token: '' } });
+		const { event, signUpFn } = makeRegisterEvent({ fields: { ...GOOD_FIELDS, token: '' } });
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect(signUpFn).not.toHaveBeenCalled();
 	});
 
 	it('rejects an already-used token at the pre-check, before any signUp call', async () => {
-		// The pre-check RPC reports the token is no longer redeemable.
-		const { event, signUpFn, rpc } = makeEvent({
+		const { event, signUpFn, rpc } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			redeemableResult: { data: false, error: null }
 		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 
-		// Pre-check ran; signUp and redeem did NOT — no orphan account is created.
 		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: A_TOKEN });
 		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
 		expect(signUpFn).not.toHaveBeenCalled();
@@ -179,76 +283,51 @@ describe('sign-up default action — invalid / used token rejection', () => {
 	});
 
 	it('cleans up the orphan account when redemption loses the race after signUp', async () => {
-		// Pre-check passes, signUp succeeds, but the atomic redeem RPC returns NULL
-		// (someone consumed the token in the narrow window). The just-created auth
-		// user must be deleted so the email is reusable.
-		const { event, signUpFn, rpc } = makeEvent({
+		const { event, signUpFn, rpc } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			rpcResult: { data: null, error: null }
 		});
 
-		let thrown: unknown;
-		let result: unknown;
-		try {
-			result = await signUp(event);
-		} catch (e) {
-			thrown = e;
-		}
+		const result = await register(event);
 
-		// signUp ran, redemption was attempted and rejected, orphan was deleted.
 		expect(signUpFn).toHaveBeenCalledOnce();
 		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
 			invite_token: A_TOKEN,
 			redeemer_id: 'new-user-uuid'
 		});
 		expect(deleteUser).toHaveBeenCalledWith('new-user-uuid');
-		// The user is NOT sent into the app — no redirect, an action failure instead.
-		expect(thrown).toBeUndefined();
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
 		expect((result as { data: { error: string } }).data.error).toMatch(/valid invite/i);
 	});
 
 	it('still fails cleanly (no crash) when orphan cleanup itself errors on the lost-race path', async () => {
-		// The lost-race path tries to delete the just-created auth user. If that
-		// delete ALSO fails (e.g. the admin call errors), the action must log and
-		// still return a friendly fail() — it must not throw or redirect the user
-		// into /app on a half-broken state.
 		deleteUser.mockResolvedValueOnce({ data: null, error: { message: 'admin delete failed' } });
 
-		const { event, signUpFn, rpc } = makeEvent({
+		const { event, signUpFn, rpc } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			rpcResult: { data: null, error: null }
 		});
 
-		let thrown: unknown;
-		let result: unknown;
-		try {
-			result = await signUp(event);
-		} catch (e) {
-			thrown = e;
-		}
+		const result = await register(event);
 
-		// The orphan delete was attempted with the new user id and reported an error.
 		expect(signUpFn).toHaveBeenCalledOnce();
 		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
 			invite_token: A_TOKEN,
 			redeemer_id: 'new-user-uuid'
 		});
 		expect(deleteUser).toHaveBeenCalledWith('new-user-uuid');
-		// Despite the cleanup error, the action neither threw nor redirected.
-		expect(thrown).toBeUndefined();
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
 	});
 
-	it('preserves the token and email on the failure payload so the form repopulates', async () => {
-		const { event } = makeEvent({
+	it('preserves the token and email on the failure payload so the rite repopulates', async () => {
+		const { event } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			redeemableResult: { data: false, error: null }
 		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 		const data = (result as { data: { token: string; email: string } }).data;
 
 		expect(data.token).toBe(A_TOKEN);
@@ -256,13 +335,13 @@ describe('sign-up default action — invalid / used token rejection', () => {
 	});
 });
 
-describe('sign-up default action — input validation', () => {
+describe('register — input validation', () => {
 	beforeEach(() => vi.clearAllMocks());
 
 	it('rejects a missing/empty email before signUp', async () => {
-		const { event, signUpFn } = makeEvent({ fields: { ...GOOD_FIELDS, email: '' } });
+		const { event, signUpFn } = makeRegisterEvent({ fields: { ...GOOD_FIELDS, email: '' } });
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
@@ -271,18 +350,22 @@ describe('sign-up default action — input validation', () => {
 	});
 
 	it('rejects a malformed email before signUp', async () => {
-		const { event, signUpFn } = makeEvent({ fields: { ...GOOD_FIELDS, email: 'not-an-email' } });
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, email: 'not-an-email' }
+		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect(signUpFn).not.toHaveBeenCalled();
 	});
 
 	it('rejects a short password (< 8 chars) before signUp', async () => {
-		const { event, signUpFn } = makeEvent({ fields: { ...GOOD_FIELDS, password: 'short' } });
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, password: 'short' }
+		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
@@ -291,81 +374,208 @@ describe('sign-up default action — input validation', () => {
 	});
 
 	it('accepts a password exactly at the 8-char minimum boundary', async () => {
-		const { event, signUpFn } = makeEvent({
+		const { event, signUpFn } = makeRegisterEvent({
 			fields: { ...GOOD_FIELDS, password: '12345678' }
 		});
 
-		try {
-			await signUp(event);
-		} catch {
-			// The happy path redirects (throws) after signUp — that's expected here.
-		}
+		await register(event);
 
 		expect(signUpFn).toHaveBeenCalledOnce();
 	});
 });
 
-describe('sign-up default action — signUp failure', () => {
+describe('register — signUp failure', () => {
 	beforeEach(() => vi.clearAllMocks());
 
 	it('returns a 400 fail and never redeems when signUp errors', async () => {
-		const { event, rpc } = makeEvent({
+		const { event, rpc } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			signUpResult: { data: { user: null }, error: { message: 'User already registered' } }
 		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect((result as { status: number }).status).toBe(400);
-		// A failed signUp must not consume the invite token (the best-effort
-		// pre-check may run, but the authoritative redeem RPC must not).
 		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
 	});
 
 	it('treats a null user (no error) as a signUp failure and does not redeem', async () => {
-		const { event, rpc } = makeEvent({
+		const { event, rpc } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			signUpResult: { data: { user: null }, error: null }
 		});
 
-		const result = await signUp(event);
+		const result = await register(event);
 
 		expect(isActionFailure(result)).toBe(true);
 		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
 	});
 });
 
-describe('sign-up default action — email confirmation (no session)', () => {
+describe('register — email confirmation (no session)', () => {
 	beforeEach(() => vi.clearAllMocks());
 
-	it('returns a confirm-email success state instead of redirecting when signUp has no session', async () => {
+	it('returns a confirm-email success state when signUp has no session', async () => {
 		// Email confirmation enabled: signUp succeeds but returns no session. The
-		// invite was validly consumed, so this is a success, not a fail() — and we
-		// must NOT redirect into /app (the guard would bounce an unauthenticated user).
-		const { event, rpc } = makeEvent({
+		// invite WAS validly consumed, so this is a success, not a fail() — and the
+		// rite cannot advance into the profile steps without a session.
+		const { event, rpc } = makeRegisterEvent({
 			fields: GOOD_FIELDS,
 			signUpResult: { data: { user: NEW_USER, session: null }, error: null }
 		});
 
-		let thrown: unknown;
-		let result: unknown;
-		try {
-			result = await signUp(event);
-		} catch (e) {
-			thrown = e;
-		}
+		const result = await register(event);
 
-		expect(thrown).toBeUndefined();
 		expect(isActionFailure(result)).toBe(false);
 		expect(result).toEqual({ success: true, confirmEmail: true, email: 'newchef@topdog.test' });
-		// The invite WAS validly consumed in this branch — redemption ran and the
-		// orphan-cleanup path must NOT fire (the account is legitimate, just
-		// awaiting email confirmation).
 		expect(rpc).toHaveBeenCalledWith('redeem_invite', {
 			invite_token: A_TOKEN,
 			redeemer_id: 'new-user-uuid'
 		});
 		expect(deleteUser).not.toHaveBeenCalled();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// createProfile — absorbed onboarding (handle validation + profile creation,
+// sigil stored in avatar_path). Relocated from onboarding-action.test.ts.
+// ---------------------------------------------------------------------------
+
+describe('createProfile — handle validation', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('rejects a bad-charset handle before any insert', async () => {
+		const { event, insert } = makeProfileEvent({ fields: { handle: 'chef dog!', sigil: 'tube' } });
+
+		const result = await createProfile(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { data: { error: string } }).data.error).toMatch(
+			/letters, numbers, and underscores/i
+		);
+		expect(insert).not.toHaveBeenCalled();
+	});
+
+	it('rejects a too-short handle before any insert', async () => {
+		const { event, insert } = makeProfileEvent({ fields: { handle: 'a', sigil: 'tube' } });
+
+		const result = await createProfile(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect(insert).not.toHaveBeenCalled();
+	});
+
+	it('fails when the pre-check reports the handle is taken, preserving inputs', async () => {
+		const { event, insert } = makeProfileEvent({
+			fields: { handle: 'ChefDog', sigil: 'tube' },
+			existingProfile: { data: { id: 'someone-else' }, error: null }
+		});
+
+		const result = await createProfile(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { data: { error: string } }).data.error).toMatch(/taken/i);
+		expect((result as { data: { handle: string } }).data.handle).toBe('ChefDog');
+		expect(insert).not.toHaveBeenCalled();
+	});
+
+	it('maps a unique-violation on insert to a friendly taken message, preserving inputs', async () => {
+		const { event } = makeProfileEvent({
+			fields: { handle: 'ChefDog', sigil: 'tube' },
+			insertResult: { data: null, error: { code: '23505', message: 'duplicate key' } }
+		});
+
+		const result = await createProfile(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { data: { error: string } }).data.error).toMatch(/taken/i);
+		expect((result as { data: { error: string } }).data.error).not.toContain(HANDLE_TAKEN);
+		expect((result as { data: { handle: string } }).data.handle).toBe('ChefDog');
+	});
+});
+
+describe('createProfile — happy path + sigil storage', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('inserts with the trusted session uid and returns { created, handle } on success (no redirect)', async () => {
+		const { event, insert } = makeProfileEvent({ fields: { handle: 'ChefDog', sigil: 'tube' } });
+
+		const result = await createProfile(event);
+
+		expect(insert).toHaveBeenCalledWith(
+			expect.objectContaining({ id: PROFILE_USER.id, handle: 'ChefDog' })
+		);
+		// The rite advances IN-PAGE (Sigil -> Renounce -> Received): a returned flag
+		// carrying the canonical handle, not a redirect away to the profile.
+		expect(isActionFailure(result)).toBe(false);
+		expect(result).toEqual({ created: true, handle: 'ChefDog' });
+	});
+
+	it('defaults display_name to the handle (the rite has no separate display name)', async () => {
+		const { event, insert } = makeProfileEvent({ fields: { handle: 'ChefDog', sigil: 'tube' } });
+
+		await createProfile(event);
+
+		expect(insert).toHaveBeenCalledWith(expect.objectContaining({ display_name: 'ChefDog' }));
+	});
+
+	it('stores the chosen sigil as a `sigil:<id>` value in avatar_path (no upload)', async () => {
+		const { event, insert } = makeProfileEvent({ fields: { handle: 'ChefDog', sigil: 'candle' } });
+
+		await createProfile(event);
+
+		expect(insert).toHaveBeenCalledWith(expect.objectContaining({ avatar_path: 'sigil:candle' }));
+	});
+
+	it('falls back to the default sigil when the submitted sigil is unknown/absent', async () => {
+		const { event, insert } = makeProfileEvent({
+			fields: { handle: 'ChefDog', sigil: 'not-a-real-sigil' }
+		});
+
+		await createProfile(event);
+
+		// Default sigil is `cowled` -> stored prefixed; every member gets a face.
+		expect(insert).toHaveBeenCalledWith(expect.objectContaining({ avatar_path: 'sigil:cowled' }));
+	});
+
+	it('does not forge another user id — the insert id is the trusted session uid', async () => {
+		const { event, insert } = makeProfileEvent({
+			fields: { handle: 'ChefDog', sigil: 'tube', id: 'attacker-supplied-id' }
+		});
+
+		await createProfile(event);
+
+		expect(insert).toHaveBeenCalledWith(expect.objectContaining({ id: PROFILE_USER.id }));
+		const insertArg = (insert.mock.calls as Record<string, unknown>[][])[0][0];
+		expect(insertArg.id).not.toBe('attacker-supplied-id');
+	});
+});
+
+describe('createProfile — auth-trust boundary', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('returns 401 when there is no validated session; never inserts', async () => {
+		const { event, insert } = makeProfileEvent({
+			fields: { handle: 'ChefDog', sigil: 'tube' },
+			session: null
+		});
+
+		const result = await createProfile(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(401);
+		expect(insert).not.toHaveBeenCalled();
+	});
+
+	it('reads the session via safeGetSession, never the raw unvalidated getSession', async () => {
+		const { event, safeGetSession, rawGetSession } = makeProfileEvent({
+			fields: { handle: 'ChefDog', sigil: 'tube' }
+		});
+
+		await createProfile(event);
+
+		expect(safeGetSession).toHaveBeenCalled();
+		expect(rawGetSession).not.toHaveBeenCalled();
 	});
 });

@@ -9,6 +9,7 @@ import {
 	type WallMessageRow
 } from '$lib/features/walls/walls';
 import { getPublicUrl } from '$lib/storage';
+import { parseSigilId } from '$lib/features/profiles/sigils';
 import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
 import { summarizeLiarBrand, isHamburgerHeretic } from '$lib/features/reports/verdict';
 
@@ -55,7 +56,14 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 	}
 
 	const profile = result.data;
-	const avatarUrl = profile.avatar_path ? getPublicUrl(supabase, profile.avatar_path) : null;
+
+	// Avatar resolution (TASK-092): a member's avatar_path is either a built-in
+	// sigil id (`sigil:<id>`, chosen in the onboarding rite — rendered inline as an
+	// <Sigil>, no storage fetch) or a real uploaded object in the public `avatars`
+	// bucket (resolved to a public URL). A sigil id never yields a storage URL.
+	const sigilId = parseSigilId(profile.avatar_path);
+	const avatarUrl =
+		!sigilId && profile.avatar_path ? getPublicUrl(supabase, profile.avatar_path) : null;
 
 	// Can the VIEWER spray? Only the current Top Dog may. is_current_top_dog is
 	// server-maintained and non-client-writable (decision #25), so reading it off
@@ -136,6 +144,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 	return {
 		profile,
 		avatarUrl,
+		sigilId,
 		sprays,
 		canSpray,
 		wallMessages,

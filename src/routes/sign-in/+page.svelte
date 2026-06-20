@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
+	import ordoSeal from '$lib/assets/brand/ordo-sancti-tubi-seal.svg';
+	import snacktumHeader from '$lib/assets/brand/snacktum-snacktorum-header.svg';
 	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
 	import { errorSlideFade } from '$lib/motion/reducedMotion';
 
@@ -26,7 +27,10 @@
 <div class="glow-orb" aria-hidden="true"></div>
 
 <main class="sign-in fade-up gate-center">
-	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
+	<header class="gate-header">
+		<img class="gate-header-mark" src={snacktumHeader} alt="Snacktum Snacktorum" />
+	</header>
+	<img class="gate-mark" src={ordoSeal} alt="" aria-hidden="true" />
 	<span class="eyebrow">The Faithful Return</span>
 	<h1>Enter the Snacktum</h1>
 	<div class="ornament-divider" aria-hidden="true">✦</div>
@@ -112,9 +116,10 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		/* --space-md (down from --space-lg): a one-step gap reduction clears the
-		   small remaining overflow so the page fits an 800px viewport without a
-		   scrollbar, keeping the rhythm in step with the recovery gate pages. */
+		/* --space-md (down from --space-lg): a one-step gap reduction keeps the
+		   vertical rhythm tight and in step with the recovery gate pages. With the
+		   15rem seal mark this page may exceed a short viewport and scroll (body
+		   scroll), which is acceptable; the tighter gap just minimizes that. */
 		gap: var(--space-md);
 		text-align: center;
 		max-width: var(--measure-form);

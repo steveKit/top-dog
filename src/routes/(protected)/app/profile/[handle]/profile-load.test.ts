@@ -122,6 +122,7 @@ function makeLoadEvent(opts: { session: unknown; user: unknown; handle?: string 
 type LoadData = {
 	profile: typeof TARGET_PROFILE;
 	avatarUrl: string | null;
+	sigilId: string | null;
 	sprays: { id: string; x: number; y: number; sprayed_at: string }[];
 	canSpray: boolean;
 	wallMessages: unknown[];
@@ -186,6 +187,8 @@ describe('profile [handle] load', () => {
 		expect(result).toEqual({
 			profile: TARGET_PROFILE,
 			avatarUrl: null,
+			// No avatar_path => not a sigil either.
+			sigilId: null,
 			sprays: [],
 			canSpray: false,
 			wallMessages: [],
@@ -211,6 +214,23 @@ describe('profile [handle] load', () => {
 		expect(getPublicUrl).toHaveBeenCalledWith(event.locals.supabase, 'target-uuid/avatar.webp');
 		expect(result.profile).toEqual(withAvatar);
 		expect(result.avatarUrl).toBe('https://cdn/target-uuid/avatar.webp');
+		// A real uploaded avatar is not a sigil.
+		expect(result.sigilId).toBeNull();
+	});
+
+	it('surfaces a built-in sigil id (no storage URL) when avatar_path is a sigil', async () => {
+		// The onboarding rite stores a chosen sigil as `sigil:<id>` in avatar_path
+		// (TASK-092). The load parses it to a sigilId the page renders inline and
+		// must NOT resolve a storage public URL for it.
+		const withSigil = { ...TARGET_PROFILE, avatar_path: 'sigil:tube' };
+		vi.mocked(getProfileByHandle).mockResolvedValue({ ok: true, data: withSigil });
+		const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+		const result = await callLoad(event);
+
+		expect(result.sigilId).toBe('tube');
+		expect(result.avatarUrl).toBeNull();
+		expect(getPublicUrl).not.toHaveBeenCalled();
 	});
 
 	it('404s for an unknown handle', async () => {

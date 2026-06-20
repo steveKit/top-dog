@@ -8,11 +8,13 @@ import { load } from './+layout.server';
 // validated user to nested loads when authenticated.
 //
 // TASK-011 added the profile funnel: an authenticated but profile-less user is
-// redirected to /app/onboarding (unless already there). The load now also reads
-// `locals.supabase` (to look up the profile) and `url.pathname` (to avoid the
-// redirect loop), so the fake event supplies both.
+// redirected to the onboarding rite. TASK-092 absorbed the standalone
+// /app/onboarding route into the /sign-up rite, so the funnel target is now
+// /sign-up (which lives OUTSIDE the protected group, so this guard never runs for
+// it and cannot loop). The load reads `locals.supabase` (to look up the profile)
+// and `url.pathname` (the defensive loop guard), so the fake event supplies both.
 
-const ONBOARDING_URL = new URL('https://x/app/onboarding');
+const ONBOARDING_URL = new URL('https://x/sign-up');
 const APP_URL = new URL('https://x/app');
 
 /** A fake supabase whose profile lookup resolves the supplied row (or null). */
@@ -77,7 +79,7 @@ describe('(protected)/app/+layout.server load', () => {
 		expect(isRedirect(thrown)).toBe(true);
 	});
 
-	it('redirects a profile-less authenticated user to /app/onboarding', async () => {
+	it('redirects a profile-less authenticated user to the /sign-up rite', async () => {
 		const user = { id: 'u1', email: 'chef@topdog.test' };
 		const session = { access_token: 'valid', user };
 		const safeGetSession = vi.fn(async () => ({ session, user }));
@@ -90,10 +92,10 @@ describe('(protected)/app/+layout.server load', () => {
 		}
 
 		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { location: string }).location).toBe('/app/onboarding');
+		expect((thrown as { location: string }).location).toBe('/sign-up');
 	});
 
-	it('does NOT redirect when a profile-less user is already on /app/onboarding (no loop)', async () => {
+	it('does NOT redirect when a profile-less request is already on the funnel target (no loop)', async () => {
 		const user = { id: 'u1', email: 'chef@topdog.test' };
 		const session = { access_token: 'valid', user };
 		const safeGetSession = vi.fn(async () => ({ session, user }));
@@ -124,7 +126,7 @@ describe('(protected)/app/+layout.server load', () => {
 		}
 
 		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { location: string }).location).toBe('/app/onboarding');
+		expect((thrown as { location: string }).location).toBe('/sign-up');
 	});
 
 	it('looks the profile up by the trusted session uid', async () => {

@@ -28,15 +28,15 @@ test('@smoke redeem invite, set handle, upload a dog, and see it rendered', asyn
 
 	// (1) Begin the Snacktum Onboarding rite at the public /sign-up route. The rite
 	// is a single-route, multi-step ceremony (Summoned → Inscribe → Sigil →
-	// Renounce → Received); the old standalone /app/onboarding URL is gone — the
-	// naming/sigil step now happens IN-PAGE at /sign-up.
+	// Renounce → Received); the old standalone /snacktum-snacktorum/onboarding URL is
+	// gone — the naming/sigil step now happens IN-PAGE at /sign-up.
 	//
 	// This walks the EXACT user path — type the Casing (@handle) ONCE at Inscribe,
 	// never re-typing it later — so the slice catches the TASK-092 flow bug where
 	// the handle typed at Inscribe failed to carry forward to the createProfile
 	// submission, surfacing "Please choose a handle." at the final Continue. If the
 	// handle does not survive Inscribe → register → Sigil → Renounce, the rite
-	// never reaches /app/profile/<handle> and this test fails.
+	// never reaches /snacktum-snacktorum/profile/<handle> and this test fails.
 	await page.goto(`/sign-up?token=${encodeURIComponent(token)}`);
 	await expect(page.getByRole('heading', { name: 'You Have Been Summoned' })).toBeVisible();
 
@@ -86,13 +86,13 @@ test('@smoke redeem invite, set handle, upload a dog, and see it rendered', asyn
 	// end-to-end through register + the in-page Sigil-forge advance.
 	await expect(page.getByRole('heading', { name: `Welcome, ${handle}` })).toBeVisible();
 	await page.getByRole('link', { name: 'Enter →' }).click();
-	await page.waitForURL(`**/app/profile/${handle}`);
+	await page.waitForURL(`**/snacktum-snacktorum/profile/${handle}`);
 	await expect(page.getByRole('heading', { name: handle, exact: false })).toBeVisible();
 	await expect(page.getByText(`@${handle}`)).toBeVisible();
 
 	// (3) Upload one hot dog. compressToWebp runs in the real browser (canvas),
 	// then the server uploads to the private `hotdogs` bucket and inserts the row.
-	await page.goto('/app/dogs');
+	await page.goto('/snacktum-snacktorum/dogs');
 	await expect(page.getByRole('heading', { name: 'Your hot dogs' })).toBeVisible();
 	await expect(page.getByText('No hot dogs yet. Upload your first one!')).toBeVisible();
 

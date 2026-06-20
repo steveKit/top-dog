@@ -85,7 +85,11 @@
 				{/if}
 				<p>{dog.vote_count} {dog.vote_count === 1 ? 'vote' : 'votes'}</p>
 				<p>Peak: {dog.peak_votes}</p>
-				<p><a href={resolve('/(protected)/app/dogs/[id]', { id: dog.id })}>View details</a></p>
+				<p>
+					<a href={resolve('/(protected)/snacktum-snacktorum/dogs/[id]', { id: dog.id })}
+						>View details</a
+					>
+				</p>
 
 				<ReactionBar dogId={dog.id} summaries={dog.reactions} />
 

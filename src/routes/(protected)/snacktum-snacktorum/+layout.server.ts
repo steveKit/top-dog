@@ -3,24 +3,26 @@ import type { LayoutServerLoad } from './$types';
 import { getProfileById } from '$lib/features/profiles/profiles';
 
 // The onboarding funnel target is now the Snacktum Onboarding RITE at /sign-up
-// (TASK-092). The standalone /app/onboarding route was absorbed into the rite, so
-// a profile-less member is funneled to /sign-up, where the rite detects their
-// existing session and RESUMES at the naming/sigil (profile-creation) step.
+// (TASK-092). The standalone /snacktum-snacktorum/onboarding route was absorbed
+// into the rite, so a profile-less member is funneled to /sign-up, where the rite
+// detects their existing session and RESUMES at the naming/sigil (profile-creation)
+// step.
 const ONBOARDING_PATH = '/sign-up';
 
 /**
  * Guard for the authenticated app area. The global hook (`hooks.server.ts`)
- * already redirects unauthenticated requests under `/app`; this load is a
- * defense-in-depth check so the guard is co-located with the protected routes
- * and surfaces the validated user to nested loads.
+ * already redirects unauthenticated requests under `/snacktum-snacktorum`; this
+ * load is a defense-in-depth check so the guard is co-located with the protected
+ * routes and surfaces the validated user to nested loads.
  *
  * Profile-funnel integration (TASK-011, retargeted TASK-092): a freshly-redeemed
  * user has an auth account but no `profiles` row yet. We look up the profile and,
  * if none exists, funnel the user to /sign-up — the onboarding rite, which
  * resumes at the profile-creation step for an already-authenticated visitor (it
  * does not re-ask for invite/credentials). The funnel can't loop here because
- * /sign-up lives OUTSIDE the protected `/app` group, so this guard never runs for
- * it. The profile (or null) is surfaced to nested loads via the returned data.
+ * /sign-up lives OUTSIDE the protected `/snacktum-snacktorum` group, so this guard
+ * never runs for it. The profile (or null) is surfaced to nested loads via the
+ * returned data.
  */
 export const load: LayoutServerLoad = async ({ url, locals: { supabase, safeGetSession } }) => {
 	const { session, user } = await safeGetSession();

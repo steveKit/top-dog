@@ -264,7 +264,7 @@ only the in-app `app` prefix moves.
 > order. The foundational slug refactor (TASK-090) lands first (or its prefix piece
 > does); the per-page rebuilds follow.
 
-### TASK-090: Foundational slug refactor — `app` → `snacktum-snacktorum` prefix + every reference [`pending`] [`P1`] [`L`]
+### TASK-090: Foundational slug refactor — `app` → `snacktum-snacktorum` prefix + every reference [`in_progress`] [`P1`] [`L`]
 
 **Owner:** unassigned
 **Dependencies:** none hard (the completed gate pages + shell exist). **Risky

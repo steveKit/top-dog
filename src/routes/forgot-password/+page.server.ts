@@ -3,7 +3,7 @@ import type { Actions } from './$types';
 
 // Public "forgot password" request step (step 0 of the design's recovery flow).
 // Reachable while unauthenticated — the auth guard in hooks.server.ts only
-// protects /app*. The member supplies their email; Supabase Auth sends a
+// protects /snacktum-snacktorum*. The member supplies their email; Supabase Auth sends a
 // recovery email rendering a 6-digit OTP code ({{ .Token }} in the template).
 // Locally that email lands in Mailpit (http://localhost:54324).
 //

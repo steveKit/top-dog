@@ -7,7 +7,7 @@ import { actions } from './+page.server';
 // `request.formData()`. Invariants under test:
 //   - invalid/missing email -> fail(400) BEFORE any sign-in call
 //   - empty password -> fail(400) BEFORE any sign-in call (no length policy)
-//   - success (session returned) -> redirect(303, '/app')
+//   - success (session returned) -> redirect(303, '/snacktum-snacktorum')
 //   - auth failure -> friendly NON-ENUMERATING fail(400): one generic message,
 //     the raw Supabase error is NOT surfaced, and the password is never echoed
 //   - the email is echoed back on failure so the form repopulates
@@ -97,7 +97,7 @@ describe('sign-in default action — input validation', () => {
 describe('sign-in default action — happy path', () => {
 	beforeEach(() => vi.clearAllMocks());
 
-	it('signs in with the credentials and redirects to /app on a live session', async () => {
+	it('signs in with the credentials and redirects to /snacktum-snacktorum on a live session', async () => {
 		const { event, signInWithPassword } = makeEvent({ fields: GOOD_FIELDS });
 
 		let thrown: unknown;
@@ -113,8 +113,8 @@ describe('sign-in default action — happy path', () => {
 		});
 		expect(isRedirect(thrown)).toBe(true);
 		expect((thrown as { status: number }).status).toBe(303);
-		// Redirect to /app, not a deeper route — the app guard routes onward.
-		expect((thrown as { location: string }).location).toBe('/app');
+		// Redirect to /snacktum-snacktorum, not a deeper route — the app guard routes onward.
+		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum');
 	});
 
 	it('trims the email before signing in', async () => {

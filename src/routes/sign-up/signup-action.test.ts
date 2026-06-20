@@ -10,7 +10,7 @@ import { HANDLE_TAKEN } from '$lib/features/profiles/profiles';
 //   register      — Summoned + Inscribe: the invite-redemption flow (mechanics
 //                   UNCHANGED from the old sign-up; only the success-with-session
 //                   branch differs — it returns { registered: true } so the rite
-//                   advances IN-PAGE instead of redirecting to /app).
+//                   advances IN-PAGE instead of redirecting to /snacktum-snacktorum).
 //   createProfile — Sigil + Renounce: the absorbed onboarding logic — handle
 //                   validation + profile creation, with the chosen sigil stored
 //                   as `sigil:<id>` in avatar_path (no upload, no migration).
@@ -201,7 +201,7 @@ describe('sign-up rite load', () => {
 		}
 
 		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { location: string }).location).toBe('/app/profile/ChefDog');
+		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/profile/ChefDog');
 	});
 });
 
@@ -212,7 +212,7 @@ describe('sign-up rite load', () => {
 describe('register — happy path', () => {
 	beforeEach(() => vi.clearAllMocks());
 
-	it('pre-checks, signs up, redeems for the new user id, then returns registered (no /app redirect)', async () => {
+	it('pre-checks, signs up, redeems for the new user id, then returns registered (no /snacktum-snacktorum redirect)', async () => {
 		const { event, signUpFn, rpc } = makeRegisterEvent({ fields: GOOD_FIELDS });
 
 		const result = await register(event);

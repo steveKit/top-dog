@@ -118,7 +118,11 @@
 					<p>{dog.caption}</p>
 				{/if}
 				<p>Peak: {dog.peak_votes}</p>
-				<p><a href={resolve('/(protected)/app/dogs/[id]', { id: dog.id })}>View details</a></p>
+				<p>
+					<a href={resolve('/(protected)/snacktum-snacktorum/dogs/[id]', { id: dog.id })}
+						>View details</a
+					>
+				</p>
 				<form method="POST" action="?/delete" use:enhance={() => submitDelete(dog.id)}>
 					<input type="hidden" name="id" value={dog.id} />
 					<button type="submit" disabled={deleting === dog.id}>

@@ -152,7 +152,7 @@ describe('messages thread load', () => {
 		expect(listThread).not.toHaveBeenCalled();
 	});
 
-	it('redirects a SELF-handle thread back to the inbox (/app/messages); never lists a self-thread', async () => {
+	it('redirects a SELF-handle thread back to the inbox (/snacktum-snacktorum/messages); never lists a self-thread', async () => {
 		// The resolved counterparty is the viewer themselves.
 		vi.mocked(getProfileByHandle).mockResolvedValue({
 			ok: true,
@@ -161,7 +161,9 @@ describe('messages thread load', () => {
 		const { event } = makeEvent({ session: VALID_SESSION, user: VALID_USER });
 
 		await expect(load(event)).rejects.toSatisfy((e: unknown) => {
-			return isRedirect(e) && (e as { location: string }).location === '/app/messages';
+			return (
+				isRedirect(e) && (e as { location: string }).location === '/snacktum-snacktorum/messages'
+			);
 		});
 		expect(listThread).not.toHaveBeenCalled();
 	});

@@ -8,8 +8,8 @@ import { isRedirect } from '@sveltejs/kit';
 //      If `getUser()` errors or returns no user, it must report an
 //      unauthenticated state (null session).
 //   2. The `authGuard` handle must redirect unauthenticated requests under
-//      `/app` to `/sign-in`, and let authenticated requests (and non-protected
-//      paths) through.
+//      `/snacktum-snacktorum` to `/sign-in`, and let authenticated requests (and
+//      non-protected paths) through.
 //
 // We drive the two handles directly (rather than the composed `sequence`,
 // which needs SvelteKit's per-request async store) in the same order `sequence`
@@ -170,10 +170,10 @@ describe('hooks.server', () => {
 	});
 
 	describe('authGuard', () => {
-		it('redirects unauthenticated requests under /app to /sign-in', async () => {
+		it('redirects unauthenticated requests under /snacktum-snacktorum to /sign-in', async () => {
 			authStub.getSession.mockResolvedValue({ data: { session: null } });
 
-			const { thrown, resolve } = await runGuard('/app');
+			const { thrown, resolve } = await runGuard('/snacktum-snacktorum');
 
 			expect(isRedirect(thrown)).toBe(true);
 			expect((thrown as { status: number }).status).toBe(303);
@@ -182,16 +182,16 @@ describe('hooks.server', () => {
 			expect(resolve).not.toHaveBeenCalled();
 		});
 
-		it('redirects unauthenticated requests to nested /app paths', async () => {
+		it('redirects unauthenticated requests to nested /snacktum-snacktorum paths', async () => {
 			authStub.getSession.mockResolvedValue({ data: { session: null } });
 
-			const { thrown } = await runGuard('/app/profile/settings');
+			const { thrown } = await runGuard('/snacktum-snacktorum/profile/settings');
 
 			expect(isRedirect(thrown)).toBe(true);
 			expect((thrown as { location: string }).location).toBe('/sign-in');
 		});
 
-		it('allows authenticated requests under /app through', async () => {
+		it('allows authenticated requests under /snacktum-snacktorum through', async () => {
 			const session = { access_token: 'valid', user: { id: 'u1' } };
 			authStub.getSession.mockResolvedValue({ data: { session } });
 			authStub.getUser.mockResolvedValue({
@@ -199,7 +199,7 @@ describe('hooks.server', () => {
 				error: null
 			});
 
-			const { thrown, resolve, response } = await runGuard('/app');
+			const { thrown, resolve, response } = await runGuard('/snacktum-snacktorum');
 
 			expect(thrown).toBeUndefined();
 			expect(resolve).toHaveBeenCalledOnce();

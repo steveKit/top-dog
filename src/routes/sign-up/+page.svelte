@@ -123,7 +123,9 @@
 	// Received's "Enter →" target — the new profile page (the prior createProfile
 	// redirect target). Falls back to the typed handle if the echo is somehow empty.
 	const enterHref = $derived(
-		resolve('/(protected)/app/profile/[handle]', { handle: createdHandle || handle })
+		resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+			handle: createdHandle || handle
+		})
 	);
 
 	function pickSigil(id: SigilId) {
@@ -422,7 +424,7 @@
 									// EARLY — do NOT call update()/applyAction(). Once the profile
 									// exists, any re-run of `load` (which update()'s invalidateAll
 									// triggers) finds the freshly-created profile and redirects to
-									// /app/profile/<handle>, skipping the oath + Received. The action
+									// /snacktum-snacktorum/profile/<handle>, skipping the oath + Received. The action
 									// returns NO redirect, so the only thing that could yank us off
 									// the rite is our own invalidate — so we must not invalidate
 									// here. The action echoes the canonical (server-validated)

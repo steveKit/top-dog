@@ -13,13 +13,13 @@ import {
 import { isSigilId, sigilAvatarValue, DEFAULT_SIGIL } from '$lib/features/profiles/sigils';
 
 // The Snacktum Onboarding RITE (TASK-092). A single public route at /sign-up that
-// absorbs the old standalone /app/onboarding step. Two form actions drive the
+// absorbs the old standalone /snacktum-snacktorum/onboarding step. Two form actions drive the
 // ceremony:
 //
 //   register     — Summoned + Inscribe: the invite-redemption flow (UNCHANGED
 //                  from the old sign-up). On success WITH a session it returns
 //                  `{ registered: true }` so the client advances IN-PAGE to the
-//                  sigil/oath steps (it no longer redirects to /app). Email-
+//                  sigil/oath steps (it no longer redirects to /snacktum-snacktorum). Email-
 //                  confirm (no session) still returns the confirm-email state.
 //   createProfile — Choose Thy Sigil: validates the @handle (Casing Name) at the
 //                  boundary and creates the `profiles` row with the chosen sigil
@@ -67,7 +67,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 	if (session && user) {
 		const existing = await getProfileById(supabase, user.id);
 		if (existing.ok && existing.data) {
-			throw redirect(303, `/app/profile/${existing.data.handle}`);
+			throw redirect(303, `/snacktum-snacktorum/profile/${existing.data.handle}`);
 		}
 		return { token, resumeAtProfile: true };
 	}
@@ -78,7 +78,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 export const actions: Actions = {
 	// Summoned + Inscribe: invite redemption. UNCHANGED mechanics; only the
 	// success-with-session branch differs — it returns a `registered` flag so the
-	// single-route rite advances in-page instead of redirecting to /app.
+	// single-route rite advances in-page instead of redirecting to /snacktum-snacktorum.
 	register: async ({ request, locals: { supabase } }) => {
 		const formData = await request.formData();
 		const token = String(formData.get('token') ?? '');

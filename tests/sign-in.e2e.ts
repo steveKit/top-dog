@@ -8,7 +8,7 @@ import { SMOKE_INVITER_EMAIL, SMOKE_INVITER_PASSWORD } from './helpers/bootstrap
 // We reuse the SEEDED INVITER created by globalSetup (tests/global-setup.ts):
 // it upserts `smoke-inviter@topdog.test` with a known password via the local
 // service-role client. That user is a real auth account with NO profiles row,
-// so a successful sign-in redirects to /app and the (protected)/app layout guard
+// so a successful sign-in redirects to /snacktum-snacktorum and the (protected)/snacktum-snacktorum layout guard
 // funnels the profile-less user to the /sign-up onboarding rite (TASK-092) —
 // which, detecting the existing session, RESUMES at the handle-only naming
 // (Inscribe) step rather than re-asking for invite/credentials — proving both
@@ -31,7 +31,7 @@ test('@smoke a seeded user signs in through the real form and reaches the app', 
 	await page.locator('input[name="password"]').fill(SMOKE_INVITER_PASSWORD);
 	await page.getByRole('button', { name: /Enter the Snacktum/ }).click();
 
-	// (3) The action redirects to /app; the guard funnels this profile-less user to
+	// (3) The action redirects to /snacktum-snacktorum; the guard funnels this profile-less user to
 	// the /sign-up rite, which resumes at the handle-only naming (Inscribe) step.
 	// Reaching it confirms the session was established and the guard cascade ran
 	// (we never bypass it).

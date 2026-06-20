@@ -4,7 +4,7 @@ import type { Actions, PageServerLoad } from './$types';
 // Public "reset password" step (steps 2–3 of the design's recovery flow): the
 // member supplies the 6-digit recovery CODE emailed by /forgot-password plus a
 // new password (with confirm). Reachable while unauthenticated — the auth guard
-// only protects /app*.
+// only protects /snacktum-snacktorum*.
 //
 // OTP recovery handshake (Supabase Auth, @supabase/ssr per-request client):
 //   1. verifyOtp({ email, token, type: 'recovery' }) — validates the 6-digit

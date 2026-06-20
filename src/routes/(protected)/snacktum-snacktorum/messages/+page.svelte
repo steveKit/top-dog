@@ -25,7 +25,7 @@
 			{#each conversations as conversation (conversation.counterpartyId)}
 				<li class="conversation">
 					<a
-						href={resolve('/(protected)/app/messages/[handle]', {
+						href={resolve('/(protected)/snacktum-snacktorum/messages/[handle]', {
 							handle: conversation.counterpartyHandle
 						})}
 					>

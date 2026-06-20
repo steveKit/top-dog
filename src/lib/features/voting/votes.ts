@@ -10,7 +10,7 @@
 // matching createProfile's `error.code === UNIQUE_VIOLATION` style.
 //
 // Live wiring: these wrappers are consumed by the vote-casting feed
-// (/app/feed) — its +page.server.ts form actions wire castVote / removeVote into
+// (/snacktum-snacktorum/feed) — its +page.server.ts form actions wire castVote / removeVote into
 // the production vote surface (TASK-024).
 
 import type { SupabaseClient } from '@supabase/supabase-js';

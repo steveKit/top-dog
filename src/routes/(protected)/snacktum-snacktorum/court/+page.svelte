@@ -61,8 +61,10 @@
 
 				<div class="case-meta">
 					<p>
-						by <a href={resolve('/(protected)/app/profile/[handle]', { handle: dog.ownerHandle })}
-							>@{dog.ownerHandle}</a
+						by <a
+							href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+								handle: dog.ownerHandle
+							})}>@{dog.ownerHandle}</a
 						>
 					</p>
 					{#if dog.caption}

@@ -378,7 +378,7 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   read, NOT on minting it. For the `hotdogs` **private** bucket (owner-only SELECT,
   `hotdogs_select_own`), the viewer's RLS-scoped client (`event.locals.supabase`)
   can only sign the viewer's OWN objects — so any **cross-member view of
-  private-bucket content** (the `/snacktum-snacktorum/feed` and
+  private-bucket content** (the `/snacktum-snacktorum/procession` and
   `/snacktum-snacktorum/dogs/[id]` loads, which show
   OTHER members' dogs) MUST mint signed URLs **server-side with the service client**
   (`$lib/server` `getServiceClient()`), constructed **AFTER** the `safeGetSession()`
@@ -501,20 +501,22 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `/forgot-password` → a **6-digit recovery code** delivered locally to **Mailpit**
   (`http://localhost:54324`) → enter it at `/reset-password` with a new password.
 - **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080; in-app
-  prefix renamed to `/snacktum-snacktorum` by TASK-090).**
+  prefix renamed to `/snacktum-snacktorum` by TASK-090; feed leaf renamed to `procession` by
+  TASK-091).**
   `(protected)/snacktum-snacktorum/+layout.svelte` renders the persistent header/nav across
-  every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/feed`;
+  every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/procession`;
   feed / Your Litter / Epistles / The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on
   the server-derived `is_current_top_dog` crown flag**, decision #25). It reads
   `{ user, profile }` from `(protected)/snacktum-snacktorum/+layout.server.ts` — **don't add
   a second crown query** for nav. The bare `/snacktum-snacktorum` "kennel" hub is **retired**
-  (`redirect(307, '/snacktum-snacktorum/feed')`) and `/` redirects to
-  `/snacktum-snacktorum/feed` (`src/routes/+page.server.ts`); there is **no inline
+  (`redirect(307, '/snacktum-snacktorum/procession')`) and `/` redirects to
+  `/snacktum-snacktorum/procession` (`src/routes/+page.server.ts`); there is **no inline
   `.app-nav`** anymore (the old hub nav + its CSS were removed). New `/snacktum-snacktorum`
   pages inherit the shell automatically — do not re-add a page-level nav. **Note: TASK-090
-  renamed only the `/app` PREFIX → `/snacktum-snacktorum`; the leaf names (`feed`, `dogs`,
-  `profile/[handle]`, `messages`, `invite`, `court`, `help`) are UNCHANGED — the leaf
-  renames (feed→procession, etc.) come with the per-page rebuilds, TASK-091+.**
+  renamed only the `/app` PREFIX → `/snacktum-snacktorum`; the remaining leaf names (`dogs`,
+  `profile/[handle]`, `messages`, `invite`, `court`, `help`) are still UNCHANGED — their leaf
+  renames come with their own per-page rebuilds. TASK-091 has renamed the FIRST leaf
+  `feed` → `procession`.**
 - **`TopDogPrivilegesNotice` was RETIRED (M8 TASK-080).** The TASK-074 crown-holder
   nudge component, its `topDogPrivilegesNotice.ts` helper, and its tests were deleted
   when the `/snacktum-snacktorum` hub it rendered on was retired — Top Dog powers are

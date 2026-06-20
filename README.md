@@ -20,7 +20,7 @@ place and demoable:
 - **Hot dog upload + display** — photos are compressed to WebP client-side and
   uploaded to a private bucket (per-user cap + global storage guard), then
   rendered via a signed URL; deleting a dog removes both the row and the object.
-- **Voting & Top Dog crown** — the global feed at `/snacktum-snacktorum/feed` lists other
+- **Voting & Top Dog crown** — the global feed at `/snacktum-snacktorum/procession` lists other
   members' dogs (sorted by vote count, so it doubles as the live leaderboard);
   cast a single movable vote, move it, or remove it. Votes drive the **Top Dog**
   crown (sticky tie-break), a daily reign tally, and the Top Dog badge.

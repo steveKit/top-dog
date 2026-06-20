@@ -36,9 +36,9 @@ new deps.** **Skin not skeleton:**
 each rebuild preserves its `+page.server.ts` (load + actions) and re-wires all data/feature
 plumbing; no table/RPC/TS-symbol or infra rename.
 
-> **Task set (re-scoped): 6 complete + 10 pending.** Complete: TASK-087 (theme) + TASK-080
+> **Task set (re-scoped): 7 complete + 9 pending.** Complete: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) + TASK-090
-> (slug refactor — PR #115). Pending: per-page rebuilds — **TASK-091** Procession,
+> (slug refactor — PR #115) + TASK-091 (The Procession — PR #117). Pending: per-page rebuilds —
 > **TASK-093** Shrine, **TASK-094** Anoint
 > (THE migration), **TASK-094-R** Reliquary (derived module), **TASK-095** Your Litter,
 > **TASK-096** The Relic, **TASK-097** Epistles+Whispers, **TASK-098** Summon, **TASK-099**
@@ -46,13 +46,18 @@ plumbing; no table/RPC/TS-symbol or infra rename.
 > pending tasks TASK-081/084/085/086/088/089 are **superseded/folded** (TASK-081 copy →
 > carried by the per-page rebuilds; 084→092, 085→093, 086→094, 088→101, 089→094-R).
 
-> **🔨 BUILDING + RE-SCOPED — 2026-06-19 (slug refactor landed 2026-06-20). 6/16 complete**
-> (theme + shell + the auth cluster: sign-in / forgot / reset — auth is functional
-> end-to-end — + the onboarding rite + the foundational slug refactor). TASK-090 moved the
-> in-app route prefix `/app` → `/snacktum-snacktorum` (PR #115, `38c8844`; directory +
-> auth-guard prefix; leaf names unchanged, deferred to the per-page rebuilds). The
-> remaining work is the per-page rebuilds from the delivered mockups (**TASK-091 The
-> Procession next**).
+> **🔨 BUILDING + RE-SCOPED — 2026-06-19 (slug refactor + first rebuild-from-design page
+> landed 2026-06-20). 7/16 complete** (theme + shell + the auth cluster: sign-in / forgot /
+> reset — auth is functional end-to-end — + the onboarding rite + the foundational slug
+> refactor + The Procession). TASK-090 moved the in-app route prefix `/app` →
+> `/snacktum-snacktorum` (PR #115, `38c8844`; directory + auth-guard prefix; leaf names
+> unchanged, deferred to the per-page rebuilds). **TASK-091 (The Procession) then LANDED
+> 2026-06-20** (PR #117, `dffaee5`): the feed `+page.svelte` rebuilt from
+> `design/pages/The Procession.dc.html`, the first leaf renamed `feed` → `procession` (URL
+> now `/snacktum-snacktorum/procession`), and the champion ribbon plumbed in via a widened
+> `listVotableDogs` select (`is_current_top_dog` → derived `championDogId`) — load + all 6
+> actions preserved (skin-not-skeleton), no migration / dep / decision row. The remaining
+> work is the per-page rebuilds from the delivered mockups (**TASK-093 The Shrine next**).
 > TASK-087 (theme, PR #99 `dcce8c3`): the M8 FOUNDATION — a tokenized dark-temple CSS layer
 > (`src/lib/styles/tokens.css`) every rebuild consumes via `var(--…)` tokens (accents via
 > `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` (no CDN/package).
@@ -75,8 +80,8 @@ plumbing; no table/RPC/TS-symbol or infra rename.
 > `checkpoint-2026-06-20-pre-slug-refactor`): it moved the in-app route **prefix** `/app` →
 > `/snacktum-snacktorum` (directory + the `hooks.server.ts` `startsWith` auth-guard prefix,
 > so the protected area stays guarded in lockstep), repointed the root redirect to
-> `/snacktum-snacktorum/feed` (the live leaf — TASK-091 renames it to `procession` and
-> retargets), re-wired the shell `resolve(...)` links, and swept the `/app/...` references
+> `/snacktum-snacktorum/feed` (the live leaf — TASK-091 renamed it to `procession` and
+> retargeted the redirect, since landed), re-wired the shell `resolve(...)` links, and swept the `/app/...` references
 > in code, E2E + unit tests, and the live docs. **Leaf names are UNCHANGED** (deferred to
 > the per-page rebuilds). **The `/sign-in` redirect targets were KEPT and the recovery
 > email template is unchanged** — the auth slugs stay descriptive; the guard change was

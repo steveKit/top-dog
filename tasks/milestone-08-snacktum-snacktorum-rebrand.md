@@ -1,12 +1,15 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **6/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor done: TASK-087 (theme) + TASK-080 (shell) + TASK-083 (password recovery) +
-> TASK-082 (sign-in) + TASK-092 (onboarding rite) + **TASK-090 (slug refactor — PR #115,
-> 2026-06-20)**. The slug refactor moved the in-app route prefix `/app` →
+> **7/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + the first rebuild-from-design page done: TASK-087 (theme) + TASK-080
+> (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
+> **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
+> `dffaee5`, 2026-06-20)**. The slug refactor moved the in-app route prefix `/app` →
 > `/snacktum-snacktorum` (directory + auth-guard prefix; leaf names unchanged, deferred to
-> the per-page rebuilds); **TASK-091 (The Procession) is next.** The three complete gate
+> the per-page rebuilds); TASK-091 rebuilt the feed as The Procession and renamed the first
+> leaf `feed` → `procession` (URL now `/snacktum-snacktorum/procession`); **TASK-093 (The
+> Shrine) is next.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -263,73 +266,13 @@ only the in-app `app` prefix moves.
 
 ## Active Tasks
 
-> Re-scoped 2026-06-19. The completed gate/shell/theme tasks (and the foundational slug
-> refactor, TASK-090) are in § Completed Tasks. Dispatch **only on explicit user
-> instruction**, in the § Dependencies & Sequencing order. **TASK-090 (slug refactor) has
-> landed** — every rebuild now builds on the final base paths (in-app prefix
-> `/snacktum-snacktorum`, leaf names still pre-rename); **TASK-091 (The Procession) is
-> next.**
-
-### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`in_progress`] [`P1`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (final base paths); TASK-087 (theme tokens — done). Mockup:
-`design/pages/The Procession.dc.html`. **`@smoke`-critical** (the slice's leaderboard
-surface; the vote path is exercised). Touches
-`src/routes/(protected)/snacktum-snacktorum/feed/+page.svelte` (rebuild) and renames the
-leaf folder `feed` → `procession`.
-
-**Scope:** rebuild the feed `+page.svelte` from the mockup as **The Procession: Standings
-of the Blessed**, preserve `feed/+page.server.ts` (load + the 6 actions), re-wire all
-feature plumbing into the new markup, and rename the leaf slug.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `The Procession.dc.html`:** the centered temple
-      column, eyebrow → h1 ("The Procession" / "Standings of the Blessed"), the ✦
-      divider, the ranked `№`-numbered frank cards with image, `@handle`, vote count +
-      `peak`, caption, and the vote/move/voted control states. Port the DSL `sc-for`
-      cards → `{#each data.dogs}`, the `sc-if` champion ribbon / vote-state branches →
-      `{#if}`, inline styles → `var(--…)` tokens. Reuse the themed flair components.
-- [ ] **`feed/+page.server.ts` PRESERVED and re-wired** — the load (votable dogs,
-      current vote, reactions via `summarizeReactions`, **decision #27 service-client
-      signed URLs**, anonymous burger-alarm counts via the service client, my-reports,
-      verdicts via `dogAlarmState`) and **all six actions** (`vote`, `remove`, `react`,
-      `unreact`, `report`, `unreport`) are unchanged; the new markup wires every one. Do
-      NOT delete or gut the load/actions.
-- [ ] **Champion ribbon / HAMBURGER ALARM / CONFIRMED HAMBURGER** render correctly from
-      the existing data (`isChampion` ↔ the crown, `alarm`/`alarmState` ↔
-      `summarizeBurgerAlarm` + verdict). Reuse `HamburgerAlarmBanner` /
-      `ConfirmedHamburgerStamp` / `TopDogBadge`; re-place per the mock.
-- [ ] **Champion-title copy = "The Anointed Wiener"** in the ribbon/crown labels (copy
-      only; `is_current_top_dog` untouched).
-- [ ] **Leaf-slug rename** `feed` → `procession` (folder move). Update the root redirect
-      target (`src/routes/+page.server.ts` → `/snacktum-snacktorum/procession`), the shell
-      nav link + active-route check, and any other internal link to feed, in lockstep.
-      (Coordinate with TASK-090 if it lands the redirect; whichever lands the rename owns
-      the redirect target.)
-- [ ] **Form-validation canon** is N/A here (the feed has no required-field form — its
-      controls are single-button vote/react/report posts); no `createFormValidation`
-      needed unless a rebuilt control gains a text field.
-- [ ] **Security/wiring unchanged:** queries stay RLS-scoped on `event.locals.supabase`;
-      only the existing decision #27 signed-URL minting uses the service client; no new
-      trust path; no `{@html}` (captions render as auto-escaped text — XSS-safe).
-- [ ] **Responsive + accessible:** semantic `<article>`/headings, image `alt`, visible
-      focus on controls (decision/DW-028 — no color-only state cues), keyboard-operable
-      vote/move/report controls.
-- [ ] **Tests:** `feed/feed-action.test.ts` stays green (update only for intentional
-      copy/markup changes). **`@smoke` stays green** — if the smoke flow asserts feed
-      copy or the leaderboard, update it in lockstep with this page's new strings + path.
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      green**, `@security` green. **No migration.**
-
-**Notes (for the implementer):** the feed is the densest read surface (votes + reactions
-
-- alarms + verdicts + signed URLs) — treat it as a re-skin + re-layout of an unchanged
-  data flow, not a rewrite. Read `feed/+page.server.ts` and the existing `+page.svelte`
-  fully first. No new dependency; no schema; no new decision row.
-
----
+> Re-scoped 2026-06-19. The completed gate/shell/theme tasks (the foundational slug
+> refactor, TASK-090, and the first rebuild-from-design page, TASK-091) are in § Completed
+> Tasks. Dispatch **only on explicit user instruction**, in the § Dependencies & Sequencing
+> order. **TASK-090 (slug refactor) and TASK-091 (The Procession) have landed** — the in-app
+> prefix is `/snacktum-snacktorum` and the first leaf is renamed (`feed` → `procession`); the
+> remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
+> **TASK-093 (The Shrine) is next.**
 
 ### TASK-093: The Shrine (profile) — rebuild from design + display-name + stat ledger + Reliquary slot [`pending`] [`P2`] [`L`]
 
@@ -890,6 +833,32 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`complete`] [`P1`] [`L`]
+
+**Owner:** implementer — PR #117 (squash `dffaee5`), merged 2026-06-20. Reviewer APPROVE. 0 fix cycles (one mid-task escalation resolved: champion-ribbon data plumbing).
+
+The first rebuild-from-design in-app page. `/snacktum-snacktorum/feed`'s `+page.svelte` was
+**rebuilt from `design/pages/The Procession.dc.html`** as The Procession — a skin-not-skeleton
+pass: the `+page.server.ts` `load` **and all 6 actions were PRESERVED** (~95% rename), the only
+server change being a derived `championDogId`. The champion title copy is **"The Anointed
+Wiener"** (copy only; `is_current_top_dog` / `TopDogBadge` / `selectTopDog` and every other code
+identifier unchanged). **Mid-task escalation (resolved by director decision, no fix cycle):** the
+designed champion ribbon had no data source, so `listVotableDogs`' embedded `profiles(...)` join
+was **widened to carry `is_current_top_dog`** (following the `detail.ts` pattern) and the load
+derives `championDogId` = the highest-ranked crowned owner's dog. The champion data path is a
+**read-only read of the non-client-writable crown column** (decision #25), kept **RLS-scoped on
+`event.locals.supabase`** — no service-client widening, and public info, so no decision #27
+anonymity concern. The leaf-slug was renamed **`feed` → `procession`** (URL now
+`/snacktum-snacktorum/procession`); **only the feed leaf** moved — `dogs`, `profile`, `messages`,
+`invite`, `court`, `help` are UNCHANGED (their renames ride their own rebuild tasks) — and every
+`feed` reference was retargeted in lockstep. The README + CLAUDE.md current-state
+`/snacktum-snacktorum/feed` doc references were also swept to `/snacktum-snacktorum/procession`
+as part of this bookkeeping, resolving the reviewer's stale-doc finding. No migration, no new
+dependency, **no new decision row** (table stays #28). Gates at merge (live stack): `pnpm check`
+0/0, `pnpm lint` clean, `pnpm test` 834/834, `@smoke` 5/5, `@security` 94/94, `feed-detail` 3/3.
+
+---
 
 ### TASK-090: Foundational slug refactor — `app` → `snacktum-snacktorum` prefix + every reference [`complete`] [`P1`] [`L`]
 

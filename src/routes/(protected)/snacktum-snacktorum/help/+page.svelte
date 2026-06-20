@@ -1,6 +1,6 @@
 <script lang="ts">
 	// "How Top Dog works" — an everyone-facing, fully STATIC how-it-works page
-	// (TASK-075). It lives under (protected)/app, so the layout guard
+	// (TASK-075). It lives under (protected)/snacktum-snacktorum, so the layout guard
 	// (+layout.server.ts) already enforces auth — no +page.server.ts / load is
 	// needed and there is NO dynamic, per-user data here by design.
 	//
@@ -79,7 +79,9 @@
 	<h2 id="walls-heading">💬 Walls &amp; messages</h2>
 	<p>
 		Every member has a wall where others can leave public messages. For something more private, send
-		a direct message. Check yours under <a href={resolve('/(protected)/app/messages')}>Messages</a>.
+		a direct message. Check yours under <a
+			href={resolve('/(protected)/snacktum-snacktorum/messages')}>Messages</a
+		>.
 	</p>
 </section>
 
@@ -113,5 +115,5 @@
 </section>
 
 <p>
-	<a href={resolve('/(protected)/app')}>← Back to your kennel</a>
+	<a href={resolve('/(protected)/snacktum-snacktorum')}>← Back to your kennel</a>
 </p>

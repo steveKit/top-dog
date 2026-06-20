@@ -3,7 +3,7 @@
 // load function), takes an RLS-scoped SupabaseClient *passed in*, and returns a
 // typed discriminated result rather than throwing; callers branch on `ok`.
 //
-// It backs the dog detail view (/app/dogs/[id]), surfacing per-dog stats —
+// It backs the dog detail view (/snacktum-snacktorum/dogs/[id]), surfacing per-dog stats —
 // principally `peak_votes` (the all-time high, maintained by the M2 vote RPC)
 // alongside the current `vote_count` — plus the owner's public identity and
 // live crown state. SELECT on hot_dogs is allowed for authenticated members, so

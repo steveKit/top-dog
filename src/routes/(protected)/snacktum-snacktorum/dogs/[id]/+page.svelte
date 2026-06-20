@@ -11,7 +11,7 @@
 	const owner = $derived(data.dog.owner);
 </script>
 
-<p><a href={resolve('/(protected)/app/feed')}>← Back to the feed</a></p>
+<p><a href={resolve('/(protected)/snacktum-snacktorum/feed')}>← Back to the feed</a></p>
 
 {#if owner.is_current_top_dog}
 	<TopDogBadge label="Top Dog" />
@@ -55,7 +55,8 @@
 {/if}
 
 <p>
-	by <a href={resolve('/(protected)/app/profile/[handle]', { handle: owner.handle })}
+	by <a
+		href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', { handle: owner.handle })}
 		>@{owner.handle || owner.display_name}</a
 	>
 </p>

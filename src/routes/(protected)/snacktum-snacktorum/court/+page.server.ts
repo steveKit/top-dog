@@ -69,7 +69,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 	}
 	if (viewerResult.data?.is_current_top_dog !== true) {
 		// Not the Top Dog: this surface is theirs alone. Send them home.
-		throw redirect(303, '/app/feed');
+		throw redirect(303, '/snacktum-snacktorum/feed');
 	}
 
 	// Flagged dogs (anonymous aggregate). Service client AFTER the gate above.

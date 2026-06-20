@@ -7,7 +7,7 @@ import { getLocalStackCreds } from './helpers/local-stack';
 import { generateInviteToken } from '../src/lib/features/invites/token';
 import { HOTDOGS_BUCKET } from '../src/lib/storage';
 
-// TASK-032 — E2E hardening for the /app/feed + /app/dogs/[id] flows (closes
+// TASK-032 — E2E hardening for the /snacktum-snacktorum/feed + /snacktum-snacktorum/dogs/[id] flows (closes
 // DW-011 and the PR #45 review gaps). Unlike votes.e2e.ts / reactions.e2e.ts
 // (which drive PostgREST directly), this spec drives the REAL UI in a browser
 // against the LOCAL stack — the same browser-driven pattern as smoke.e2e.ts —
@@ -270,7 +270,7 @@ async function signUpVoter(page: import('@playwright/test').Page): Promise<strin
 
 	await expect(page.getByRole('heading', { name: `Welcome, ${handle}` })).toBeVisible();
 	await page.getByRole('link', { name: 'Enter →' }).click();
-	await page.waitForURL(`**/app/profile/${handle}`);
+	await page.waitForURL(`**/snacktum-snacktorum/profile/${handle}`);
 
 	return handle;
 }
@@ -299,7 +299,7 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 
 		// (1) Feed lists the owner's dogs (the only votable ones). Locate dog A's
 		// card by its caption and cast a vote there.
-		await page.goto('/app/feed');
+		await page.goto('/snacktum-snacktorum/feed');
 		await expect(page.getByRole('heading', { name: 'The feed' })).toBeVisible();
 
 		const cardA = page.locator('li', { hasText: captionA });
@@ -351,7 +351,7 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 
 		await signUpVoter(page);
 
-		await page.goto('/app/feed');
+		await page.goto('/snacktum-snacktorum/feed');
 		const card = page.locator('li', { hasText: caption });
 		await expect(card).toBeVisible();
 
@@ -396,7 +396,7 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 
 		// Give the dog one vote (via the feed) so the Stats block shows non-zero
 		// current + peak votes when we open the detail page.
-		await page.goto('/app/feed');
+		await page.goto('/snacktum-snacktorum/feed');
 		const card = page.locator('li', { hasText: caption });
 		await expect(card).toBeVisible();
 		await card.getByRole('button', { name: 'Vote' }).click();
@@ -404,7 +404,7 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		expect(await voteCount(dog)).toBe(1);
 
 		// (1) View ANOTHER member's dog detail (RLS SELECT for authenticated members).
-		await page.goto(`/app/dogs/${dog}`);
+		await page.goto(`/snacktum-snacktorum/dogs/${dog}`);
 		await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible();
 		await expect(page.getByText(caption)).toBeVisible();
 
@@ -425,12 +425,12 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		await expect(page.getByText('Peak votes: 1')).toBeVisible();
 
 		// (4) A non-existent dog id returns 404 (not 500, no SDK internals leaked).
-		const missing = await page.goto(`/app/dogs/${crypto.randomUUID()}`);
+		const missing = await page.goto(`/snacktum-snacktorum/dogs/${crypto.randomUUID()}`);
 		expect(missing?.status(), 'a non-existent dog id 404s').toBe(404);
 		await expect(page.getByText('No such hot dog.')).toBeVisible();
 
 		// (5) A MALFORMED (non-uuid) dog id also returns 404 — no 500 / SDK leak.
-		const malformed = await page.goto('/app/dogs/not-a-real-uuid');
+		const malformed = await page.goto('/snacktum-snacktorum/dogs/not-a-real-uuid');
 		expect(malformed?.status(), 'a malformed dog id 404s').toBe(404);
 	});
 });

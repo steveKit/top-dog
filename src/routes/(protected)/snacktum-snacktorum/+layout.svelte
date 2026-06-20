@@ -2,8 +2,9 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 
-	// The persistent app shell (TASK-080). Wraps every /app route with a header +
-	// navigation so no page is a dead end. It is presentational + navigation only:
+	// The persistent app shell (TASK-080). Wraps every /snacktum-snacktorum route
+	// with a header + navigation so no page is a dead end. It is presentational +
+	// navigation only:
 	// it READS the { user, profile } already surfaced by +layout.server.ts and adds
 	// NO second crown query. The 🍔 Tribunal link is gated on the live,
 	// server-derived crown flag (decision #25) exactly as the old hub nav did —
@@ -25,14 +26,20 @@
 	// path. Derived from the live pathname so it follows client-side navigation.
 	// `'page' | undefined` feeds aria-current directly (a falsy attr is omitted).
 	type Current = 'page' | undefined;
-	const onFeed = $derived<Current>(page.url.pathname.startsWith('/app/feed') ? 'page' : undefined);
-	const onDogs = $derived<Current>(page.url.pathname.startsWith('/app/dogs') ? 'page' : undefined);
-	const onMessages = $derived<Current>(
-		page.url.pathname.startsWith('/app/messages') ? 'page' : undefined
+	const onFeed = $derived<Current>(
+		page.url.pathname.startsWith('/snacktum-snacktorum/feed') ? 'page' : undefined
 	);
-	const onHelp = $derived<Current>(page.url.pathname.startsWith('/app/help') ? 'page' : undefined);
+	const onDogs = $derived<Current>(
+		page.url.pathname.startsWith('/snacktum-snacktorum/dogs') ? 'page' : undefined
+	);
+	const onMessages = $derived<Current>(
+		page.url.pathname.startsWith('/snacktum-snacktorum/messages') ? 'page' : undefined
+	);
+	const onHelp = $derived<Current>(
+		page.url.pathname.startsWith('/snacktum-snacktorum/help') ? 'page' : undefined
+	);
 	const onCourt = $derived<Current>(
-		page.url.pathname.startsWith('/app/court') ? 'page' : undefined
+		page.url.pathname.startsWith('/snacktum-snacktorum/court') ? 'page' : undefined
 	);
 
 	function closeMobile() {
@@ -40,13 +47,14 @@
 	}
 
 	// Route ids resolved through the path alias (CLAUDE.md convention). Linking
-	// directly at /app/feed skips the `/` → feed redirect hop. Upload routes to the
-	// hot-dog gallery (the upload form lives on /app/dogs).
-	const feedHref = resolve('/(protected)/app/feed');
-	const dogsHref = resolve('/(protected)/app/dogs');
-	const messagesHref = resolve('/(protected)/app/messages');
-	const helpHref = resolve('/(protected)/app/help');
-	const courtHref = resolve('/(protected)/app/court');
+	// directly at /snacktum-snacktorum/feed skips the `/` → feed redirect hop.
+	// Upload routes to the hot-dog gallery (the upload form lives on
+	// /snacktum-snacktorum/dogs).
+	const feedHref = resolve('/(protected)/snacktum-snacktorum/feed');
+	const dogsHref = resolve('/(protected)/snacktum-snacktorum/dogs');
+	const messagesHref = resolve('/(protected)/snacktum-snacktorum/messages');
+	const helpHref = resolve('/(protected)/snacktum-snacktorum/help');
+	const courtHref = resolve('/(protected)/snacktum-snacktorum/court');
 </script>
 
 <header class="shell-header">
@@ -111,8 +119,8 @@
 {@render children()}
 
 <style>
-	/* The header is a gold-divided chrome bar at the top of every /app page. It
-	   spans the root .page-container's content column; the glow orb is pinned
+	/* The header is a gold-divided chrome bar at the top of every /snacktum-snacktorum
+	   page. It spans the root .page-container's content column; the glow orb is pinned
 	   behind it. All values reference theme tokens (no magic hex/px). */
 	.shell-header {
 		position: relative;

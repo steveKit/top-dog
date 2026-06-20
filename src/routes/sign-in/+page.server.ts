@@ -1,15 +1,15 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
 
-// Public sign-in flow. The auth guard in hooks.server.ts only protects /app*, so
-// this route is reachable while unauthenticated and is the destination every
-// bounced /app request lands on.
+// Public sign-in flow. The auth guard in hooks.server.ts only protects
+// /snacktum-snacktorum*, so this route is reachable while unauthenticated and is
+// the destination every bounced /snacktum-snacktorum request lands on.
 //
 // signInWithPassword runs on the RLS-scoped per-request client
 // (event.locals.supabase), which the @supabase/ssr integration wires to set the
-// auth cookies on success. We then redirect to /app and let the (protected)/app
-// layout guard route onward (profile-less -> /sign-up onboarding rite; otherwise
-// the app shell). We never bypass that guard.
+// auth cookies on success. We then redirect to /snacktum-snacktorum and let the
+// (protected)/snacktum-snacktorum layout guard route onward (profile-less ->
+// /sign-up onboarding rite; otherwise the app shell). We never bypass that guard.
 //
 // SECURITY (L2 — account enumeration): on ANY auth failure we surface ONE
 // generic, non-enumerating message and do NOT reveal whether the email exists or
@@ -52,6 +52,6 @@ export const actions: Actions = {
 
 		// Live session established (cookies set by the SSR client). Hand off to the
 		// app guard, which funnels profile-less users to onboarding.
-		throw redirect(303, '/app');
+		throw redirect(303, '/snacktum-snacktorum');
 	}
 };

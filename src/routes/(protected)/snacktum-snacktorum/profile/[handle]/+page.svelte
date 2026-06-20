@@ -175,8 +175,10 @@
 	-->
 	{#if !isWallOwner}
 		<p class="message-link">
-			<a href={resolve('/(protected)/app/messages/[handle]', { handle: profile.handle })}
-				>Message @{profile.handle}</a
+			<a
+				href={resolve('/(protected)/snacktum-snacktorum/messages/[handle]', {
+					handle: profile.handle
+				})}>Message @{profile.handle}</a
 			>
 		</p>
 	{/if}
@@ -232,7 +234,7 @@
 						<p class="wall-message-body">{renderWallBody(message.body, message.id)}</p>
 						<p class="wall-message-meta">
 							<a
-								href={resolve('/(protected)/app/profile/[handle]', {
+								href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
 									handle: message.author_handle
 								})}>@{message.author_handle}</a
 							>

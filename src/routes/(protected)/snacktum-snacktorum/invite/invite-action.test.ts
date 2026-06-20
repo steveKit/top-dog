@@ -50,7 +50,7 @@ function makeEvent(opts: {
 	return { event, safeGetSession, rawGetSession, from, insert };
 }
 
-describe('(protected)/app/invite create action', () => {
+describe('(protected)/snacktum-snacktorum/invite create action', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});

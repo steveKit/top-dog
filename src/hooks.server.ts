@@ -65,7 +65,7 @@ export const authGuard: Handle = async ({ event, resolve }) => {
 	event.locals.user = user;
 
 	// Protect everything under the (protected) route group.
-	if (!session && event.url.pathname.startsWith('/app')) {
+	if (!session && event.url.pathname.startsWith('/snacktum-snacktorum')) {
 		throw redirect(303, '/sign-in');
 	}
 

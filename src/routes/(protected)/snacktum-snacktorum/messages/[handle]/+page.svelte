@@ -36,15 +36,16 @@
 
 <section aria-label="Conversation with {counterparty.display_name}">
 	<p class="back">
-		<a href={resolve('/(protected)/app/messages')}>← Messages</a>
+		<a href={resolve('/(protected)/snacktum-snacktorum/messages')}>← Messages</a>
 	</p>
 
 	<h1>
 		{counterparty.display_name}
 		<a
 			class="handle"
-			href={resolve('/(protected)/app/profile/[handle]', { handle: counterparty.handle })}
-			>@{counterparty.handle}</a
+			href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+				handle: counterparty.handle
+			})}>@{counterparty.handle}</a
 		>
 	</h1>
 

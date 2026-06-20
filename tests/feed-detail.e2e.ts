@@ -7,7 +7,7 @@ import { getLocalStackCreds } from './helpers/local-stack';
 import { generateInviteToken } from '../src/lib/features/invites/token';
 import { HOTDOGS_BUCKET } from '../src/lib/storage';
 
-// TASK-032 — E2E hardening for the /snacktum-snacktorum/feed + /snacktum-snacktorum/dogs/[id] flows (closes
+// TASK-032 — E2E hardening for the /snacktum-snacktorum/procession + /snacktum-snacktorum/dogs/[id] flows (closes
 // DW-011 and the PR #45 review gaps). Unlike votes.e2e.ts / reactions.e2e.ts
 // (which drive PostgREST directly), this spec drives the REAL UI in a browser
 // against the LOCAL stack — the same browser-driven pattern as smoke.e2e.ts —
@@ -299,11 +299,11 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 
 		// (1) Feed lists the owner's dogs (the only votable ones). Locate dog A's
 		// card by its caption and cast a vote there.
-		await page.goto('/snacktum-snacktorum/feed');
-		await expect(page.getByRole('heading', { name: 'The feed' })).toBeVisible();
+		await page.goto('/snacktum-snacktorum/procession');
+		await expect(page.getByRole('heading', { name: 'The Procession' })).toBeVisible();
 
-		const cardA = page.locator('li', { hasText: captionA });
-		const cardB = page.locator('li', { hasText: captionB });
+		const cardA = page.locator('article', { hasText: captionA });
+		const cardB = page.locator('article', { hasText: captionB });
 		await expect(cardA).toBeVisible();
 		await expect(cardB).toBeVisible();
 
@@ -351,8 +351,8 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 
 		await signUpVoter(page);
 
-		await page.goto('/snacktum-snacktorum/feed');
-		const card = page.locator('li', { hasText: caption });
+		await page.goto('/snacktum-snacktorum/procession');
+		const card = page.locator('article', { hasText: caption });
 		await expect(card).toBeVisible();
 
 		// No 🌭 reactions yet.
@@ -396,8 +396,8 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 
 		// Give the dog one vote (via the feed) so the Stats block shows non-zero
 		// current + peak votes when we open the detail page.
-		await page.goto('/snacktum-snacktorum/feed');
-		const card = page.locator('li', { hasText: caption });
+		await page.goto('/snacktum-snacktorum/procession');
+		const card = page.locator('article', { hasText: caption });
 		await expect(card).toBeVisible();
 		await card.getByRole('button', { name: 'Vote' }).click();
 		await expect(card.getByText('Voted ✓')).toBeVisible();

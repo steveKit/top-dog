@@ -4,7 +4,7 @@ import { isActionFailure, isRedirect, isHttpError } from '@sveltejs/kit';
 // Test-after coverage for the 🍔 Hamburger Court adjudication surface (TASK-073;
 // project strategy: test-after for load functions / form actions). The court is the
 // Top-Dog-only moderation surface: its load is CROWN-GATED (a non-Top-Dog is
-// redirected to /snacktum-snacktorum/feed and never sees the flagged-dog queue) and its `rule` action
+// redirected to /snacktum-snacktorum/procession and never sees the flagged-dog queue) and its `rule` action
 // passes only the dog id + verdict to renderBurgerVerdict on the RLS-scoped client —
 // the adjudicating Top Dog is derived server-side (auth.uid() INSIDE the RPC), NEVER a
 // client-supplied id (the sibling of the feed voter-id guard).
@@ -12,7 +12,7 @@ import { isActionFailure, isRedirect, isHttpError } from '@sveltejs/kit';
 // The verdictStore / profiles / storage modules are dependency-injected via their
 // import surface, so we mock the network-touching wrappers with vi.mock and assert the
 // load's gate + the action's orchestration directly:
-//   - load: unauth -> redirect /sign-in; a NON-Top-Dog -> redirect /snacktum-snacktorum/feed (never
+//   - load: unauth -> redirect /sign-in; a NON-Top-Dog -> redirect /snacktum-snacktorum/procession (never
 //     lists flagged dogs); a viewer-read failure -> 500; the Top Dog -> the flagged
 //     queue with a server-signed URL per row (a failed mint degrades to null).
 //   - rule: success forwards (dogId, verdict) to renderBurgerVerdict and returns
@@ -216,7 +216,7 @@ describe('court load (crown gate)', () => {
 		expect(getProfileById).toHaveBeenCalledWith(supabase, USER_ID);
 	});
 
-	it('redirects a NON-Top-Dog to /snacktum-snacktorum/feed; never lists flagged dogs (UI gate half)', async () => {
+	it('redirects a NON-Top-Dog to /snacktum-snacktorum/procession; never lists flagged dogs (UI gate half)', async () => {
 		// Default profile is non-crown.
 		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
 
@@ -228,13 +228,13 @@ describe('court load (crown gate)', () => {
 		}
 
 		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/feed');
+		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/procession');
 		// The flagged queue is the Top Dog's alone: a non-Top-Dog never reaches it.
 		expect(listFlaggedDogs).not.toHaveBeenCalled();
 		expect(getSignedUrl).not.toHaveBeenCalled();
 	});
 
-	it('redirects a profile-less (null) viewer to /snacktum-snacktorum/feed (treated as not Top Dog)', async () => {
+	it('redirects a profile-less (null) viewer to /snacktum-snacktorum/procession (treated as not Top Dog)', async () => {
 		vi.mocked(getProfileById).mockResolvedValue({ ok: true, data: null });
 		const { event } = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
 
@@ -246,7 +246,7 @@ describe('court load (crown gate)', () => {
 		}
 
 		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/feed');
+		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/procession');
 		expect(listFlaggedDogs).not.toHaveBeenCalled();
 	});
 

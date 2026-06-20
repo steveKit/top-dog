@@ -65,7 +65,7 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 			userId: user.id,
 			error: dogsResult.error
 		});
-		return { dogs: [], currentVoteDogId: null };
+		return { dogs: [], currentVoteDogId: null, championDogId: null };
 	}
 
 	// The viewer's current active vote, used to mark the voted dog and label the
@@ -183,7 +183,14 @@ export const load: PageServerLoad = async ({ locals: { supabase, safeGetSession 
 		})
 	);
 
-	return { dogs, currentVoteDogId };
+	// The champion ("Anointed Wiener") frank: the highest-ranked dog whose owner
+	// currently holds the crown (decision #25 — server-maintained, read-only here).
+	// The list is already sorted vote_count desc then id asc, so the first crowned
+	// owner's dog is the champion; null when no listed dog's owner reigns (e.g. the
+	// viewer themself holds the crown — their own dogs are excluded from the feed).
+	const championDogId = dogs.find((dog) => dog.owner_is_current_top_dog)?.id ?? null;
+
+	return { dogs, currentVoteDogId, championDogId };
 };
 
 export const actions: Actions = {

@@ -63,13 +63,15 @@ describe('listVotableDogs', () => {
 		expect(chain.neq).toHaveBeenCalledWith('owner_id', VIEWER_ID);
 	});
 
-	it('embeds the owner profile (handle, display_name) in the select', async () => {
+	it('embeds the owner profile (handle, display_name, is_current_top_dog) in the select', async () => {
 		const { client, chain } = makeListClient({ data: [], error: null });
 
 		await listVotableDogs(client, VIEWER_ID);
 
 		const selectArg = chain.select.mock.calls[0][0] as string;
-		expect(selectArg).toContain('profiles(handle, display_name)');
+		// is_current_top_dog (the live crown flag, decision #25) is embedded so the
+		// procession can mark the reigning owner's frank with the champion ribbon.
+		expect(selectArg).toContain('profiles(handle, display_name, is_current_top_dog)');
 	});
 
 	it('orders by vote_count desc, then id asc (leaderboard ordering)', async () => {
@@ -91,7 +93,7 @@ describe('listVotableDogs', () => {
 		expect(selectArg).toContain('peak_votes');
 	});
 
-	it('normalizes an ARRAY embed to flat owner_handle / owner_display_name', async () => {
+	it('normalizes an ARRAY embed to flat owner_handle / owner_display_name / owner_is_current_top_dog', async () => {
 		const row = {
 			id: 'dog-1',
 			owner_id: 'owner-1',
@@ -99,7 +101,9 @@ describe('listVotableDogs', () => {
 			caption: 'frank',
 			vote_count: 3,
 			peak_votes: 8,
-			profiles: [{ handle: 'sausage_king', display_name: 'Sausage King' }]
+			// This owner currently holds the crown — the flag must surface flattened so
+			// the procession can render the champion ribbon on this frank.
+			profiles: [{ handle: 'sausage_king', display_name: 'Sausage King', is_current_top_dog: true }]
 		};
 		const { client } = makeListClient({ data: [row], error: null });
 
@@ -116,7 +120,8 @@ describe('listVotableDogs', () => {
 					vote_count: 3,
 					peak_votes: 8,
 					owner_handle: 'sausage_king',
-					owner_display_name: 'Sausage King'
+					owner_display_name: 'Sausage King',
+					owner_is_current_top_dog: true
 				}
 			]
 		});
@@ -144,14 +149,19 @@ describe('listVotableDogs', () => {
 		}
 	});
 
-	it('normalizes a SINGLE-OBJECT embed to flat owner fields', async () => {
+	it('normalizes a SINGLE-OBJECT embed to flat owner fields (including the crown flag)', async () => {
 		const row = {
 			id: 'dog-2',
 			owner_id: 'owner-2',
 			image_path: 'owner-2/dog-2.webp',
 			caption: null,
 			vote_count: 1,
-			profiles: { handle: 'mustard_maven', display_name: 'Mustard Maven' }
+			// A non-reigning owner — the crown flag surfaces flattened as false.
+			profiles: {
+				handle: 'mustard_maven',
+				display_name: 'Mustard Maven',
+				is_current_top_dog: false
+			}
 		};
 		const { client } = makeListClient({ data: [row], error: null });
 
@@ -161,11 +171,33 @@ describe('listVotableDogs', () => {
 		if (result.ok) {
 			expect(result.data[0].owner_handle).toBe('mustard_maven');
 			expect(result.data[0].owner_display_name).toBe('Mustard Maven');
+			expect(result.data[0].owner_is_current_top_dog).toBe(false);
 			expect(result.data[0].caption).toBeNull();
 		}
 	});
 
-	it('falls back to empty owner strings when the embed is missing (null / empty array)', async () => {
+	it('surfaces owner_is_current_top_dog: true from a SINGLE-OBJECT embed (champion source)', async () => {
+		const row = {
+			id: 'dog-crown',
+			owner_id: 'owner-crown',
+			image_path: 'owner-crown/dog-crown.webp',
+			caption: 'reigning frank',
+			vote_count: 12,
+			peak_votes: 12,
+			profiles: { handle: 'top_dog', display_name: 'The Top Dog', is_current_top_dog: true }
+		};
+		const { client } = makeListClient({ data: [row], error: null });
+
+		const result = await listVotableDogs(client, VIEWER_ID);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			// This flag drives the load's championDogId / the procession's champion ribbon.
+			expect(result.data[0].owner_is_current_top_dog).toBe(true);
+		}
+	});
+
+	it('falls back to empty owner strings + false crown when the embed is missing (null / empty array)', async () => {
 		const rowNull = {
 			id: 'dog-3',
 			owner_id: 'owner-3',
@@ -183,8 +215,10 @@ describe('listVotableDogs', () => {
 		if (result.ok) {
 			expect(result.data[0].owner_handle).toBe('');
 			expect(result.data[0].owner_display_name).toBe('');
+			expect(result.data[0].owner_is_current_top_dog).toBe(false);
 			expect(result.data[1].owner_handle).toBe('');
 			expect(result.data[1].owner_display_name).toBe('');
+			expect(result.data[1].owner_is_current_top_dog).toBe(false);
 		}
 	});
 

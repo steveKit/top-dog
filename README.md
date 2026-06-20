@@ -20,7 +20,7 @@ place and demoable:
 - **Hot dog upload + display** — photos are compressed to WebP client-side and
   uploaded to a private bucket (per-user cap + global storage guard), then
   rendered via a signed URL; deleting a dog removes both the row and the object.
-- **Voting & Top Dog crown** — the global feed at `/app/feed` lists other
+- **Voting & Top Dog crown** — the global feed at `/snacktum-snacktorum/feed` lists other
   members' dogs (sorted by vote count, so it doubles as the live leaderboard);
   cast a single movable vote, move it, or remove it. Votes drive the **Top Dog**
   crown (sticky tie-break), a daily reign tally, and the Top Dog badge.
@@ -28,7 +28,7 @@ place and demoable:
   (many distinct emojis per user, toggleable). Reactions are flair only — they
   never affect a dog's vote count or the Top Dog ranking.
 - **Per-dog stats + detail view** — each dog has a detail page at
-  `/app/dogs/[id]` showing the full image, owner, current and **peak** votes, and
+  `/snacktum-snacktorum/dogs/[id]` showing the full image, owner, current and **peak** votes, and
   its reactions; feed/gallery tiles show a per-tile peak-votes indicator.
 - **Mustard** — the current Top Dog (and only the Top Dog) can spray mustard on
   another member's profile. Sprays are persistent but **fade over 24h** — the
@@ -38,7 +38,7 @@ place and demoable:
 - **Message walls** — post a message to any member's profile wall; the wall owner
   or the message author can delete it. Walls are cosmetic only — they never affect
   votes or ranking.
-- **Direct messages** — send a private DM to another member at `/app/messages`; the
+- **Direct messages** — send a private DM to another member at `/snacktum-snacktorum/messages`; the
   inbox shows your conversations (with unread counts) and each thread lets you read
   and reply. Only the two participants can read a conversation.
 - **Hot-dog emoji rendering** — wall messages and DMs are filtered at render time so
@@ -47,14 +47,14 @@ place and demoable:
   transform is purely cosmetic and applied only when rendering.
 - **🍔 Hamburger Court** — report another member's dog as a hamburger; enough fresh
   reports trip a render-time **HAMBURGER ALARM** banner across the image (reporters
-  stay anonymous). The current Top Dog adjudicates at `/app/court`: a "not a hamburger"
+  stay anonymous). The current Top Dog adjudicates at `/snacktum-snacktorum/court`: a "not a hamburger"
   verdict brands the reporters **HAMBURGER LIAR** (fades over ~7 days), a "confirmed
   hamburger" verdict brands the uploader a persistent **HAMBURGER HERETIC**. Reporting
   and verdicts are cosmetic only — they never affect votes or the Top Dog ranking.
 - **Upload limits** — hot-dog and avatar uploads are hard-capped server-side (2 MiB
   per file at the Storage API, 100 hot dogs per member, plus a global storage guard),
   so the limits hold even against a direct API call, not just the upload form.
-- **In-app help** — a static "How Top Dog works" page at `/app/help` explains the
+- **In-app help** — a static "How Top Dog works" page at `/snacktum-snacktorum/help` explains the
   mechanics (with the vote system emphasized) for anyone who needs a refresher.
 
 ## Stack
@@ -97,7 +97,7 @@ pnpm dev
 
 The `@smoke` Playwright test drives the full M1 slice (redeem invite → set handle
 → upload a dog → see it rendered) plus the feed cast/move/remove + reaction toggle
-and the `/app/dogs/[id]` detail render, against the **local** Supabase stack. With
+and the `/snacktum-snacktorum/dogs/[id]` detail render, against the **local** Supabase stack. With
 the stack running:
 
 ```sh

@@ -1,8 +1,12 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> Auth cluster + theme + shell **complete** — TASK-087 (theme) + TASK-080 (shell) +
-> TASK-083 (password recovery) + TASK-082 (sign-in) **done**. The three complete gate
+> **6/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor done: TASK-087 (theme) + TASK-080 (shell) + TASK-083 (password recovery) +
+> TASK-082 (sign-in) + TASK-092 (onboarding rite) + **TASK-090 (slug refactor — PR #115,
+> 2026-06-20)**. The slug refactor moved the in-app route prefix `/app` →
+> `/snacktum-snacktorum` (directory + auth-guard prefix; leaf names unchanged, deferred to
+> the per-page rebuilds); **TASK-091 (The Procession) is next.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -259,141 +263,12 @@ only the in-app `app` prefix moves.
 
 ## Active Tasks
 
-> Re-scoped 2026-06-19. The completed gate/shell/theme tasks are in § Completed Tasks.
-> Dispatch **only on explicit user instruction**, in the § Dependencies & Sequencing
-> order. The foundational slug refactor (TASK-090) lands first (or its prefix piece
-> does); the per-page rebuilds follow.
-
-### TASK-090: Foundational slug refactor — `app` → `snacktum-snacktorum` prefix + every reference [`in_progress`] [`P1`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** none hard (the completed gate pages + shell exist). **Risky
-cross-cutting refactor** — a **checkpoint tag is warranted at execution**
-(`checkpoint-YYYY-MM-DD-pre-slug-refactor`, director suggests at dispatch). Lands first
-so the per-page rebuilds build on the final paths (each rebuild then only touches its
-own `+page.svelte`).
-
-> **‼️ The four auth slugs are KEPT (`/sign-in`, `/sign-up`, `/forgot-password`,
-> `/reset-password`) — the user finalized this.** This task does **NOT** move the gate-page
-> folders and does **NOT** retarget any `/sign-in` redirect. The ONLY route change is the
-> in-app **prefix** `app` → `snacktum-snacktorum` (+ its leaf paths, whose folder renames
-> fold into the per-page rebuilds). The auth-guard change is a **prefix** change only.
-
-**Scope:** the in-app route-prefix rename for the parts **NOT tied to a page rebuild** —
-the `(protected)/app/` → `(protected)/snacktum-snacktorum/` directory move and updating
-**EVERY internal reference to the `/app/` URL prefix in lockstep**. This is a
-move-and-rewrite task: it does **not** restyle any page (the per-page rebuilds own
-markup), and it does **not** touch the three complete gate-page folders (their slugs are
-unchanged). It MAY apply the final cult-name **nav labels** in the shell (the shell is
-already complete; this is the natural place to finalize its link targets + labels).
-
-> **‼️ The auth-guard string-prefix is load-bearing.** `src/hooks.server.ts` guards
-> `event.url.pathname.startsWith('/app')` (line ~68) — if the route segment becomes
-> `/snacktum-snacktorum` but this prefix is not updated, **the entire protected area
-> becomes unguarded** (an unauthenticated user could reach it). This is the single
-> highest-risk line in the refactor. Update it to `'/snacktum-snacktorum'` AND its
-> co-located test (`src/hooks.server.test.ts`).
-
-**Acceptance Criteria:**
-
-- [ ] **Directory move:** `src/routes/(protected)/app/` → `src/routes/(protected)/snacktum-snacktorum/`
-      (the `(protected)` group is preserved — it is not in the URL). The **leaf folders
-      keep their current names in THIS task** (`feed`, `dogs`, `profile`, `messages`,
-      `invite`, `court`, `help`, `dogs/[id]`, etc.) — the leaf-slug renames are folded
-      into each page's rebuild task so a rebuild touches exactly one page. **The
-      `onboarding` leaf is the exception: it is REMOVED/absorbed into `/sign-up` (TASK-092
-      owns this)** — do not carry it forward as a `snacktum-snacktorum` leaf. **Exception
-      (mechanical):** if the user prefers all leaf renames in one mechanical pass, this
-      task can absorb them (flag the choice to the director) — default is
-      leaf-renames-with-rebuilds to keep each rebuild self-contained.
-- [ ] **Gate-page folders UNCHANGED:** `sign-in/`, `sign-up/`, `forgot-password/`,
-      `reset-password/` keep their folders and slugs — **do NOT move or restyle them**
-      (the user finalized that the auth slugs stay descriptive).
-- [ ] **Auth-guard PREFIX updated (redirect targets stay `/sign-in`):**
-  - `src/hooks.server.ts`: the **only** change is the protected-area prefix
-    `startsWith('/app')` → `startsWith('/snacktum-snacktorum')`. The
-    `redirect(303, '/sign-in')` target is **UNCHANGED** (stays `/sign-in`). Update the
-    co-located `src/hooks.server.test.ts` to assert the new prefix.
-  - `src/routes/(protected)/snacktum-snacktorum/+layout.server.ts`: the
-    `redirect(303, '/sign-in')` target is **UNCHANGED** (stays `/sign-in`); the
-    profile-funnel `ONBOARDING_PATH` constant `'/app/onboarding'` → **`'/sign-up'`** (the
-    rite now lives at `/sign-up`, where an authenticated-but-profile-less member resumes
-    at the naming/sigil step — TASK-092 owns finalizing the resumable funnel; default to
-    `'/sign-up'` here and let TASK-092 confirm/adjust).
-- [ ] **Root redirect updated:** `src/routes/+page.server.ts` `redirect(307, '/app/feed')`
-      → `'/snacktum-snacktorum/procession'` (the final feed slug; coordinate with
-      TASK-091 if feed's leaf-rename lands separately — the redirect must point at
-      whatever the feed leaf finally is).
-- [ ] **Per-page `load` redirects: PREFIX only, `/sign-in` target UNCHANGED.** Each
-      `+page.server.ts` whose load does `redirect(303, '/sign-in')` on a missing session
-      keeps that `/sign-in` target verbatim — **do NOT retarget it.** (The only path
-      literals this task changes inside those loads are any `/app/...` URLs.)
-- [ ] **Shell nav `resolve(...)` links updated** (`(protected)/snacktum-snacktorum/+layout.svelte`):
-      the `resolve('/(protected)/app/feed')` etc. route-id strings → the new
-      `/(protected)/snacktum-snacktorum/...` ids; the `page.url.pathname.startsWith('/app/...')`
-      active-route checks → `/snacktum-snacktorum/...`; the brand-home href + the ＋Upload
-      target. Apply the final cult **nav labels** here (The Procession / Your Litter /
-      Epistles / The Catechism / ☩ The Tribunal / ＋ Summon a Frank) — they are already
-      cult-name placeholders, confirm them verbatim.
-- [ ] **Recovery email template — NO CHANGE.** `supabase/templates/recovery.html`
-      references the `/reset-password` page, which **keeps its slug** — leave it as-is.
-      (Earlier draft retargeted it to `/forge-anew`; that rename was dropped.)
-- [ ] **`config.toml` checked:** `site_url` / `additional_redirect_urls` are
-      `127.0.0.1:3000` (no `/app` path) — no change needed, but confirm no auth redirect
-      URL hardcodes a renamed in-app path.
-- [ ] **Doc-comment path references updated** (non-functional but kept truthful):
-      `src/lib/features/hotdogs/detail.ts` ("backs the dog detail view (/app/dogs/[id])"),
-      `src/lib/features/voting/votes.ts` ("(/app/feed)") — update the `/app/...` paths in
-      these comments to the new slugs so the comments don't lie.
-- [ ] **Unit tests updated** (they assert redirect targets / paths): `src/hooks.server.test.ts`
-      (the new prefix), `src/routes/(protected)/.../layout-guard.test.ts`, and any
-      `*-action.test.ts` / `*-load.test.ts` asserting on `'/app/...'` redirect strings.
-      **`'/sign-in'` assertions stay as-is** (the target is unchanged) — only `/app/...`
-      path assertions change. Run `pnpm test` and fix every `/app/...` path assertion the
-      move breaks.
-- [ ] **E2E specs updated — `/app/...` paths only** (they hardcode paths): `tests/smoke.e2e.ts`
-      (`**/app/onboarding`, `**/app/profile/${handle}`, `/app/dogs` → the new
-      `snacktum-snacktorum/...` paths; note the `**/app/onboarding` wait must become the
-      `/sign-up` rite's profile/sigil step per TASK-092), `tests/sign-in.e2e.ts`
-      (`**/app/onboarding` → the new funnel target). **The `/sign-in` and `/sign-up`
-      navigations in these specs are UNCHANGED** (those slugs stay). `tests/form-validation.e2e.ts`
-      navigates `/sign-in` — **no path change there.** Update only the `/app/...` literals.
-      **Copy assertions in these specs (e.g. "Sign up", "Set up your profile", "Your hot
-      dogs") are updated by the page-rebuild tasks, not here** — TASK-090 changes only the
-      `/app/...` PATHS the specs navigate to; if a spec goes red on copy after the path
-      fix, that copy is owned by the rebuild task for that page (note it, don't fix copy
-      here).
-- [ ] **Grep sweep (final AC):** no remaining functional reference to the `/app/` URL
-      prefix outside of (a) the git history and (b) intentionally-historical prose in
-      completed-task notes. Search `src/`, `tests/`, `supabase/` for `/app/`. **Do NOT
-      flag `/sign-in`, `/sign-up`, `/forgot-password`, or `/reset-password`** — those
-      slugs are KEPT and their references are correct, not stragglers. (`'/app'`
-      substrings inside unrelated identifiers like `app.css` or `$app/...` SvelteKit
-      imports are NOT route paths — leave them.)
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (every path
-      assertion updated), **`@smoke` green** (paths re-pointed; the smoke flow must still
-      walk end-to-end on the new slugs), `@security` green, `tests/form-validation.e2e.ts`
-      green. **No migration.**
-
-**Notes (for the implementer):**
-
-- **This is a mechanical-but-wide PREFIX rename, not a redesign.** Touch the `/app/`
-  paths/links/redirects + their tests; do NOT restyle any `+page.svelte` (the rebuilds
-  own that), do NOT touch the gate-page folders, and do NOT retarget any `/sign-in`
-  redirect. Keeping the leaf folders named as-is here (and folding leaf-renames into the
-  rebuilds) means a later rebuild touches exactly one page's directory — minimizing
-  collision.
-- **`resolve(...)` route ids** are compile-checked by SvelteKit against the actual route
-  tree, so a missed link surfaces at `pnpm check` — lean on that. After the directory
-  move, regenerate `$types` (a `pnpm check` / dev build) so the new route ids exist.
-- **The auth-guard PREFIX + the root redirect are the correctness core** — verify the
-  guard prefix (`/app` → `/snacktum-snacktorum`; the `/sign-in` target is unchanged) and
-  the `/`→procession redirect by walking the `@smoke` flow on the new paths. The
-  profile-funnel guard now points at `/sign-up` (TASK-092 finalizes the resumable rite).
-- No new dependency; no schema; no new architecture-decision row (route prefix rename
-  only).
-
----
+> Re-scoped 2026-06-19. The completed gate/shell/theme tasks (and the foundational slug
+> refactor, TASK-090) are in § Completed Tasks. Dispatch **only on explicit user
+> instruction**, in the § Dependencies & Sequencing order. **TASK-090 (slug refactor) has
+> landed** — every rebuild now builds on the final base paths (in-app prefix
+> `/snacktum-snacktorum`, leaf names still pre-rename); **TASK-091 (The Procession) is
+> next.**
 
 ### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`pending`] [`P1`] [`L`]
 
@@ -1015,6 +890,34 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-090: Foundational slug refactor — `app` → `snacktum-snacktorum` prefix + every reference [`complete`] [`P1`] [`L`]
+
+**Owner:** implementer — PR #115 (squash `38c8844`), merged 2026-06-20. Reviewer APPROVE. 0 fix cycles. Checkpoint tag `checkpoint-2026-06-20-pre-slug-refactor`.
+
+The foundational slug refactor: **only the in-app route PREFIX changed**, `/app` →
+`/snacktum-snacktorum`, with the directory moved `src/routes/(protected)/app/` →
+`src/routes/(protected)/snacktum-snacktorum/`. **The load-bearing change is the
+`hooks.server.ts` auth-guard prefix** (`startsWith('/app')` → `'/snacktum-snacktorum'`) —
+the protected area stays guarded in lockstep with the rename, so no `/snacktum-snacktorum/*`
+route went unguarded. **Leaf names are UNCHANGED** (deferred to the per-page rebuilds):
+`feed`, `dogs`, `dogs/[id]`, `profile/[handle]`, `messages`, `messages/[handle]`, `invite`,
+`court`, `help` — so every `/app/<leaf>` became `/snacktum-snacktorum/<leaf>` with the SAME
+leaf (e.g. `/app/feed` → `/snacktum-snacktorum/feed`, `/app/court` →
+`/snacktum-snacktorum/court`, `/app/profile/[handle]` →
+`/snacktum-snacktorum/profile/[handle]`). The leaf renames (feed→procession etc.) are
+TASK-091+. The **four gate slugs are UNCHANGED** (`/sign-in`, `/sign-up`,
+`/forgot-password`, `/reset-password`); the `/sign-in` redirect targets were preserved and
+the profile-funnel `ONBOARDING_PATH` still points at `/sign-up`. **Scope decision worth
+recording:** the root redirect points at `/snacktum-snacktorum/feed` (the live leaf), NOT
+`/procession` — TASK-091 renames the leaf and retargets the redirect. The live-doc path
+sweep (CLAUDE.md + README.md `/app/*` route references → `/snacktum-snacktorum/*`, same
+leaves) was done as part of this bookkeeping, resolving the reviewer's stale-doc finding.
+No migration, no new dependency, **no new decision row** (table stays #28). Gates at merge:
+`pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 830/830, `@smoke` 5/5, `@security` 94/94,
+form-validation 2/2.
+
+---
 
 ### TASK-092: The Snacktum Onboarding rite — rebuild `/sign-up` as the rite (absorbs onboarding) [`complete`] [`P1`] [`L`]
 

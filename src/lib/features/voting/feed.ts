@@ -29,6 +29,10 @@ export interface VotableDog {
 	peak_votes: number;
 	owner_handle: string;
 	owner_display_name: string;
+	// The owner's live crown state (server-maintained, non-client-writable —
+	// decision #25; read-only here). The feed surfaces it so the procession can
+	// mark the reigning Top Dog's frank with the "Anointed Wiener" champion ribbon.
+	owner_is_current_top_dog: boolean;
 }
 
 /**
@@ -45,8 +49,8 @@ interface VotableDogRow {
 	vote_count: number;
 	peak_votes: number;
 	profiles:
-		| { handle: string; display_name: string }[]
-		| { handle: string; display_name: string }
+		| { handle: string; display_name: string; is_current_top_dog: boolean }[]
+		| { handle: string; display_name: string; is_current_top_dog: boolean }
 		| null;
 }
 
@@ -68,7 +72,7 @@ export async function listVotableDogs(
 	const { data, error } = await supabase
 		.from('hot_dogs')
 		.select(
-			'id, owner_id, image_path, caption, vote_count, peak_votes, profiles(handle, display_name)'
+			'id, owner_id, image_path, caption, vote_count, peak_votes, profiles(handle, display_name, is_current_top_dog)'
 		)
 		.neq('owner_id', viewerId)
 		.order('vote_count', { ascending: false })
@@ -91,7 +95,8 @@ export async function listVotableDogs(
 			vote_count: row.vote_count,
 			peak_votes: row.peak_votes,
 			owner_handle: owner?.handle ?? '',
-			owner_display_name: owner?.display_name ?? ''
+			owner_display_name: owner?.display_name ?? '',
+			owner_is_current_top_dog: owner?.is_current_top_dog ?? false
 		};
 	});
 

@@ -27,7 +27,7 @@
 	// `'page' | undefined` feeds aria-current directly (a falsy attr is omitted).
 	type Current = 'page' | undefined;
 	const onFeed = $derived<Current>(
-		page.url.pathname.startsWith('/snacktum-snacktorum/feed') ? 'page' : undefined
+		page.url.pathname.startsWith('/snacktum-snacktorum/procession') ? 'page' : undefined
 	);
 	const onDogs = $derived<Current>(
 		page.url.pathname.startsWith('/snacktum-snacktorum/dogs') ? 'page' : undefined
@@ -47,10 +47,10 @@
 	}
 
 	// Route ids resolved through the path alias (CLAUDE.md convention). Linking
-	// directly at /snacktum-snacktorum/feed skips the `/` → feed redirect hop.
+	// directly at /snacktum-snacktorum/procession skips the `/` → procession redirect hop.
 	// Upload routes to the hot-dog gallery (the upload form lives on
 	// /snacktum-snacktorum/dogs).
-	const feedHref = resolve('/(protected)/snacktum-snacktorum/feed');
+	const feedHref = resolve('/(protected)/snacktum-snacktorum/procession');
 	const dogsHref = resolve('/(protected)/snacktum-snacktorum/dogs');
 	const messagesHref = resolve('/(protected)/snacktum-snacktorum/messages');
 	const helpHref = resolve('/(protected)/snacktum-snacktorum/help');

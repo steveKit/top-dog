@@ -1,7 +1,7 @@
 <script lang="ts">
 	// The bare `/snacktum-snacktorum` hub is retired (TASK-080): its
 	// `+page.server.ts` always redirects to The Procession
-	// (`/snacktum-snacktorum/feed`), and the persistent app shell (`+layout.svelte`)
+	// (`/snacktum-snacktorum/procession`), and the persistent app shell (`+layout.svelte`)
 	// now owns navigation on every page. This body therefore never renders in
 	// practice; it remains only as a minimal SSR fallback in case the redirect is
 	// somehow bypassed. The old inline nav now lives in the shell, and the Top Dog

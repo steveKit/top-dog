@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 
 /**
  * The root path has no landing surface of its own — The Procession
- * (`/snacktum-snacktorum/feed`) is the app's home, and the
+ * (`/snacktum-snacktorum/procession`) is the app's home, and the
  * `(protected)/snacktum-snacktorum/+layout.server.ts` guard cascades the
  * auth/profile funnel (unauthenticated → /sign-in, profile-less → /sign-up
  * onboarding rite) before the feed renders. So `/` is an unconditional redirect
@@ -18,5 +18,5 @@ import type { PageServerLoad } from './$types';
  * landing.
  */
 export const load: PageServerLoad = () => {
-	throw redirect(307, '/snacktum-snacktorum/feed');
+	throw redirect(307, '/snacktum-snacktorum/procession');
 };

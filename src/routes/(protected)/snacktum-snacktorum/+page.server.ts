@@ -8,7 +8,7 @@ import type { PageServerLoad } from './$types';
  * purpose. The App Chrome design (design/pages/App Chrome.dc.html) defines only
  * the shell chrome plus generic page-content placeholders — no distinct designed
  * hub surface — so `/snacktum-snacktorum` defaults to a redirect to The Procession
- * (`/snacktum-snacktorum/feed`), the app's home.
+ * (`/snacktum-snacktorum/procession`), the app's home.
  *
  * The parent layout guard still runs first (unauthenticated → /sign-in,
  * profile-less → /sign-up onboarding rite), so this redirect only fires for a
@@ -17,5 +17,5 @@ import type { PageServerLoad } from './$types';
  * 307 (temporary), GET-preserving, matching the `/` landing redirect.
  */
 export const load: PageServerLoad = () => {
-	throw redirect(307, '/snacktum-snacktorum/feed');
+	throw redirect(307, '/snacktum-snacktorum/procession');
 };

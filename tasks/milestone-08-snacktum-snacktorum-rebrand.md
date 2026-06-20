@@ -270,7 +270,7 @@ only the in-app `app` prefix moves.
 > `/snacktum-snacktorum`, leaf names still pre-rename); **TASK-091 (The Procession) is
 > next.**
 
-### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`pending`] [`P1`] [`L`]
+### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`in_progress`] [`P1`] [`L`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-090 (final base paths); TASK-087 (theme tokens — done). Mockup:

@@ -177,6 +177,9 @@ function aDog(overrides: Partial<Record<string, unknown>> = {}) {
 		peak_votes: 7,
 		owner_handle: 'sausage_king',
 		owner_display_name: 'Sausage King',
+		// The owner's live crown flag (decision #25) carried by listVotableDogs; the
+		// load derives championDogId from it. Default: a non-reigning owner.
+		owner_is_current_top_dog: false,
 		...overrides
 	};
 }
@@ -241,6 +244,7 @@ type LoadData = {
 		iReported: boolean;
 	}[];
 	currentVoteDogId: string | null;
+	championDogId: string | null;
 };
 async function loadData(event: unknown): Promise<LoadData> {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -348,6 +352,49 @@ describe('feed load', () => {
 		expect(result.currentVoteDogId).toBe('dog-a');
 	});
 
+	// Champion ("Anointed Wiener") ribbon source (TASK-091, decision #25). The load
+	// derives championDogId from the listed dogs' server-maintained crown flag: the
+	// highest-ranked dog whose owner reigns. The list arrives already sorted
+	// (vote_count desc, then id asc) from listVotableDogs, so the first crowned
+	// owner's dog is the champion; null when no listed dog's owner reigns.
+	it('surfaces championDogId as the highest-ranked listed dog whose owner holds the crown', async () => {
+		const dogA = aDog(); // non-reigning owner
+		const dogB = aDog({
+			id: 'dog-b',
+			image_path: 'owner-b/dog-b.webp',
+			owner_is_current_top_dog: true
+		});
+		vi.mocked(listVotableDogs).mockResolvedValue({ ok: true, data: [dogA, dogB] });
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(result.championDogId).toBe('dog-b');
+	});
+
+	it('picks the FIRST (highest-ranked) crowned owner when several are crowned', async () => {
+		// The list is pre-sorted by listVotableDogs (vote_count desc, then id asc), so
+		// the first crowned owner's dog is the champion even if a later one is too.
+		const dogA = aDog({ owner_is_current_top_dog: true });
+		const dogB = aDog({
+			id: 'dog-b',
+			image_path: 'owner-b/dog-b.webp',
+			owner_is_current_top_dog: true
+		});
+		vi.mocked(listVotableDogs).mockResolvedValue({ ok: true, data: [dogA, dogB] });
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(result.championDogId).toBe('dog-a');
+	});
+
+	it('championDogId is null when no listed dog owner holds the crown', async () => {
+		vi.mocked(listVotableDogs).mockResolvedValue({ ok: true, data: [aDog()] });
+
+		const result = await loadData(makeLoadEvent({ session: VALID_SESSION, user: VALID_USER }));
+
+		expect(result.championDogId).toBeNull();
+	});
+
 	it('degrades a failed per-row signed URL to null without blanking the grid', async () => {
 		const dogA = aDog();
 		const dogB = aDog({ id: 'dog-b', image_path: 'owner-b/dog-b.webp' });
@@ -396,6 +443,10 @@ describe('feed load', () => {
 
 		expect(result.dogs).toEqual([]);
 		expect(result.currentVoteDogId).toBeNull();
+		// The list-failure early return must ALSO surface championDogId: null (TASK-091)
+		// — there is no listed dog to crown, and the page reads data.championDogId
+		// unconditionally for the champion ribbon, so it must always be defined.
+		expect(result.championDogId).toBeNull();
 		// No dogs -> nothing to sign.
 		expect(getSignedUrl).not.toHaveBeenCalled();
 	});

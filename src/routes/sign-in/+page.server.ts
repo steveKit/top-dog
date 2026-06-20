@@ -8,8 +8,8 @@ import type { Actions } from './$types';
 // signInWithPassword runs on the RLS-scoped per-request client
 // (event.locals.supabase), which the @supabase/ssr integration wires to set the
 // auth cookies on success. We then redirect to /app and let the (protected)/app
-// layout guard route onward (profile-less -> /app/onboarding; otherwise the app
-// shell). We never bypass that guard.
+// layout guard route onward (profile-less -> /sign-up onboarding rite; otherwise
+// the app shell). We never bypass that guard.
 //
 // SECURITY (L2 — account enumeration): on ANY auth failure we surface ONE
 // generic, non-enumerating message and do NOT reveal whether the email exists or

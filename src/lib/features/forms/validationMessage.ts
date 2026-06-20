@@ -62,6 +62,10 @@ export interface FieldMessageContext {
 // forms don't have to pass a separate identifier.
 const EMAIL_LABELS = new Set(['mustard address']);
 const SEAL_LABELS = new Set(['seal', 'new seal', 'confirm the seal']);
+// The Snacktum Onboarding rite (TASK-092) names the @handle field the "Casing".
+// Special-case it so the rite's required/charset failures read in the cult
+// voice rather than the bare generic "Speak thy Casing." fallback.
+const NAME_LABELS = new Set(['casing']);
 
 function isEmailLabel(label: string): boolean {
 	return EMAIL_LABELS.has(label.trim().toLowerCase());
@@ -71,17 +75,23 @@ function isSealLabel(label: string): boolean {
 	return SEAL_LABELS.has(label.trim().toLowerCase());
 }
 
+function isNameLabel(label: string): boolean {
+	return NAME_LABELS.has(label.trim().toLowerCase());
+}
+
 // Map a field's classified failure to a themed, field-naming message in the cult
 // voice. Pure: same inputs always yield the same string, no DOM, no I/O.
 export function validationMessage(context: FieldMessageContext): string {
 	const { label, failure, minLength } = context;
 	const email = isEmailLabel(label);
 	const seal = isSealLabel(label);
+	const name = isNameLabel(label);
 
 	switch (failure) {
 		case 'valueMissing':
 			if (email) return 'Speak thy Mustard Address.';
 			if (seal) return 'A Seal is required to pass.';
+			if (name) return 'Inscribe thy Casing.';
 			return `Speak thy ${label}.`;
 
 		case 'typeMismatch':

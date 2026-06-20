@@ -234,9 +234,11 @@ async function mintInvite(): Promise<string> {
 }
 
 /**
- * Signs a fresh VOTER up through the real UI (redeem invite → onboard with a
- * handle, no dog of their own) and leaves the page authenticated on their new
- * profile. Returns the handle (for later assertions if needed).
+ * Signs a fresh VOTER up through the real UI — the Snacktum Onboarding rite at
+ * /sign-up (TASK-092): present token → inscribe name/email/secret → choose a sigil
+ * (the Sigil Continue FORGES the profile) → renounce the patty (pure oath) →
+ * Received → "Enter →" into the app on their new profile (no dog of their own).
+ * Returns the handle (for later assertions if needed).
  */
 async function signUpVoter(page: import('@playwright/test').Page): Promise<string> {
 	const token = await mintInvite();
@@ -246,14 +248,28 @@ async function signUpVoter(page: import('@playwright/test').Page): Promise<strin
 	const handle = `fv_${stamp}`.slice(0, 32);
 
 	await page.goto(`/sign-up?token=${encodeURIComponent(token)}`);
-	await expect(page.getByRole('heading', { name: 'Sign up' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'You Have Been Summoned' })).toBeVisible();
+	await page.getByRole('button', { name: 'Take a Bite →' }).click();
+
+	await expect(page.getByRole('heading', { name: 'Inscribe Thy Name' })).toBeVisible();
+	await page.locator('input[name="handle"]').fill(handle);
 	await page.locator('input[name="email"]').fill(email);
 	await page.locator('input[name="password"]').fill(password);
-	await page.getByRole('button', { name: 'Create account' }).click();
+	await page.getByRole('button', { name: 'Continue →' }).click();
 
-	await page.waitForURL('**/app/onboarding');
-	await page.locator('input[name="handle"]').fill(handle);
-	await page.getByRole('button', { name: 'Create profile' }).click();
+	// Sigil Continue FORGES the profile (createProfile fires here, not on the oath
+	// screen). The Casing typed once at Inscribe rides hidden from client state.
+	await expect(page.getByRole('heading', { name: 'Choose Thy Sigil' })).toBeVisible();
+	await page.getByRole('button', { name: 'Continue →' }).click();
+
+	// Renounce is PURE UI — no form/action/session check. The Continue is gated only
+	// on the oath. Swear it, advance to Received, then click "Enter →" into the app.
+	await expect(page.getByRole('heading', { name: 'Renounce the Patty' })).toBeVisible();
+	await page.getByRole('button', { name: 'Press to Swear the Oath' }).click();
+	await page.getByRole('button', { name: 'Continue →' }).click();
+
+	await expect(page.getByRole('heading', { name: `Welcome, ${handle}` })).toBeVisible();
+	await page.getByRole('link', { name: 'Enter →' }).click();
 	await page.waitForURL(`**/app/profile/${handle}`);
 
 	return handle;

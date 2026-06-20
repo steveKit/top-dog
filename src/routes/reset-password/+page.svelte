@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import theHolyTube from '$lib/assets/brand/the-holy-tube.svg';
+	import ordoSeal from '$lib/assets/brand/ordo-sancti-tubi-seal.svg';
+	import snacktumHeader from '$lib/assets/brand/snacktum-snacktorum-header.svg';
 	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
 	import { errorSlideFade } from '$lib/motion/reducedMotion';
 
@@ -36,7 +37,10 @@
 <div class="glow-orb" aria-hidden="true"></div>
 
 <main class="recovery fade-up gate-center">
-	<img class="gate-mark" src={theHolyTube} alt="" aria-hidden="true" />
+	<header class="gate-header">
+		<img class="gate-header-mark" src={snacktumHeader} alt="Snacktum Snacktorum" />
+	</header>
+	<img class="gate-mark" src={ordoSeal} alt="" aria-hidden="true" />
 	{#if form?.success}
 		<span class="eyebrow">Thy Seal Is Restored</span>
 		<h1>The Tube Holds</h1>
@@ -174,9 +178,11 @@
 		flex-direction: column;
 		align-items: center;
 		/* --space-md (down from --space-lg): this is the tallest gate page (code
-		   input + new-seal + confirm + the 6.5rem mark), so a one-step gap
-		   reduction across its many rows recovers the vertical overflow needed to
-		   fit an 800px viewport without a scrollbar — without touching the mark. */
+		   input + new-seal + confirm + the 15rem seal mark), so a one-step gap
+		   reduction across its many rows keeps the vertical rhythm tight. With the
+		   15rem seal the page exceeds a short viewport and scrolls (body scroll),
+		   which is acceptable; the gap reduction just minimizes how soon that
+		   happens — without touching the mark. */
 		gap: var(--space-md);
 		text-align: center;
 		max-width: var(--measure-form);

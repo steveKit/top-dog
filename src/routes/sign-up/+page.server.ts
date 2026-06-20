@@ -3,38 +3,83 @@ import type { Actions, PageServerLoad } from './$types';
 import { isValidTokenFormat } from '$lib/features/invites/token';
 import { isInviteRedeemable, redeemInvite } from '$lib/features/invites/invites';
 import { getServiceClient } from '$lib/server/supabase';
+import { validateHandle } from '$lib/features/profiles/handle';
+import {
+	createProfile,
+	getProfileById,
+	isHandleAvailable,
+	HANDLE_TAKEN
+} from '$lib/features/profiles/profiles';
+import { isSigilId, sigilAvatarValue, DEFAULT_SIGIL } from '$lib/features/profiles/sigils';
 
-// Public sign-up flow. The auth guard in hooks.server.ts only protects /app*, so
-// this route is reachable while unauthenticated (anon). The token may arrive in
-// the query string (?token=...) from an invite link; we surface it to the form
-// so the field pre-fills.
+// The Snacktum Onboarding RITE (TASK-092). A single public route at /sign-up that
+// absorbs the old standalone /app/onboarding step. Two form actions drive the
+// ceremony:
 //
-// Redemption order matters and is defensive against an orphaned-account race:
-//   1. validate the token shape,
-//   2. best-effort pre-check that the token is redeemable BEFORE creating any
-//      account (rejects the common "already used at submit time" case so no
-//      orphan auth user is created),
+//   register     — Summoned + Inscribe: the invite-redemption flow (UNCHANGED
+//                  from the old sign-up). On success WITH a session it returns
+//                  `{ registered: true }` so the client advances IN-PAGE to the
+//                  sigil/oath steps (it no longer redirects to /app). Email-
+//                  confirm (no session) still returns the confirm-email state.
+//   createProfile — Choose Thy Sigil: validates the @handle (Casing Name) at the
+//                  boundary and creates the `profiles` row with the chosen sigil
+//                  stored as `sigil:<id>` in avatar_path (no upload, no migration).
+//                  Fires from the SIGIL step's Continue (NOT the oath screen), so
+//                  the legitimate `safeGetSession()` check never surfaces on the
+//                  pure-UI Renounce step. Returns `{ created, handle }` instead of
+//                  redirecting so the client can advance Sigil → Renounce →
+//                  Received in-page (a redirect would skip the oath + Received).
+//
+// Redemption order (register) is UNCHANGED and defensive against an orphaned-
+// account race (decisions #17/#22/#23):
+//   1. validate token shape,
+//   2. best-effort pre-check that the token is redeemable BEFORE signUp (so the
+//      common "already used" case never leaves an orphan auth user),
 //   3. signUp(),
-//   4. consume the token via the SECURITY DEFINER RPC keyed to the new user id.
-//      The conditional UPDATE (consumed_at IS NULL guard) is the authoritative
-//      single-use check; the pre-check is only best-effort.
-//   5. if redemption loses the narrow race after signUp succeeded, delete the
-//      just-created auth user with the service client so the email is reusable.
-//   6. branch the success path on whether signUp returned a session: with email
-//      confirmation enabled there is no session yet, so we cannot send the user
-//      into /app (the guard would bounce them) — we return a "check your email"
-//      success state instead.
+//   4. consume the token via the SECURITY DEFINER redeem_invite RPC keyed to the
+//      new user id (the conditional UPDATE is the authoritative single-use check),
+//   5. if redemption loses the narrow race, delete the just-created auth user with
+//      the service client (server-side only) so the email is reusable,
+//   6. branch on whether signUp returned a session.
+//
+// Resumability (AC): an authenticated-but-profile-less member funneled here by the
+// app guard already has a session — `load` surfaces `resumeAtProfile` so the rite
+// skips Summoned/Inscribe and starts at Choose Thy Sigil. A member who finished
+// the rite HAS a profile and is redirected straight to it.
+//
+// Step split (TASK-092): profile creation lives on the SIGIL step's Continue, NOT
+// the oath step. The oath (Renounce) is therefore pure UI — its Continue is gated
+// SOLELY on the oath having been sworn, with no server action and no session
+// check. The Received step gets an explicit "Enter →" into the app because
+// createProfile no longer redirects.
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSession } }) => {
 	const token = url.searchParams.get('token') ?? '';
-	return { token };
+
+	// If the visitor is already authenticated (the app guard funnels a profile-less
+	// member here), the rite resumes at the profile-creation steps rather than
+	// re-asking for invite/credentials. An already-onboarded member is sent to
+	// their profile so they never re-run the rite.
+	const { session, user } = await safeGetSession();
+	if (session && user) {
+		const existing = await getProfileById(supabase, user.id);
+		if (existing.ok && existing.data) {
+			throw redirect(303, `/app/profile/${existing.data.handle}`);
+		}
+		return { token, resumeAtProfile: true };
+	}
+
+	return { token, resumeAtProfile: false };
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals: { supabase } }) => {
+	// Summoned + Inscribe: invite redemption. UNCHANGED mechanics; only the
+	// success-with-session branch differs — it returns a `registered` flag so the
+	// single-route rite advances in-page instead of redirecting to /app.
+	register: async ({ request, locals: { supabase } }) => {
 		const formData = await request.formData();
 		const token = String(formData.get('token') ?? '');
 		const email = String(formData.get('email') ?? '').trim();
@@ -95,9 +140,8 @@ export const actions: Actions = {
 
 			// Lost the narrow race: an account now exists but no invite was consumed.
 			// Delete it with the service client so the email is reusable and the user
-			// is not permanently stuck. No profile row exists yet (TASK-011), so this
-			// is a clean delete. The secret key stays server-only — never near the
-			// client.
+			// is not permanently stuck. No profile row exists yet, so this is a clean
+			// delete. The secret key stays server-only — never near the client.
 			const { error: deleteError } = await getServiceClient().auth.admin.deleteUser(
 				signUpData.user.id
 			);
@@ -117,14 +161,95 @@ export const actions: Actions = {
 		}
 
 		// Account created and invite consumed. If email confirmation is enabled,
-		// signUp returns no session — we cannot send the user into /app (the guard
-		// would bounce them to /sign-in), so show a confirmation-required success
-		// state. The invite was validly consumed, so this is NOT a failure.
+		// signUp returns no session — the rite cannot advance into the profile steps
+		// (the profile insert needs an authenticated session), so show a
+		// confirmation-required success state. The invite was validly consumed, so
+		// this is NOT a failure.
 		if (!signUpData.session) {
 			return { success: true, confirmEmail: true, email };
 		}
 
-		// We have a live session: send the user into the app.
-		throw redirect(303, '/app');
+		// We have a live session: advance the rite IN-PAGE to Choose Thy Sigil. The
+		// session cookie is now set, so the createProfile action below can run.
+		return { registered: true };
+	},
+
+	// Choose Thy Sigil: create the profile row. Fires from the SIGIL step's
+	// Continue (the Renounce/oath step that follows is pure UI). Carries the old
+	// onboarding's handle-validation/profile-creation logic. The sigil choice is
+	// stored as a prefixed id in avatar_path (no upload). The trusted profile id is
+	// the validated session uid, never a client value. On success it RETURNS
+	// `{ created, handle }` (instead of redirecting) so the client can advance the
+	// rite Sigil → Renounce → Received in-page; a failure surfaces the themed error
+	// IN PLACE on the Sigil step (retry-able), never on the oath screen.
+	createProfile: async ({ request, locals: { supabase, safeGetSession } }) => {
+		const { session, user } = await safeGetSession();
+		if (!session || !user) {
+			return fail(401, { error: 'You must be signed in to complete the rite.' });
+		}
+
+		const formData = await request.formData();
+		const rawHandle = String(formData.get('handle') ?? '');
+		const rawSigil = String(formData.get('sigil') ?? '');
+
+		// Validate the handle (charset + length) at the boundary. Themed copy must
+		// not weaken this — the same pure validator the old onboarding used.
+		const handleCheck = validateHandle(rawHandle);
+		if (!handleCheck.ok) {
+			return fail(400, { handle: rawHandle, sigil: rawSigil, error: handleCheck.reason });
+		}
+		const handle = handleCheck.value;
+
+		// display_name is NOT NULL; the rite has no separate display-name field, so
+		// it defaults to the chosen handle (the Casing Name IS the display identity).
+		const displayName = handle;
+
+		// Resolve the chosen sigil. An unknown/absent value falls back to the default
+		// sigil rather than failing — every member gets a face. Stored as `sigil:<id>`.
+		const sigil = isSigilId(rawSigil) ? rawSigil : DEFAULT_SIGIL;
+		const avatarStoredPath = sigilAvatarValue(sigil);
+
+		// Best-effort pre-check (the DB UNIQUE constraint is still authoritative).
+		const available = await isHandleAvailable(supabase, handle);
+		if (available.ok && !available.data) {
+			return fail(400, {
+				handle: rawHandle,
+				sigil: rawSigil,
+				error: 'That handle is taken. Try another.'
+			});
+		}
+
+		// Create the profile. The handle UNIQUE constraint is the authoritative
+		// duplicate guard (covers the race the pre-check can lose).
+		const created = await createProfile(supabase, {
+			id: user.id,
+			handle,
+			displayName,
+			avatarPath: avatarStoredPath
+		});
+
+		if (!created.ok) {
+			if (created.error === HANDLE_TAKEN) {
+				return fail(400, {
+					handle: rawHandle,
+					sigil: rawSigil,
+					error: 'That handle is taken. Try another.'
+				});
+			}
+			console.error('[profiles] createProfile failed during onboarding rite', {
+				userId: user.id,
+				error: created.error
+			});
+			return fail(500, {
+				handle: rawHandle,
+				sigil: rawSigil,
+				error: 'Could not complete the rite right now. Please try again.'
+			});
+		}
+
+		// Do NOT redirect: the client advances Sigil → Renounce → Received in-page so
+		// the oath and Received steps are not skipped. The handle echoes back so the
+		// client carries the canonical (validated) handle into Received's "Enter →".
+		return { created: true, handle: created.data.handle };
 	}
 };

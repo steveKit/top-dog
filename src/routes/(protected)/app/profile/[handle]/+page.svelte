@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 	import ProfilePoliceBanner from '$lib/components/ProfilePoliceBanner.svelte';
+	import Sigil from '$lib/components/Sigil.svelte';
 	import { mustardOpacity } from '$lib/features/mustard/decay';
 	import { renderWallBody } from '$lib/features/emoji/render';
 
@@ -11,6 +12,9 @@
 
 	const profile = $derived(data.profile);
 	const avatarUrl = $derived(data.avatarUrl);
+	// A built-in sigil avatar (chosen in the onboarding rite) renders inline; a real
+	// uploaded avatar renders from its public storage URL.
+	const sigilId = $derived(data.sigilId);
 	const sprays = $derived(data.sprays);
 	const canSpray = $derived(data.canSpray);
 	const wallMessages = $derived(data.wallMessages);
@@ -105,7 +109,9 @@
 		spray form); otherwise the area is a plain wrapper.
 	-->
 	<div class="spray-area" bind:this={sprayArea}>
-		{#if avatarUrl}
+		{#if sigilId}
+			<Sigil id={sigilId} size={96} title="{profile.display_name}'s sigil" />
+		{:else if avatarUrl}
 			<img src={avatarUrl} alt="{profile.display_name}'s avatar" width="96" height="96" />
 		{:else}
 			<div class="avatar-placeholder" aria-hidden="true">🌭</div>

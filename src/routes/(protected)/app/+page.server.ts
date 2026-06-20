@@ -10,8 +10,8 @@ import type { PageServerLoad } from './$types';
  * defaults to a redirect to The Procession (`/app/feed`), the app's home.
  *
  * The parent layout guard still runs first (unauthenticated → /sign-in,
- * profile-less → /app/onboarding), so this redirect only fires for a fully
- * onboarded member landing on the bare hub.
+ * profile-less → /sign-up onboarding rite), so this redirect only fires for a
+ * fully onboarded member landing on the bare hub.
  *
  * 307 (temporary), GET-preserving, matching the `/` landing redirect.
  */

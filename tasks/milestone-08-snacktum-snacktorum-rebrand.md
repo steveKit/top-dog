@@ -456,7 +456,7 @@ feature plumbing into the new markup, and rename the leaf slug.
 
 ---
 
-### TASK-092: The Snacktum Onboarding rite — rebuild `/sign-up` as the rite (absorbs onboarding) [`pending`] [`P1`] [`L`]
+### TASK-092: The Snacktum Onboarding rite — rebuild `/sign-up` as the rite (absorbs onboarding) [`in_progress`] [`P1`] [`L`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-090 (final paths); mockup `design/pages/Snacktum Onboarding.dc.html`;

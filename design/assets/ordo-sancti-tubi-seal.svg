@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 260" width="260" height="260" fill="none">
+  <defs>
+    
+    <path id="seal-top" d="M 130 130 m -97 0 a 97 97 0 1 1 194 0" fill="none"></path>
+    <path id="seal-bot" d="M 130 130 m -100 0 a 100 100 0 1 0 200 0" fill="none"></path>
+    <mask id="seal-bunMask" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="0" y="0" width="200" height="200" fill="white"></rect>
+      <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="black" stroke="black" stroke-width="3"></path>
+    </mask>
+    <mask id="seal-dogCut" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <rect x="0" y="0" width="200" height="200" fill="white"></rect>
+      <path d="M55 91 Q100 111 145 91 A12 12 0 0 1 155 113 Q100 137 45 113 A12 12 0 0 1 55 91 Z" fill="black" stroke="black" stroke-width="3"></path>
+    </mask>
+  </defs>
+
+  
+  <circle cx="130" cy="130" r="124" stroke="#E0A82E" stroke-width="2"></circle>
+  <circle cx="130" cy="130" r="116" stroke="#E0A82E" stroke-width="4"></circle>
+  <circle cx="130" cy="130" r="72" stroke="#E0A82E" stroke-width="2"></circle>
+  <circle cx="130" cy="130" r="68" stroke="#E0A82E" stroke-width="1" stroke-dasharray="1 5" stroke-linecap="round"></circle>
+
+  
+  <g fill="#E0A82E">
+    <text font-family="&#39;Cinzel&#39;, Georgia, serif" font-weight="700" font-size="17" letter-spacing="4" text-anchor="middle">
+      <textPath href="#seal-top" startOffset="50%">ORDO · SANCTI · TVBI</textPath>
+    </text>
+    <text font-family="&#39;Cinzel&#39;, Georgia, serif" font-weight="600" font-size="13" letter-spacing="4" text-anchor="middle">
+      <textPath href="#seal-bot" startOffset="50%">✦ IN TVBO VERITAS ✦</textPath>
+    </text>
+  </g>
+
+  
+  <g fill="#E0A82E">
+    <path d="M16 130 l2.4 5 5 2.4 -5 2.4 -2.4 5 -2.4 -5 -5 -2.4 5 -2.4 z" transform="translate(-2,-7.4)"></path>
+    <path d="M244 130 l2.4 5 5 2.4 -5 2.4 -2.4 5 -2.4 -5 -5 -2.4 5 -2.4 z" transform="translate(2,-7.4)"></path>
+  </g>
+
+  
+  <g transform="translate(70 70) scale(0.6)" stroke="#E0A82E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke-width="2.5">
+      <line x1="100" y1="30" x2="100" y2="14"></line>
+      <line x1="74" y1="36" x2="64" y2="22"></line>
+      <line x1="126" y1="36" x2="136" y2="22"></line>
+      <line x1="52" y1="50" x2="40" y2="40"></line>
+      <line x1="148" y1="50" x2="160" y2="40"></line>
+    </g>
+    <ellipse cx="100" cy="58" rx="42" ry="11"></ellipse>
+    <path d="M56 96 L144 96" fill="none" stroke-linecap="butt" mask="url(#seal-dogCut)"></path>
+    <path d="M55 91 Q100 111 145 91 A12 12 0 0 1 155 113 Q100 137 45 113 A12 12 0 0 1 55 91 Z" fill="rgba(224,168,46,0.18)" mask="url(#seal-bunMask)"></path>
+    <path d="M66 110 q8 -7 16 0 q8 7 16 0 q8 -7 16 0 q8 7 16 0" stroke-width="2.6"></path>
+    <path d="M44 122 q0 -4 6 -4 h100 q6 0 6 4 v6 q0 18 -22 18 h-68 q-22 0 -22 -18 z" fill="rgba(224,168,46,0.06)"></path>
+  </g>
+</svg>

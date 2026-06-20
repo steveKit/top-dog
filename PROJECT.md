@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession complete, 7/16 — auth is functional end-to-end, the first rebuild-from-design in-app page has landed (the feed is now at `/snacktum-snacktorum/procession`), and the in-app route prefix is `/snacktum-snacktorum`; the remaining work is the per-page rebuilds from the delivered mockups, TASK-093 The Shrine next)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession complete, 7/16 — auth is functional end-to-end, the first rebuild-from-design in-app page has landed (the feed is now at `/snacktum-snacktorum/procession`), and the in-app route prefix is `/snacktum-snacktorum`; plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 7/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups, TASK-093 The Shrine next)
 **Last Updated:** 2026-06-20
 
 > **‼️ M8 RE-SCOPE (2026-06-19, user-directed) — rebuild-from-design + re-slug.** The
@@ -190,6 +190,46 @@ the native bubble is never used**, applied as each form-bearing page is built /
 reworked (rollout tracked as DW-032). **M8 stays 4/10** (not a queued task); **no
 migration, no new dependency, no new architecture-decision row** (the decision table
 stays at **#28**).
+
+**Ad-hoc M8 chrome polish (NOT one of the 16 M8 tasks) — the App Chrome rebuild
+landed (PR #119, squash `7598365`, merged 2026-06-20).** User-directed during a live
+visual review, this rebuilt the persistent app shell
+(`(protected)/snacktum-snacktorum/+layout.svelte`) to match `design/pages/App Chrome.dc.html`
+— the App Chrome equivalent of the per-page rebuilds (TASK-080 had built the shell
+`design-light`). Three things landed worth recording. (1) **Full-bleed chrome:** the nav
+header AND a new "The Anointed Wiener" champion sub-bar now span the viewport edge-to-edge,
+with content centered at a new **`--measure-shell: 100rem` (1600px)** token in `tokens.css`.
+It is implemented via `app.css` `.page-container:has(.shell-header) { max-width: none;
+padding: 0 0 var(--space-3xl) }` — **scoped to the app area** (gate pages are untouched: they
+key off `:has(> .gate-center)`), with page content still capped at `--measure-content` and no
+`100vw` (it relies on `scrollbar-gutter: stable` on `html`, which also fixed a navigation
+layout-shift). **A structural self-cap invariant follows:** because the app container is now
+full-width with zero horizontal padding, **each child band re-supplies its own horizontal
+gutter AND caps its own width** (`.shell-inner` / `.shell-champion-inner` → `--measure-shell`;
+`.shell-content` page content → `--measure-content`; mobile `.shell-scroll` → `--measure-shell`),
+so **any future not-yet-rebuilt `/snacktum-snacktorum` page must self-cap its content (or wrap
+in `.shell-content`) or it sprawls to the viewport edge.** (2) **New read-only
+`getCurrentChampion`** — `getCurrentChampion(supabase)` in
+`src/lib/features/profiles/profiles.ts` (an RLS-scoped `profiles` SELECT for
+`is_current_top_dog = true`, `maybeSingle()`), surfaced by `+layout.server.ts` as `champion`
+(the layout load now returns `{ user, profile, champion }`). It **degrades to `champion: null`
+on an empty throne / error, AFTER the profile-funnel guard**, so a champion failure never
+breaks the `!profile → /sign-up` funnel; `is_current_top_dog` is non-client-writable
+(decision #25) and public, so there is no decision #27 anonymity concern, no service client,
+and no write path. (3) The champion sub-bar (☩ The Anointed Wiener · sigil · `@handle` ·
+reigning), the viewer's own sigil avatar (crown + glow ring when the viewer reigns), centered
+nav links with a layout-neutral active-link underline + `aria-current`, and a richer mobile
+"unrolled scroll". **The brand was kept as the wordmark image** (`snacktum-snacktorum-header.svg`,
+a user override of the mockup's holy-tube-icon+text lockup) — so the wordmark is now used in
+BOTH the auth gates AND the app shell, and `the-holy-tube.svg` remains orphaned (already
+tracked as DW-031). One E2E locator gotcha surfaced (now a [[CLAUDE]] note): the shell renders
+`<img>`s (the brand wordmark, and the champion avatar when non-sigil) that PRECEDE page content
+in the DOM, so `feed-detail.e2e.ts` was changed from `page.locator('img').first()` to
+`.dog-image img` (one mid-flight `@smoke` locator fix). Reviewer APPROVE, **0 fix cycles** (two
+minor no-action observations); `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 843/843,
+`@smoke` 5/5, `@security` 94/94. **No migration, no new dependency, no new architecture-decision
+row** (the decision table stays at **#28**); **M8 rollup stays 7/16** (not a queued task).
+Logged as DW-034.
 
 The carried-over open follow-up is the standing hosted bring-up gate: the **two
 outstanding M7 hosted pushes** (`burger_alarms` + `burger_verdicts`, user's hand — no

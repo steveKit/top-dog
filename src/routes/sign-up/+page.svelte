@@ -610,8 +610,8 @@
 		width: 100%;
 	}
 
-	/* The Summoned-step relic — the Holy Tube mark crowning the first rite.
-	   Sized to 9.5rem so the Holy Tube reads large and central across every rite
+	/* The Summoned-step relic — the Ordo Sancti Tubi seal crowning the first rite.
+	   Sized to 15rem so the seal reads large and central across every rite
 	   stage. The 200x200 viewBox carries transparent padding below the artwork; a
 	   small positive margin-bottom adds to the --space-md flex gap to clearly open
 	   the relic->eyebrow spacing beneath the enlarged mark. */

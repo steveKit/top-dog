@@ -36,17 +36,17 @@ new deps.** **Skin not skeleton:**
 each rebuild preserves its `+page.server.ts` (load + actions) and re-wires all data/feature
 plumbing; no table/RPC/TS-symbol or infra rename.
 
-> **Task set (re-scoped): 4 complete + 12 pending.** Complete: TASK-087 (theme) + TASK-080
-> (shell) + TASK-083 (recovery) + TASK-082 (sign-in). Pending: **TASK-090** foundational
+> **Task set (re-scoped): 5 complete + 11 pending.** Complete: TASK-087 (theme) + TASK-080
+> (shell) + TASK-083 (recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite). Pending: **TASK-090** foundational
 > slug refactor (lands first), then per-page rebuilds — **TASK-091** Procession,
-> **TASK-092** Onboarding rite (absorbs sign-up), **TASK-093** Shrine, **TASK-094** Anoint
+> **TASK-093** Shrine, **TASK-094** Anoint
 > (THE migration), **TASK-094-R** Reliquary (derived module), **TASK-095** Your Litter,
 > **TASK-096** The Relic, **TASK-097** Epistles+Whispers, **TASK-098** Summon, **TASK-099**
 > Tribunal, **TASK-100** Catechism, **TASK-101** The Lost Pilgrim (error/404). The old
 > pending tasks TASK-081/084/085/086/088/089 are **superseded/folded** (TASK-081 copy →
 > carried by the per-page rebuilds; 084→092, 085→093, 086→094, 088→101, 089→094-R).
 
-> **🔨 BUILDING + RE-SCOPED — 2026-06-19. 4/16 complete** (theme + shell + the auth
+> **🔨 BUILDING + RE-SCOPED — 2026-06-19. 5/16 complete** (theme + shell + the auth
 > cluster: sign-in / forgot / reset — auth is functional end-to-end). The remaining work
 > is the slug refactor + the per-page rebuilds from the delivered mockups.
 > TASK-087 (theme, PR #99 `dcce8c3`): the M8 FOUNDATION — a tokenized dark-temple CSS layer

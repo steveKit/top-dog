@@ -448,6 +448,13 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   against the **one shared local Postgres**, so default multi-worker parallelism races
   across spec files. Keep it serialized; if the suite outgrows a single worker,
   isolated per-file DB fixtures are the scaling path (not relaxing `workers`).
+- **E2E `img`/link locators MUST scope to page content, not the shell (M8 PR #119).** The
+  full-bleed app shell renders `<img>` elements (the brand wordmark, and the champion avatar
+  when the champion uses a non-sigil photo) that **PRECEDE page content in the DOM**, so a bare
+  `page.locator('img').first()` now resolves to a SHELL image, not the page's. The App Chrome
+  rebuild changed `feed-detail.e2e.ts` from `page.locator('img').first()` to `.dog-image img`.
+  Future E2E specs on any `/snacktum-snacktorum` page must scope `img`/link locators to the page
+  content container, never the document-wide first match.
 - **Data API (PostgREST) authz is TWO-layer — a passing RLS policy is NOT enough; the
   role also needs the base table `GRANT`.** `auto_expose_new_tables` is pinned `false` in
   `supabase/config.toml`, so **every new `public` table migration MUST declare its own base
@@ -517,6 +524,34 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `profile/[handle]`, `messages`, `invite`, `court`, `help`) are still UNCHANGED — their leaf
   renames come with their own per-page rebuilds. TASK-091 has renamed the FIRST leaf
   `feed` → `procession`.**
+- **The app shell is FULL-BLEED — each child band self-caps; not-yet-rebuilt pages MUST
+  self-cap or they sprawl to the viewport edge (M8 PR #119, the App Chrome rebuild).** The
+  rebuilt `(protected)/snacktum-snacktorum/+layout.svelte` (matched to
+  `design/pages/App Chrome.dc.html`) makes the nav header AND the "The Anointed Wiener"
+  champion sub-bar span the viewport edge-to-edge, content centered at a new token
+  **`--measure-shell: 100rem` (1600px)** in `tokens.css` — the chrome content measure, distinct
+  from **`--measure-content`** which still caps PAGE content. Implemented via `app.css`
+  `.page-container:has(.shell-header) { max-width: none; padding: 0 0 var(--space-3xl) }`,
+  **scoped to the app area** (gate pages are untouched — they key off `:has(> .gate-center)`),
+  with **no `100vw`** (it uses `scrollbar-gutter: stable` on `html`, which also fixes a
+  navigation layout-shift). **‼️ Structural invariant:** because the app container is now
+  full-width with zero horizontal padding, **each child band re-supplies its own horizontal
+  gutter AND caps its own width** — `.shell-inner` / `.shell-champion-inner` → `--measure-shell`;
+  `.shell-content` (page content) → `--measure-content`; mobile `.shell-scroll` →
+  `--measure-shell`. **Any future not-yet-rebuilt `/snacktum-snacktorum` page MUST self-cap its
+  content (or wrap it in `.shell-content`) or it will sprawl to the viewport edge.** Style
+  against the two measures (chrome vs content), never a literal width.
+- **The shell champion sub-bar reads `getCurrentChampion`; the layout load returns
+  `{ user, profile, champion }` (M8 PR #119).** `getCurrentChampion(supabase)` in
+  `src/lib/features/profiles/profiles.ts` is a read-only `profiles` SELECT
+  (`is_current_top_dog = true`, `maybeSingle()`) on the **RLS-scoped** client
+  (`event.locals.supabase`); `(protected)/snacktum-snacktorum/+layout.server.ts` surfaces it as
+  `champion`. It **degrades to `champion: null` on an empty throne / error, AFTER the
+  profile-funnel guard** — a champion failure never breaks the `!profile → /sign-up` funnel.
+  `is_current_top_dog` is non-client-writable (decision #25) and public, so there is **no
+  decision #27 anonymity concern, no service client, and no write path**. **Don't add a second
+  crown query** for the champion sub-bar — read `champion` from the layout load (the same way
+  the nav's crown-gated Tribunal link reads `profile.is_current_top_dog`).
 - **`TopDogPrivilegesNotice` was RETIRED (M8 TASK-080).** The TASK-074 crown-holder
   nudge component, its `topDogPrivilegesNotice.ts` helper, and its tests were deleted
   when the `/snacktum-snacktorum` hub it rendered on was retired — Top Dog powers are
@@ -529,13 +564,16 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   (the `.gate-mark`, 15rem) + `snacktum-snacktorum-header.svg` (the `.gate-header`
   wordmark)** via shared `.gate-mark`/`.gate-header` in `app.css`. So as of TASK-092:
   `snacktum-snacktorum-header.svg` is **WIRED**, and **`the-holy-tube.svg` is now
-  ORPHANED in app code** (only in `design/` mockups). The 5 sigil SVGs are **inlined by
-  `Sigil.svelte`** (the component ports the art verbatim — it does NOT import the asset
-  files), so the `assets/sigils/*.svg` files themselves are effectively unreferenced.
-  **Favicons live in `static/`** (`favicon.svg` + `favicon-32/64.png` + `apple-touch-icon.png`),
-  wired via `<link>`s in `src/routes/+layout.svelte`. DW-031 tracks the remaining orphans
-  (brand-logo SVGs, `the-holy-tube.svg`, the now-inlined sigil files) — wire or prune,
-  don't assume they're dead.
+  ORPHANED in app code** (only in `design/` mockups). **As of the App Chrome rebuild (PR #119)
+  the wordmark `snacktum-snacktorum-header.svg` is ALSO the app-shell brand** — the user kept
+  the wordmark image rather than the mockup's holy-tube-icon+text lockup, so the wordmark is now
+  used in BOTH the auth gates AND the app shell; `the-holy-tube.svg` stays orphaned. The 5 sigil
+  SVGs are **inlined by `Sigil.svelte`** (the component ports the art verbatim — it does NOT
+  import the asset files), so the `assets/sigils/*.svg` files themselves are effectively
+  unreferenced. **Favicons live in `static/`** (`favicon.svg` + `favicon-32/64.png` +
+  `apple-touch-icon.png`), wired via `<link>`s in `src/routes/+layout.svelte`. DW-031 tracks the
+  remaining orphans (brand-logo SVGs, `the-holy-tube.svg`, the now-inlined sigil files) — wire or
+  prune, don't assume they're dead.
 - **Onboarding-rite control flow: `createProfile` RETURNS, it does NOT redirect; advance
   the client WITHOUT re-running `load` (M8 TASK-092, `/sign-up`).** The `/sign-up` rite
   (Summoned → Inscribe → Choose Thy Sigil → Renounce → Received) forges the profile at the

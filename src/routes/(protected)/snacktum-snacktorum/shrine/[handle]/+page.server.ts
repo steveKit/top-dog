@@ -18,6 +18,7 @@ import { parseSigilId } from '$lib/features/profiles/sigils';
 import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
 import { summarizeLiarBrand, isHamburgerHeretic } from '$lib/features/reports/verdict';
 import { loadShrineStats } from '$lib/features/profiles/stats';
+import { computeBadges, type BadgeState } from '$lib/features/badges/badges';
 import { getServiceClient } from '$lib/server/supabase';
 
 // Profile view (TASK-011) + mustard spray/render (TASK-041) + message wall
@@ -180,6 +181,60 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 	// RLS-scoped client.
 	const stats = await loadShrineStats(supabase, getServiceClient(), profile.id, profile.id);
 
+	// The Reliquary (TASK-094-R) — a purely DERIVED, read-only honors shelf. NO new
+	// schema / migration / RPC / write path: computeBadges is a pure function over
+	// facts the load already holds. The shared aggregates come from `stats`
+	// (franksOffered → first_frank, daysAsTopDog → crowned, highestBlessing →
+	// centurion, disciplesSummoned → summoner, anointingsReceived → drenched) — we do
+	// NOT re-query them; the heretic / liar inputs reuse the existing `isHeretic` +
+	// liar-brand reads above (the `liar` relic is EVER-branded: any brand row, even a
+	// faded one, so it keys on the timestamps being non-empty, not liarBrand.active).
+	//
+	// ‼️ Decision #27: NO badge keys on the reporter side. `inquisitor` keys on
+	// `decided_by` = this member (the adjudicator's OWN public action), NOT on reports
+	// made; `heretic` on the member's OWN dogs' verdicts; `liar` on the member's OWN
+	// brand. There is deliberately no "heresies you've called" badge.
+	//
+	// Two NEW read-only RLS-scoped reads, each degrading its own badge to LOCKED on
+	// failure (never the page): (a) the inquisitor head-count, and (b) joined_at for
+	// `elder` (reused from the already-loaded profile — no extra read needed). NO
+	// service client is added: the only cross-member-RLS-blocked input (summoner /
+	// redeemed invites) is ALREADY supplied by loadShrineStats above.
+
+	// (a) Inquisitor — verdicts this member rendered as The Anointed Wiener
+	// (burger_verdicts.decided_by = profile.id). Its SELECT policy is `using(true)`,
+	// so the RLS-scoped client reads it cross-member; a HEAD-count ships no rows.
+	let verdictsRendered = 0;
+	{
+		const { count, error: verdictsError } = await supabase
+			.from('burger_verdicts')
+			.select('*', { count: 'exact', head: true })
+			.eq('decided_by', profile.id);
+		if (verdictsError) {
+			console.error('[profiles] failed to load inquisitor count', {
+				profileId: profile.id,
+				error: verdictsError.message
+			});
+		} else {
+			verdictsRendered = count ?? 0;
+		}
+	}
+
+	const badges: BadgeState[] = computeBadges({
+		franksOffered: stats.franksOffered,
+		daysAsTopDog: profile.days_as_top_dog,
+		highestBlessing: stats.highestBlessing,
+		disciplesSummoned: stats.disciplesSummoned,
+		anointingsReceived: stats.anointingsReceived,
+		verdictsRendered,
+		isHeretic,
+		// EVER-branded: any hamburger_liars row, even one whose decaying banner has
+		// faded. `liarResult` may have failed (degraded to no banner above) — treat a
+		// failed read as "not branded" so a read error locks the relic, never fakes it.
+		hasBeenLiarBranded: liarResult.ok && liarResult.data.length > 0,
+		joinedAt: profile.joined_at
+	});
+
 	return {
 		profile,
 		avatarUrl,
@@ -192,7 +247,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		isWallOwner,
 		liarBrand,
 		isHeretic,
-		stats
+		stats,
+		badges
 	};
 };
 

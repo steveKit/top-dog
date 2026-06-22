@@ -4,6 +4,7 @@
 	import { resolve } from '$app/paths';
 	import TopDogBadge from '$lib/components/TopDogBadge.svelte';
 	import ProfilePoliceBanner from '$lib/components/ProfilePoliceBanner.svelte';
+	import Reliquary from '$lib/components/Reliquary.svelte';
 	import Sigil from '$lib/components/Sigil.svelte';
 	import { mustardOpacity } from '$lib/features/mustard/decay';
 	import { coalesceAnointNotices } from '$lib/features/mustard/anointNotice';
@@ -42,6 +43,9 @@
 	const isHeretic = $derived(data.isHeretic);
 	// Derived stat ledger (TASK-093) — read-only aggregates assembled in the load.
 	const stats = $derived(data.stats);
+	// The Reliquary (TASK-094-R) — purely DERIVED honor/shame relics computed in the
+	// load (computeBadges). Presentational only here: the shelf just skins the state.
+	const badges = $derived(data.badges);
 
 	// Display-name-forward: the human name is the header; @handle is the URL-safe
 	// id beneath. Fall back to @handle when display name is blank.
@@ -328,20 +332,17 @@
 		{/if}
 	</dl>
 
-	<!-- ===== RELIQUARY SHELF SLOT ===== -->
-	<!-- TASK-094-R owns the derived badge module (src/lib/features/badges/) + the
-	     Reliquary.svelte shelf component. This lays out the SECTION/SHELF SLOT per the
-	     design and leaves a clearly-marked placeholder until that lands (soft-coupled:
-	     neither task hard-blocks the other). Do NOT build the badge module here. -->
+	<!-- ===== RELIQUARY SHELF ===== -->
+	<!-- The Reliquary (TASK-094-R): a purely DERIVED honors shelf. `badges` is computed
+	     server-side by the pure computeBadges module from facts the load already holds
+	     (the stat ledger + the liar/heretic reads + the inquisitor count) — NO new
+	     schema/RPC/write path, un-forgeable. The component is presentational only. -->
 	<section class="reliquary" aria-label="The Reliquary">
 		<header class="reliquary-head">
 			<span class="reliquary-eyebrow">Honors of the Order</span>
 			<h2 class="section-heading">The Reliquary</h2>
 		</header>
-		<!-- TASK-094-R: replace this placeholder with <Reliquary {badges} />. -->
-		<div class="reliquary-placeholder">
-			<p>The Reliquary shelf is consecrated soon — its relics shall be revealed.</p>
-		</div>
+		<Reliquary {badges} />
 	</section>
 
 	<div class="ornament-divider" aria-hidden="true">✦</div>
@@ -763,21 +764,6 @@
 		letter-spacing: var(--tracking-eyebrow);
 		text-transform: uppercase;
 		color: var(--accent);
-	}
-
-	.reliquary-placeholder {
-		width: 100%;
-		padding: var(--space-2xl) var(--space-lg);
-		border: 1px dashed var(--accent-border);
-		border-radius: var(--radius-card);
-		background: var(--accent-fill);
-		text-align: center;
-	}
-
-	.reliquary-placeholder p {
-		margin: 0;
-		font-style: italic;
-		color: var(--color-text-muted);
 	}
 
 	/* Shared section heading (Cinzel, gold, spaced caps) — reused by the Reliquary

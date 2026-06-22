@@ -122,11 +122,12 @@ top-dog/
 │   │   │   ├── auth/  invites/  profiles/  hotdogs/   # profiles/ adds sigils.ts (M8) — 5 built-in sigil ids stored as `sigil:<id>` in avatar_path
 │   │   │   ├── voting/        # pure ranking/tie-break logic + vote RPC wrappers + feed/leaderboard queries
 │   │   │   ├── reactions/  mustard/  walls/  dms/
+│   │   │   ├── badges/        # PURE derived-honors module: computeBadges(BadgeInputs) — the Reliquary, no schema/write (M8 TASK-094-R)
 │   │   │   ├── emoji/         # render-time filter + sprinkle (TDD)
 │   │   │   └── forms/         # themed inline validation: validationMessage.ts (pure) + createFormValidation() rune (M8)
 │   │   ├── motion/            # reducedMotion.ts — errorSlideFade transition + prefers-reduced-motion helpers (M8)
 │   │   ├── styles/            # tokens.css — CSS-custom-property theme layer (M8)
-│   │   └── components/        # shared Svelte components (incl. Sigil.svelte — inline SVG sigil avatar, no {@html}, M8 TASK-092)
+│   │   └── components/        # shared Svelte components (incl. Sigil.svelte — inline SVG sigil avatar, no {@html}, M8 TASK-092; Reliquary.svelte — presentational badge shelf, M8 TASK-094-R)
 │   └── routes/                # SvelteKit routes (+page, +layout, +server)
 │       └── (protected)/snacktum-snacktorum/+layout.svelte  # persistent app shell + nav (M8 TASK-080; prefix renamed TASK-090)
 ├── static/
@@ -445,6 +446,25 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `src/lib/features/profiles/stats.ts` runs only that one count on the service client, the
   other seven stay RLS-scoped.) Applies to any future cross-member count over an
   owner-scoped-RLS table.
+- **Derived-honors pattern (the Reliquary) — compute badges PURELY over already-loaded facts;
+  reuse the Shrine stat ledger, do NOT re-query.** A badge/honors surface is a render-time
+  derivation, not new state: `computeBadges(BadgeInputs)` in
+  `src/lib/features/badges/badges.ts` is a **pure** value-in/value-out module (no
+  SvelteKit/Supabase imports, co-located unit tests — same self-contained shape as
+  `voting/ranking.ts` / `mustard/decay.ts` / `reports/verdict.ts`), and `Reliquary.svelte` is
+  presentational. **No migration / schema / RPC / dependency / write path** — every honor lights
+  up when an EXISTING record crosses a threshold, so the badges are un-forgeable by construction
+  (nothing on the shelf is client-settable). **The route load assembles `BadgeInputs` from facts
+  it ALREADY loaded** — reuse the `loadShrineStats` aggregates (TASK-093), including its
+  service-client redeemed-invites count, so a derived shelf adds **no second service-client read**;
+  add at most a tiny RLS-client head-count for anything not already in the ledger (the new
+  `inquisitor` count). **Decision #27 reporter anonymity is structural here: NO badge keys on the
+  reporter SIDE of a report** — `heretic`/`liar` key on the member's OWN dogs' verdicts / OWN
+  brand, `inquisitor` on the adjudicator's OWN public action (`decided_by` = the member); there is
+  deliberately no "heresies you've called" badge. Tiered relics carry their own ascending
+  threshold list + a `nextThreshold`; the founding-cohort cutoff is a single named constant
+  (`ELDER_CUTOFF_ISO`), not a scattered magic date. Composes decisions #12/#13/#15/#27 — **no new
+  decision row**. Reuse this shape for any future derived-status/honors surface.
 - **RLS policies use the `(select auth.uid())` subselect idiom**, not bare
   `auth.uid()`, so the planner caches it as an initplan (Supabase's documented RLS
   perf pattern). Follow this idiom in new policies.

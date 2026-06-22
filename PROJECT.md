@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession + TASK-093 The Shrine + TASK-094 the "Anoint" mustard re-theme complete, 9/16 — auth is functional end-to-end, two rebuild-from-design in-app pages have landed (the feed is now at `/snacktum-snacktorum/procession`; the profile is now The Shrine at `/snacktum-snacktorum/shrine/[handle]` with a derived stat ledger), the in-app route prefix is `/snacktum-snacktorum`, and the mustard mechanic is re-skinned as "Anoint" (6h-decay splat + a persisting wall-notice + the one M8 migration retiring the prune → `mustard_sprays` is now append-only, **architecture decision #29**); plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 9/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession + TASK-093 The Shrine + TASK-094 the "Anoint" mustard re-theme complete, 9/16 — auth is functional end-to-end, two rebuild-from-design in-app pages have landed (the feed is now at `/snacktum-snacktorum/procession`; the profile is now The Shrine at `/snacktum-snacktorum/shrine/[handle]` with a derived stat ledger), the in-app route prefix is `/snacktum-snacktorum`, and the mustard mechanic is re-skinned as "Anoint" (6h-decay splat + a persisting wall-notice + the one M8 migration retiring the prune → `mustard_sprays` is now append-only, **architecture decision #29**); the **Shrine cluster is closed** — TASK-094-R The Reliquary (a purely DERIVED badge/honors module + shelf, wired into the Shrine, **not counted in the `/16`**, so the headline stays 9/16) fills the badge placeholder TASK-093 left; plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 9/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups)
 **Last Updated:** 2026-06-22
 
 > **‼️ M8 RE-SCOPE (2026-06-19, user-directed) — rebuild-from-design + re-slug.** The
@@ -235,6 +235,38 @@ hand, async, no auto-pause risk. Discovered: the historical base migration
 only for a migration-comment-accuracy pass; historical migrations are normally not
 rewritten). **Next: another per-page rebuild** (TASK-094-R Reliquary / Litter / Epistles /
 Summon / Tribunal / Catechism / Lost Pilgrim).
+
+**The Shrine cluster is now CLOSED: TASK-094-R — The Reliquary (PR #126 `870e401`, merged
+2026-06-22), a purely DERIVED badge/honors module + shelf.** It fills the badge placeholder
+TASK-093 left on the Shrine. New **pure** module `src/lib/features/badges/badges.ts`
+(`computeBadges(BadgeInputs)`) — self-contained, no SvelteKit/Supabase imports, co-located
+unit tests (same shape as `voting/ranking.ts`, `mustard/decay.ts`, `reports/verdict.ts`) —
+plus a presentational `src/lib/components/Reliquary.svelte` shelf. Every badge is computed at
+render time from facts the app already keeps: **no migration / schema / RPC / dependency / write
+path / service-client read**, so the honors are **un-forgeable by construction** (nothing on the
+shelf is client-settable). The v1 set (neutral code ids; cult labels in the component): a flat
+`first_frank` (≥ 1 hot dog); four tiered relics — `crowned` 1/7/30 days as The Anointed Wiener,
+`summoner` 1/5/25 redeemed invites, `drenched` 1/10/50 anointings received, `inquisitor` 1/5/25
+verdicts rendered (each carries the current tier + `nextThreshold`); a flat `centurion` (a frank
+that ever bore ≥ 100 votes, max `peak_votes`); an `elder` keyed on the founding-cohort cutoff
+`ELDER_CUTOFF_ISO = 2026-09-01` (a single named constant); and two shame MARKS (`heretic`, `liar`
+= display "False Witness", earned on EVER-branded) in a distinct disgrace register, excluded from
+the earned-honors tally. The Shrine load assembles `BadgeInputs` **once from already-loaded facts**
+— REUSING the `loadShrineStats` aggregates (TASK-093), including the service-client redeemed-invites
+count for `summoner` (so **no second service-client read**) + the existing `isHeretic`/liar-brand
+reads — adding exactly **one new RLS-client `inquisitor` head-count** (`burger_verdicts` where
+`decided_by` = the member). **Decision #27 reporter anonymity is preserved BY CONSTRUCTION:** no
+input keys on the reporter side of a report — `heretic`/`liar`/`inquisitor` key on the member's
+OWN consequences/actions, and there is deliberately no "heresies you've called" badge. The feature
+**composes decisions #12/#13/#15/#27 — no new architecture-decision row** (table stays #29).
+Reviewer APPROVE, **0 fix cycles** (two minor no-action observations); `pnpm check` 0/0, `pnpm
+lint` clean, `pnpm test` 938/938, `@smoke` 5/5, `@security` 93/93. As a **derived sub-module it is
+not counted in the milestone `/16`** (M8 stays 9/16). Discovered: two honors are out of v1 because
+they would need NEW persisted tracking the app does not keep — a **total-votes-ever** honor (the
+`votes` table keeps only the current vote per voter, `UNIQUE(voter_id)`) and **reign-streak**
+honors (`top_dog_days` records discrete days, not consecutive-run metadata) — logged DW-037 (the
+v1 `crowned` relic tiers on cumulative `days_as_top_dog` instead). **Next: the remaining per-page
+rebuilds** (Litter / Epistles / Summon / Tribunal / Catechism / Lost Pilgrim).
 
 **All design questions are now RESOLVED:** the ritual sign-up rite, the
 5-sigil avatar mechanism, the dark-temple theme, the self-hosted Cinzel/Cormorant fonts,

@@ -1,15 +1,17 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **7/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + the first rebuild-from-design page done: TASK-087 (theme) + TASK-080
+> **8/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + two rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
-> `dffaee5`, 2026-06-20)**. The slug refactor moved the in-app route prefix `/app` →
+> `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)**. The
+> slug refactor moved the in-app route prefix `/app` →
 > `/snacktum-snacktorum` (directory + auth-guard prefix; leaf names unchanged, deferred to
-> the per-page rebuilds); TASK-091 rebuilt the feed as The Procession and renamed the first
-> leaf `feed` → `procession` (URL now `/snacktum-snacktorum/procession`); **TASK-093 (The
-> Shrine) is next.** The three complete gate
+> the per-page rebuilds); TASK-091 rebuilt the feed as The Procession (leaf `feed` →
+> `procession`) and TASK-093 rebuilt the profile as The Shrine (leaf `profile` → `shrine`,
+> URL now `/snacktum-snacktorum/shrine/[handle]`, + a derived stat ledger); **the rest of the
+> Shrine cluster — TASK-094 (Anoint) and TASK-094-R (Reliquary) — is next.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -273,92 +275,6 @@ only the in-app `app` prefix moves.
 > prefix is `/snacktum-snacktorum` and the first leaf is renamed (`feed` → `procession`); the
 > remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
 > **TASK-093 (The Shrine) is next.**
-
-### TASK-093: The Shrine (profile) — rebuild from design + display-name + stat ledger + Reliquary slot [`pending`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/The Shrine.dc.html`; TASK-087
-(theme). **Composes with TASK-094 (Anoint splat on this page) and TASK-094-R (the
-Reliquary shelf renders here).** **`@smoke`-critical** (the slice walks profile → wall).
-Touches `src/routes/(protected)/snacktum-snacktorum/profile/[handle]/+page.svelte`
-(rebuild) + its `+page.server.ts` (preserve load/actions; **add read-only aggregate
-queries** for the derived stat ledger), and renames the leaf `profile` → `shrine`.
-
-**Scope:** rebuild the profile `+page.svelte` from the mockup as **The Shrine** — a
-display-name-forward header, the sigil ring, a proper wall composer, the derived stat
-ledger, the Anoint splat surface, the FALSE WITNESS / HERETIC banners, and the Reliquary
-shelf slot — preserving every existing feature wiring and adding only read-only
-aggregate reads.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `The Shrine.dc.html`:** the temple profile layout —
-      sigil avatar (designed placeholder when `avatar_path` is null), a
-      **display-name-forward** header with the `@handle` as the URL-safe id beneath, the
-      stat ledger plaques, the wall, and the shelf slot. Port the DSL → Svelte 5 with
-      `var(--…)` tokens.
-- [ ] **`profile/[handle]/+page.server.ts` PRESERVED and re-wired** — the load
-      (profile-by-handle, avatar public URL, `canSpray` from the viewer's crown, sprays
-      for render-time decay, wall messages, `liarBrand` via `summarizeLiarBrand`,
-      `isHeretic` via `isHamburgerHeretic`) and **all three actions** (`spray`, `post`,
-      `deleteMessage`) are unchanged; the new markup wires every one. **Add only
-      read-only aggregate queries** for the stat ledger (below). Do NOT delete/gut the
-      load/actions.
-- [ ] **Display-name surfacing:** `display_name` is the human name (header, wall
-      authorship), `@handle` stays the URL-safe identifier (route param, canonical id);
-      fall back to `@handle` if display name is blank. **No schema change** (both columns
-      already load).
-- [ ] **Derived stat ledger** — every value DERIVED from existing data via **read-only
-      aggregate queries on the RLS-scoped load** (no new schema, no write path): Days as
-      The Anointed Wiener (`days_as_top_dog`), Times Crowned (`top_dog_days` count),
-      Franks Offered (`hot_dogs` count), Total Devotion (`sum(vote_count)`), Highest
-      Blessing (`max(peak_votes)`), Disciples Summoned (redeemed `invites` where
-      `inviter_id` = member AND `consumed_at is not null`), Anointings Received
-      (`mustard_sprays` where `target_profile_id` = member), Reactions Received
-      (`hotdog_reactions` via `hot_dogs.owner_id`). Reuse the HERETIC / FALSE WITNESS
-      brands from the existing helpers — do not recompute. **Coordinate with TASK-094-R**:
-      several of these aggregates are the same the badge module needs — assemble once,
-      feed both.
-- [ ] **‼️ Reports are ANONYMOUS — never surface the reporter side** (decision #27 /
-      TASK-071). No "heresies you've called", no reporter-made count. Only consequences
-      _borne_ (HERETIC, FALSE WITNESS, anointings received) are public. Hard constraint.
-- [ ] **Wall composer** rebuilt as a real compose area (not the cramped inline box) with
-      the **form-validation CANON** applied (the body field), `use:enhance` loading
-      preserved, `renderWallBody` (emoji filter at render, decision #16) intact, post +
-      delete actions wired, `invalidateAll` after mutation.
-- [ ] **Reliquary shelf slot** laid out per the design (prompt #12) — this task lays out
-      the **section/shelf slot**; **TASK-094-R owns the badge module + earned/locked
-      shelf component**. If TASK-094-R hasn't landed, leave a clearly-marked placeholder
-      and wire it when it's in (soft-coupled, neither hard-blocks the other).
-- [ ] **Anoint splat surface** — the mustard overlay area is laid out for the **splat**
-      treatment (TASK-094 owns the splat visual + decay + wall-notice). The `canSpray`
-      gate (Top-Dog-only, decision #25) stays driven by the server-derived crown flag.
-- [ ] **All existing profile features keep working + correctly wired:** mustard/Anoint
-      overlay (`mustardOpacity`), wall (`renderWallBody`, post/delete), FALSE WITNESS /
-      HERETIC banners (`ProfilePoliceBanner`), `TopDogBadge` (label "The Anointed
-      Wiener"), `canSpray`.
-- [ ] **Leaf-slug** `profile` → `shrine` (folder move → `shrine/[handle]`, param
-      preserved); update the shell/links and the `@smoke` profile-URL assertion
-      (`**/app/profile/${handle}` → `**/snacktum-snacktorum/shrine/${handle}`) in
-      lockstep.
-- [ ] **Security/wiring unchanged:** load stays RLS-scoped; cross-member private images
-      (if any here) keep the decision #27 server-side signing; `display_name` + wall
-      bodies render auto-escaped (no `{@html}`) — XSS-safe.
-- [ ] **Tests:** `profile-load.test.ts`, `wall-action.test.ts`, `spray-action.test.ts`
-      stay green (update for intentional copy/markup); add coverage for any newly-loaded
-      ledger field. **`@smoke` stays green** (profile → wall in the slice; update its
-      copy/path assertions in lockstep).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      green**, `@security` green. **No migration.**
-
-**Notes (for the implementer):** this page composes the MOST features (Anoint, wall +
-emoji, FALSE WITNESS / HERETIC, badge, canSpray, stat ledger) — preserve every wiring;
-re-skin + re-layout, do not rewrite the data flow. The stat ledger + Reliquary are pure
-reads of existing data. **The hard constraint: reports are anonymous — never a
-reporter-side count.** Sequence after TASK-094 / TASK-094-R, or coordinate file scope
-(all three touch this page + its load). No new dependency; no schema; no new decision row.
-
----
 
 ### TASK-094: "Anoint" — mustard re-theme (splat + 6h decay + persisting wall notice + prune retirement) [`pending`] [`P2`] [`M`]
 
@@ -833,6 +749,54 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-093: The Shrine (profile) — rebuild from design + display-name + stat ledger + Reliquary slot [`complete`] [`P2`] [`L`]
+
+**Owner:** implementer — PR #122 (squash `851fa0e`), merged 2026-06-22. Reviewer APPROVE (after 1 REQUEST_CHANGES round). 2 fix cycles. All acceptance criteria verified met (reviewer AC-by-AC confirmation + green gates). Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 861/861, `@smoke` 5/5, `@security` 94/94.
+
+The second rebuild-from-design in-app page. The profile `+page.svelte` was **rebuilt from
+`design/pages/The Shrine.dc.html`** as The Shrine — a skin-not-skeleton pass: the
+`+page.server.ts` `load` **and all 3 actions (`spray` / `post` / `deleteMessage`) were
+PRESERVED** and re-wired into the new markup. The leaf-slug was renamed **`profile` →
+`shrine`** — the profile page is now at **`/snacktum-snacktorum/shrine/[handle]`** (param
+preserved) — and only the `profile` leaf moved (`dogs`, `messages`, `invite`, `court`,
+`help` remain pre-rename, riding their own rebuilds). Champion title copy is **"The Anointed
+Wiener"** (copy only; `is_current_top_dog` and every other code identifier unchanged).
+
+The page adds a **derived stat ledger** — new pure-ish read-only module
+`src/lib/features/profiles/stats.ts` (`loadShrineStats(supabase, serviceClient, profileId,
+inviterUserId)` → `ShrineStats`; `EMPTY_SHRINE_STATS` degradation baseline) that computes
+aggregates over existing tables with **no schema and no write path**. Seven of the eight
+counts stay on the RLS-scoped client; the eighth — "Disciples Summoned" (redeemed invites) —
+runs on the **service client** as a `head:true` count (`{ count: 'exact', head: true }`)
+**after** the `safeGetSession()` gate, because `invites` has only an owner-scoped SELECT
+policy (`invites_select_own`) so an RLS-scoped count returns 0 on any cross-member view. This
+generalizes the decision #27 service-client-after-gate pattern to a cross-member
+**aggregate** — a head count ships no rows, so there is no exposure widening, and there is no
+new architecture-decision row.
+
+**Two fix cycles, both root-caused:** (1) a **tester-caught P0** — the wall composer's
+`<textarea name="word upon the shrine">` didn't match the `post` action's
+`formData.get('body')`, so every wall post silently submitted an empty body; fixed by setting
+`name="body"`. (2) **reviewer two majors** — (a) the "Disciples Summoned" stat read 0 on
+every cross-member view because the count ran on the RLS-scoped client against owner-scoped
+`invites` (fixed to the service-client-after-gate head count above); (b) the wall textarea's
+themed validation never fired because the `<label>` was a **sibling** of the textarea rather
+than wrapping it, so `fieldLabel()`'s `closest('label')` couldn't resolve the visible label
+and the themed message never showed — fixed by **nesting the textarea inside the `<label>`**
+(the gate-form pattern). The form-validation module
+(`$lib/features/forms/formValidation.svelte.ts`) was widened to validate `<textarea>` (was
+input-only; backward compatible) and `validationMessage.ts` gained the **"Word upon the
+Shrine"** themed-label special-case.
+
+**Decision #27 reporter/anonymity posture is preserved structurally:** the only cross-member
+read widened to the service client is the head count of the viewer's-OWN-derived stat surface
+(no reporter-side or row-level exposure). No migration, no new dependency, **no new decision
+row** (table stays #28). Did NOT close the milestone (M8 is 8/16). Discovered: there is no
+jsdom/client vitest project, so DOM-touching `.svelte.ts` validation logic has no unit
+coverage — the exact gap that let fix-cycle Issue-2 pass green unit tests (logged DW-035).
+
+---
 
 ### TASK-091: The Procession (feed) — rebuild from design + leaf-slug `feed` → `procession` [`complete`] [`P1`] [`L`]
 

@@ -218,6 +218,26 @@ top-dog/
   entrance/exit is `errorSlideFade` from `$lib/motion/reducedMotion.ts`, which animates
   height (the layout shift) and is SSR-safe / `prefers-reduced-motion`-aware via
   `prefersReducedMotion()` / `motionDuration()`.
+- **‼️ The validated field MUST be NESTED INSIDE its `<label>` (the gate-form pattern) — a
+  sibling `<label>` silently breaks the themed message.** `validationMessage.ts`'s themed
+  copy keys on the visible **label text**, resolved at submit time by `fieldLabel()` via
+  `closest('label')` on the invalid field (falling back to `aria-label`, then the field
+  `name`). If the `<label>` is a **sibling** of the input/textarea (not a wrapper) **and**
+  there is no `aria-label`, `closest('label')` finds nothing and `fieldLabel()` falls back
+  to the raw field **`name`** — so the special-cased themed message never fires and you get a
+  generic message off the `name` instead (e.g. "Speak thy body." rather than the "Word upon
+  the Shrine" copy). Wrap the field in its `<label>` (or give it an `aria-label`). **Note the
+  two-key split:** the `validation.errors` map and the a11y attrs (`aria-invalid` /
+  `aria-describedby`) key on the field **`name`**, while the themed-message special-case keys
+  on the visible **label text** — keep both correct. `formValidation.svelte.ts` validates
+  `<textarea>` as well as `<input>` (widened in TASK-093). (Caught as a major in the TASK-093
+  review on the Shrine wall composer — the textarea's `<label>` was a sibling, so the themed
+  validation never showed.) **Related field-name footgun (same page, separate tester-caught
+  P0):** a form field's `name` MUST match the action's `formData.get('<name>')` key — the
+  Shrine wall composer's textarea is `name="body"` to match the `post` action's
+  `formData.get('body')` (it had shipped as `name="word upon the shrine"`, so every post
+  submitted an empty body silently). Pin the field `name` to the action's expected key, not
+  the visible label.
 
 ### State Management
 
@@ -391,6 +411,21 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   the storage-baseline migration comment claiming "signed URL bypasses RLS" was
   wrong about the creation side.) Applies to any future cross-member view of
   private-bucket content.
+- **Cross-member aggregate / `count` queries over an owner-scoped-RLS table must use the
+  service-client-after-gate head count, NOT the RLS-scoped client — this generalizes the
+  decision #27 service-client pattern from rows/signed-URLs to COUNTS.** A `count` query
+  on a table whose only SELECT policy is owner-scoped (e.g. `invites` /
+  `invites_select_own` = `(select auth.uid()) = inviter_id`) silently returns **`0`** for
+  any **non-owner viewer** — there is no error, the count just under-reports to zero. So a
+  cross-member derived stat that counts another member's owner-scoped rows MUST be minted on
+  the service client (`$lib/server` `getServiceClient()`) **AFTER** the `safeGetSession()`
+  gate, as a **head count** (`{ count: 'exact', head: true }`) so it ships **no rows** (only
+  the integer) → no exposure widening, decision-#27-safe. (Caught as a major in the TASK-093
+  review: The Shrine's "Disciples Summoned" — redeemed-invite count — read 0 on every
+  cross-member view because it ran on the RLS-scoped client; `loadShrineStats` in
+  `src/lib/features/profiles/stats.ts` runs only that one count on the service client, the
+  other seven stay RLS-scoped.) Applies to any future cross-member count over an
+  owner-scoped-RLS table.
 - **RLS policies use the `(select auth.uid())` subselect idiom**, not bare
   `auth.uid()`, so the planner caches it as an initplan (Supabase's documented RLS
   perf pattern). Follow this idiom in new policies.
@@ -509,7 +544,7 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   (`http://localhost:54324`) → enter it at `/reset-password` with a new password.
 - **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080; in-app
   prefix renamed to `/snacktum-snacktorum` by TASK-090; feed leaf renamed to `procession` by
-  TASK-091).**
+  TASK-091; profile leaf renamed to `shrine` by TASK-093).**
   `(protected)/snacktum-snacktorum/+layout.svelte` renders the persistent header/nav across
   every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/procession`;
   feed / Your Litter / Epistles / The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on
@@ -521,9 +556,10 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `.app-nav`** anymore (the old hub nav + its CSS were removed). New `/snacktum-snacktorum`
   pages inherit the shell automatically — do not re-add a page-level nav. **Note: TASK-090
   renamed only the `/app` PREFIX → `/snacktum-snacktorum`; the remaining leaf names (`dogs`,
-  `profile/[handle]`, `messages`, `invite`, `court`, `help`) are still UNCHANGED — their leaf
-  renames come with their own per-page rebuilds. TASK-091 has renamed the FIRST leaf
-  `feed` → `procession`.**
+  `messages`, `invite`, `court`, `help`) are still UNCHANGED — their leaf
+  renames come with their own per-page rebuilds. TASK-091 renamed the leaf
+  `feed` → `procession`; TASK-093 renamed the leaf `profile/[handle]` → `shrine/[handle]`
+  (the profile page is now `/snacktum-snacktorum/shrine/[handle]`).**
 - **The app shell is FULL-BLEED — each child band self-caps; not-yet-rebuilt pages MUST
   self-cap or they sprawl to the viewport edge (M8 PR #119, the App Chrome rebuild).** The
   rebuilt `(protected)/snacktum-snacktorum/+layout.svelte` (matched to

@@ -1,8 +1,8 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **10/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + four rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **11/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + five rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -16,9 +16,10 @@
 > `mustard_sprays` now append-only); **TASK-094-R (Reliquary derived badge module + shelf —
 > PR #126, `870e401`) also complete, closing the Shrine cluster.** (094-R is a derived
 > sub-module, not counted in the `/16`.) **TASK-095 (Your Litter — PR #128, `4cab7df`) rebuilt
-> the own-dogs gallery + moved the whole `dogs` folder → `litter` (the `[id]` detail rides
-> along, rename-only, for TASK-096).** **Next: TASK-096 The Relic → TASK-097 Epistles →
-> TASK-098 Summon → TASK-099 Tribunal → TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
+> the own-dogs gallery + moved the whole `dogs` folder → `litter`.** **TASK-096 (The Relic —
+> PR #130, `d07315f`) rebuilt the dog-detail page in place at `litter/[id]`, preserving the
+> decision-#27 signed-URL load byte-identical.** **Next: TASK-097 Epistles → TASK-098 Summon →
+> TASK-099 Tribunal → TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -283,54 +284,6 @@ only the in-app `app` prefix moves.
 > remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
 > **TASK-093 (The Shrine) is next.**
 
-### TASK-096: The Relic (dog detail) — rebuild from design + leaf `dogs/[id]` → `litter/[id]` [`pending`] [`P2`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/The Relic.dc.html`; TASK-087
-(theme); TASK-095 already `git mv`'d the leaf to `litter/[id]` (rename-only), so this task
-only rebuilds the markup. Touches
-`src/routes/(protected)/snacktum-snacktorum/litter/[id]/+page.svelte` (rebuild) + preserves
-its `+page.server.ts`; the leaf is already under `litter/[id]`.
-
-**Scope:** rebuild the dog-detail `+page.svelte` from the mockup as **The Relic**,
-preserve the detail load + any actions, re-wire the cross-member signed-URL + stats +
-reactions + alarm/verdict plumbing, rename the leaf.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `The Relic.dc.html`** — the relic detail layout (the
-      enshrined frank, its stats, reactions, owner, alarm/verdict state). Port DSL →
-      Svelte 5 / tokens; reuse the flair components.
-- [ ] **`dogs/[id]/+page.server.ts` PRESERVED and re-wired** — the detail load (per-dog
-      stats via `detail.ts`, the **decision #27 server-side service-client signed URL** for
-      this cross-member private-bucket image, reactions via `summarizeReactions`,
-      alarm/verdict state) and any actions are unchanged; the new markup wires them. Do
-      NOT delete/gut.
-- [ ] **‼️ Decision #27 preserved:** because The Relic shows ANOTHER member's dog from the
-      private `hotdogs` bucket, the signed URL is minted **server-side with the service
-      client AFTER `safeGetSession()`**, signing only the `image_path` the RLS query
-      returned. Keep the dog/owner/reaction QUERIES on the RLS client. No exposure
-      widening.
-- [ ] **Reactions + HAMBURGER ALARM / CONFIRMED HAMBURGER** render from the existing data;
-      reuse the components per the mock.
-- [ ] **Leaf-slug** `dogs/[id]` → `litter/[id]` (param preserved); update every link to a
-      dog detail (from the gallery + feed cards) in lockstep.
-- [ ] **Security/wiring unchanged** beyond the existing decision #27 signing; no `{@html}`
-      (caption auto-escaped).
-- [ ] **Responsive + accessible:** semantic detail, image `alt`, visible focus.
-- [ ] **Tests:** `dogs/[id]/detail-load.test.ts` stays green (update for copy/markup).
-      `@smoke` / `@security` green (the feed-detail E2E exercises this surface — update
-      paths/copy if it asserts them).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, `@security` green. **No migration.**
-
-**Notes (for the implementer):** The Relic is the canonical decision #27 surface
-(cross-member private image) — the server-side service-client signing is load-bearing; a
-P0 was caught here historically (TASK-033). Preserve it exactly. No new dependency; no
-schema; no new decision row.
-
----
-
 ### TASK-097: Epistles (DM inbox) + Whispers (DM thread) — rebuild from design + leaf `messages` → `epistles` [`pending`] [`P2`] [`L`]
 
 **Owner:** unassigned
@@ -543,6 +496,44 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-096: The Relic (dog detail) — rebuild from design + leaf `dogs/[id]` → `litter/[id]` [`complete`] [`P2`] [`M`]
+
+**Owner:** implementer — PR #130 (squash `d07315f`), merged 2026-06-22. Reviewer APPROVE, 0 fix cycles (one minor additive-copy note). Markup-only rebuild of the dog-detail `+page.svelte` from `The Relic.dc.html` as The Relic (leaf already at `litter/[id]` from TASK-095). **`+page.server.ts` byte-identical** — the load-bearing decision-#27 service-client signed-URL (service client after `safeGetSession()`, RLS client for queries, anonymous burger-alarm aggregate) preserved exactly; DW-022 adjudicated-state gating preserved verbatim. No migration / dep / decision row / `{@html}`. Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 940/940, `@smoke` 5/5 (incl. the dog-detail render test), `@security` 93/93.
+
+The fourth rebuild-from-design in-app page, and the cleanest of the milestone — a
+**markup-only** rebuild. The dog-detail `+page.svelte` was **rebuilt from
+`design/pages/The Relic.dc.html`** as The Relic — the relic-reliquary framing, the big
+signed photo, the owner attribution, and the vote / reaction controls re-placed per the
+mock, the HAMBURGER ALARM / adjudicated-state treatment re-skinned. The leaf was
+**already** at `litter/[id]` (TASK-095 `git mv`'d the whole `dogs` folder rename-only),
+so this task did no slug move — purely the presentational rebuild that TASK-095 deferred.
+
+**The `+page.server.ts` is byte-identical** — not "preserved and re-wired" but literally
+untouched, the tightest possible skin-not-skeleton pass. The load-bearing **decision #27
+service-client signed-URL pattern** stays exactly as built: the RLS-scoped client
+(`event.locals.supabase`) runs the dog / owner / reaction queries, and **only** the
+private-bucket `image_path` signing is minted with the service client
+(`getServiceClient()`) **after** the `safeGetSession()` gate, signing only rows the
+member's own RLS query already returned (no exposure widening). This is the historical
+**TASK-033 P0 surface** — the cross-member view of private-bucket content that must sign
+server-side — and it was deliberately left wholly unmodified. **DW-022's adjudicated-state
+gating** (the anonymous burger-alarm aggregate + verdict display logic) is preserved
+verbatim.
+
+Reactions on the detail page stay **read-only** (decision #12) — the page renders the
+render-time `summarizeReactions` aggregate, with no write path that could touch
+`vote_count` / `peak_votes` / crown. The one additive-copy note the reviewer surfaced
+(non-blocking, folded in): an owner viewing **their own** alarmed dog now sees a passive
+**"Thy relic stands accused"** notice — a display-only addition, no logic or
+authorization change.
+
+**No migration, no new dependency, no new decision row, no `{@html}`** (decisions stay
+#1–#29, L2 preserved). Reviewer APPROVE, **0 fix cycles**. Gates at merge (live stack):
+`pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 940/940, `@smoke` 5/5 (incl. the
+dog-detail render test), `@security` 93/93. Did NOT close the milestone (M8 is 11/16).
+
+---
 
 ### TASK-095: Your Litter (own-dogs gallery + upload) — rebuild from design + leaf `dogs` → `litter` [`complete`] [`P2`] [`L`]
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession + TASK-093 The Shrine + TASK-094 the "Anoint" mustard re-theme + TASK-095 Your Litter complete, 10/16 — auth is functional end-to-end, three rebuild-from-design in-app pages have landed (the feed is now at `/snacktum-snacktorum/procession`; the profile is now The Shrine at `/snacktum-snacktorum/shrine/[handle]` with a derived stat ledger; the own-dogs gallery is now Your Litter at `/snacktum-snacktorum/litter`, with the `[id]` detail folder moved along rename-only — TASK-096 rebuilds The Relic at `/snacktum-snacktorum/litter/[id]`), the in-app route prefix is `/snacktum-snacktorum`, and the mustard mechanic is re-skinned as "Anoint" (6h-decay splat + a persisting wall-notice + the one M8 migration retiring the prune → `mustard_sprays` is now append-only, **architecture decision #29**); the **Shrine cluster is closed** — TASK-094-R The Reliquary (a purely DERIVED badge/honors module + shelf, wired into the Shrine, **not counted in the `/16`**, so the headline stays 10/16) fills the badge placeholder TASK-093 left; plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 10/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession + TASK-093 The Shrine + TASK-094 the "Anoint" mustard re-theme + TASK-095 Your Litter + TASK-096 The Relic complete, 11/16 — auth is functional end-to-end, four rebuild-from-design in-app pages have landed (the feed is now at `/snacktum-snacktorum/procession`; the profile is now The Shrine at `/snacktum-snacktorum/shrine/[handle]` with a derived stat ledger; the own-dogs gallery is now Your Litter at `/snacktum-snacktorum/litter`; the dog-detail page is now The Relic at `/snacktum-snacktorum/litter/[id]` — a markup-only rebuild with a byte-identical `+page.server.ts` preserving the decision-#27 service-client signed-URL load), the in-app route prefix is `/snacktum-snacktorum`, and the mustard mechanic is re-skinned as "Anoint" (6h-decay splat + a persisting wall-notice + the one M8 migration retiring the prune → `mustard_sprays` is now append-only, **architecture decision #29**); the **Shrine cluster is closed** — TASK-094-R The Reliquary (a purely DERIVED badge/honors module + shelf, wired into the Shrine, **not counted in the `/16`**, so the headline stays 11/16) fills the badge placeholder TASK-093 left; plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 11/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups)
 **Last Updated:** 2026-06-22
 
 > **‼️ M8 RE-SCOPE (2026-06-19, user-directed) — rebuild-from-design + re-slug.** The
@@ -286,6 +286,30 @@ no new dependency, no new decision row** (decisions stay #1–#29, L2 preserved)
 **0 fix cycles** (two minor doc-staleness notes folded into bookkeeping); `pnpm check` 0/0, `pnpm
 lint` clean, `pnpm test` 940/940, `@smoke` 5/5, `@security` 93/93. **Next: the remaining per-page
 rebuilds** (TASK-096 The Relic / Epistles / Summon / Tribunal / Catechism / Lost Pilgrim).
+
+**The eleventh M8 task has now landed: TASK-096 — The Relic (11/16; PR #130 `d07315f`, merged
+2026-06-22), the fourth rebuild-from-design in-app page and the cleanest of the milestone — a
+markup-only rebuild.** The dog-detail `+page.svelte` was rebuilt from `design/pages/The Relic.dc.html`
+as The Relic (the relic-reliquary framing, the big signed photo, owner attribution, vote/reaction
+controls re-placed per the mock, the HAMBURGER ALARM / adjudicated-state treatment re-skinned). The
+leaf was **already** at `litter/[id]` (TASK-095 `git mv`'d the whole `dogs` folder rename-only), so
+this task did no slug move — purely the presentational rebuild TASK-095 deferred. **The
+`+page.server.ts` is byte-identical** — not merely "preserved and re-wired" but literally untouched,
+the tightest possible skin-not-skeleton pass: the load-bearing **decision #27 service-client
+signed-URL pattern** stays exactly as built (RLS-scoped client for the dog/owner/reaction queries;
+**only** the private-bucket `image_path` signing minted with `getServiceClient()` **after** the
+`safeGetSession()` gate, signing only rows the member's own RLS query already returned — no exposure
+widening), and the historical **TASK-033 P0 surface** (cross-member view of private-bucket content)
+was deliberately left wholly unmodified. **DW-022's adjudicated-state gating** (the anonymous
+burger-alarm aggregate + verdict display) is preserved verbatim. Reactions on the detail page stay
+**read-only** (decision #12) — the render-time `summarizeReactions` aggregate, no write path that
+could touch `vote_count` / `peak_votes` / crown. The one additive-copy note the reviewer surfaced
+(non-blocking, folded in): an owner viewing **their own** alarmed dog now sees a passive "Thy relic
+stands accused" notice — display-only, no logic or authorization change. **No migration, no new
+dependency, no new decision row, no `{@html}`** (decisions stay #1–#29, L2 preserved). Reviewer
+APPROVE, **0 fix cycles**; `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 940/940, `@smoke` 5/5
+(incl. the dog-detail render test), `@security` 93/93. Did NOT close the milestone (M8 is 11/16).
+**Next: the remaining per-page rebuilds** (Epistles / Summon / Tribunal / Catechism / Lost Pilgrim).
 
 **All design questions are now RESOLVED:** the ritual sign-up rite, the
 5-sigil avatar mechanism, the dark-temple theme, the self-hosted Cinzel/Cormorant fonts,

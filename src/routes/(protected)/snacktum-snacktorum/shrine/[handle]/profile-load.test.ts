@@ -97,6 +97,7 @@ import { getPublicUrl } from '$lib/storage';
 import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
 import { LIAR_BRAND_WINDOW_MS } from '$lib/features/reports/verdict';
 import { loadShrineStats } from '$lib/features/profiles/stats';
+import { computeBadges, type BadgeState } from '$lib/features/badges/badges';
 
 // A representative non-zero ledger the mocked assembler returns by default, so the
 // load's passthrough of every field is exercised.
@@ -141,17 +142,32 @@ function aViewerProfile(overrides: Partial<typeof TARGET_PROFILE> = {}) {
 
 const A_SPRAY = { id: 'spray-1', x: 0.25, y: 0.5, sprayed_at: '2026-06-16T10:00:00Z' };
 
+// The Reliquary's `inquisitor` badge adds ONE new read-only RLS-scoped query on the
+// load's supabase client: a head-count of burger_verdicts where decided_by = the
+// member (TASK-094-R). The fake event below threads a configurable result through a
+// minimal from().select().eq() chain so the load's count read resolves; tests
+// override it via `verdictCountResult`. A failure must degrade only the inquisitor
+// relic to locked, never the page.
+let verdictCountResult: { count: number | null; error: { message: string } | null } = {
+	count: 0,
+	error: null
+};
+
 /**
  * Builds a fake load event. `rawGetSession` is exposed so we can prove the load
- * never reaches for the unvalidated session.
+ * never reaches for the unvalidated session. The supabase mock also answers the
+ * Reliquary inquisitor head-count (from('burger_verdicts').select().eq()).
  */
 function makeLoadEvent(opts: { session: unknown; user: unknown; handle?: string }) {
 	const safeGetSession = vi.fn(async () => ({ session: opts.session, user: opts.user }));
 	const rawGetSession = vi.fn(async () => ({ data: { session: null }, error: null }));
+	const eq = vi.fn(async () => verdictCountResult);
+	const select = vi.fn(() => ({ eq }));
+	const from = vi.fn(() => ({ select }));
 	return {
 		params: { handle: opts.handle ?? 'ChefDog' },
 		locals: {
-			supabase: { __brand: 'rls-client', auth: { getSession: rawGetSession } },
+			supabase: { __brand: 'rls-client', auth: { getSession: rawGetSession }, from },
 			safeGetSession
 		},
 		safeGetSession,
@@ -173,6 +189,7 @@ type LoadData = {
 	liarBrand: { active: boolean; brandCount: number; intensity: number };
 	isHeretic: boolean;
 	stats: typeof STATS;
+	badges: BadgeState[];
 };
 
 async function callLoad(event: unknown): Promise<LoadData> {
@@ -197,7 +214,30 @@ beforeEach(() => {
 	vi.mocked(getDogVerdictsForOwner).mockResolvedValue({ ok: true, data: [] });
 	// Default: the assembler returns the representative non-zero ledger.
 	vi.mocked(loadShrineStats).mockResolvedValue(STATS);
+	// Default: the inquisitor head-count reads 0 (no verdicts rendered).
+	verdictCountResult = { count: 0, error: null };
 });
+
+// The badges the load is expected to compute for the default fixtures: the STATS
+// ledger + TARGET_PROFILE (days_as_top_dog 0, joined 2026-06-09 — before the Elder
+// cutoff) + no heretic/liar + the inquisitor count. computeBadges is pure and unit-
+// tested in badges.test.ts; reusing it here keeps the load's passthrough faithful
+// without re-asserting the derivation. `verdictsRendered` defaults to 0.
+function expectedBadges(
+	overrides: { isHeretic?: boolean; hasBeenLiarBranded?: boolean; verdictsRendered?: number } = {}
+): BadgeState[] {
+	return computeBadges({
+		franksOffered: STATS.franksOffered,
+		daysAsTopDog: TARGET_PROFILE.days_as_top_dog,
+		highestBlessing: STATS.highestBlessing,
+		disciplesSummoned: STATS.disciplesSummoned,
+		anointingsReceived: STATS.anointingsReceived,
+		verdictsRendered: overrides.verdictsRendered ?? 0,
+		isHeretic: overrides.isHeretic ?? false,
+		hasBeenLiarBranded: overrides.hasBeenLiarBranded ?? false,
+		joinedAt: TARGET_PROFILE.joined_at
+	});
+}
 
 describe('profile [handle] load', () => {
 	it('reads the session via safeGetSession(), never raw getSession()', async () => {
@@ -246,7 +286,11 @@ describe('profile [handle] load', () => {
 			liarBrand: { active: false, brandCount: 0, intensity: 0 },
 			isHeretic: false,
 			// The derived stat ledger is surfaced from the assembler unchanged.
-			stats: STATS
+			stats: STATS,
+			// The Reliquary's derived badge state (TASK-094-R), computed from the
+			// ledger + profile + brand/inquisitor inputs (the pure derivation is
+			// covered in badges.test.ts; here we assert the load surfaces it).
+			badges: expectedBadges()
 		});
 		// No avatar_path => no public-URL resolution.
 		expect(getPublicUrl).not.toHaveBeenCalled();
@@ -548,6 +592,82 @@ describe('profile [handle] load', () => {
 				TARGET_PROFILE.id
 			);
 			expect(result.stats).toEqual(STATS);
+		});
+	});
+
+	// The Reliquary (TASK-094-R): a purely DERIVED honors shelf. The load adds ONE new
+	// read-only RLS-scoped query (the inquisitor head-count keyed on
+	// burger_verdicts.decided_by = the member) and otherwise REUSES the stat ledger +
+	// the existing liar/heretic reads to assemble BadgeInputs, then surfaces the pure
+	// computeBadges result as `badges`. Reporter anonymity (decision #27) is structural:
+	// inquisitor keys on decided_by (the member's OWN action), heretic on the member's
+	// OWN dogs, liar on the member's OWN brand — no reporter-side key.
+	describe('reliquary badges (derived honors)', () => {
+		it('surfaces the derived badge state for the default fixtures', async () => {
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.badges).toEqual(expectedBadges());
+		});
+
+		it('queries the inquisitor head-count on burger_verdicts.decided_by = the member', async () => {
+			verdictCountResult = { count: 25, error: null };
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(event.locals.supabase.from).toHaveBeenCalledWith('burger_verdicts');
+			// 25 verdicts rendered -> the top inquisitor tier is lit.
+			expect(result.badges).toEqual(expectedBadges({ verdictsRendered: 25 }));
+		});
+
+		it('degrades the inquisitor relic to locked (page intact) when the count read fails', async () => {
+			verdictCountResult = { count: null, error: { message: 'verdict count boom' } };
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			// A failed read => verdictsRendered 0 => inquisitor locked; page intact.
+			expect(result.badges).toEqual(expectedBadges({ verdictsRendered: 0 }));
+			expect(result.profile).toEqual(TARGET_PROFILE);
+			expect(console.error).toHaveBeenCalled();
+		});
+
+		it('lights the HERETIC shame relic when the member owns a confirmed_hamburger dog', async () => {
+			vi.mocked(getDogVerdictsForOwner).mockResolvedValue({
+				ok: true,
+				data: ['confirmed_hamburger']
+			});
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.badges).toEqual(expectedBadges({ isHeretic: true }));
+		});
+
+		it('lights the FALSE WITNESS relic on EVER-branded (any liar brand, even faded)', async () => {
+			// An OUT-OF-WINDOW brand: the decaying banner is OFF (liarBrand.active false)
+			// but the relic is still lit because it records EVER-branded.
+			const expiredTs = new Date(Date.now() - LIAR_BRAND_WINDOW_MS - 60_000).toISOString();
+			vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: true, data: [expiredTs] });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			// The live banner is off...
+			expect(result.liarBrand.active).toBe(false);
+			// ...but the relic remembers (ever-branded).
+			expect(result.badges).toEqual(expectedBadges({ hasBeenLiarBranded: true }));
+		});
+
+		it('does NOT light the liar relic when the brand read failed (locked, not faked)', async () => {
+			vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: false, error: 'liar read boom' });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.badges).toEqual(expectedBadges({ hasBeenLiarBranded: false }));
 		});
 	});
 });

@@ -267,7 +267,7 @@
 	{#if !isWallOwner}
 		<a
 			class="shrine-epistle btn-relic"
-			href={resolve('/(protected)/snacktum-snacktorum/messages/[handle]', {
+			href={resolve('/(protected)/snacktum-snacktorum/epistles/[handle]', {
 				handle: profile.handle
 			})}
 		>

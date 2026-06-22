@@ -51,7 +51,7 @@
 		page.url.pathname.startsWith('/snacktum-snacktorum/litter') ? 'page' : undefined
 	);
 	const onMessages = $derived<Current>(
-		page.url.pathname.startsWith('/snacktum-snacktorum/messages') ? 'page' : undefined
+		page.url.pathname.startsWith('/snacktum-snacktorum/epistles') ? 'page' : undefined
 	);
 	const onHelp = $derived<Current>(
 		page.url.pathname.startsWith('/snacktum-snacktorum/help') ? 'page' : undefined
@@ -70,7 +70,7 @@
 	// /snacktum-snacktorum/litter).
 	const feedHref = resolve('/(protected)/snacktum-snacktorum/procession');
 	const dogsHref = resolve('/(protected)/snacktum-snacktorum/litter');
-	const messagesHref = resolve('/(protected)/snacktum-snacktorum/messages');
+	const messagesHref = resolve('/(protected)/snacktum-snacktorum/epistles');
 	const helpHref = resolve('/(protected)/snacktum-snacktorum/help');
 	const courtHref = resolve('/(protected)/snacktum-snacktorum/court');
 	// The champion's profile, resolved from their handle (when crowned).

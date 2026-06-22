@@ -8,8 +8,15 @@
 // currently has no non-test caller by design — same pattern as
 // src/lib/features/voting/ranking.ts.
 
-/** A mustard spray fully fades 24h after it lands. */
-export const MUSTARD_LIFESPAN_MS = 24 * 60 * 60 * 1000;
+/**
+ * A mustard ("Anoint") splat fully fades 6h after it lands (M8 TASK-094 / OQ-2d:
+ * shortened from the original 24h). The decayed opacity is still computed at
+ * RENDER time from the stored `sprayed_at` (decision #15) — the DB stores only the
+ * raw timestamp, never the decayed value, so this constant change needs NO
+ * migration. The PERSISTING anoint→wall notice (anointNotice.ts) is a SEPARATE,
+ * non-decaying derivation over the same rows; only the overlay splat decays.
+ */
+export const MUSTARD_LIFESPAN_MS = 6 * 60 * 60 * 1000;
 
 /**
  * Render-time opacity of a single mustard spray, in the range [0, 1].

@@ -6,6 +6,7 @@
 	import ProfilePoliceBanner from '$lib/components/ProfilePoliceBanner.svelte';
 	import Sigil from '$lib/components/Sigil.svelte';
 	import { mustardOpacity } from '$lib/features/mustard/decay';
+	import { coalesceAnointNotices } from '$lib/features/mustard/anointNotice';
 	import { renderWallBody } from '$lib/features/emoji/render';
 	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
 	import { errorSlideFade } from '$lib/motion/reducedMotion';
@@ -26,7 +27,11 @@
 	// A built-in sigil avatar (chosen in the onboarding rite) renders inline; a real
 	// uploaded avatar renders from its public storage URL.
 	const sigilId = $derived(data.sigilId);
+	// The 6h overlay window (decays to invisible) drives the splat opacity.
 	const sprays = $derived(data.sprays);
+	// The FULL persisted anoint history (un-time-bounded) drives the PERSISTING
+	// anoint→wall notice (OQ-2e, decision #29) — it must NOT age out at the 6h window.
+	const anointments = $derived(data.anointments);
 	const canSpray = $derived(data.canSpray);
 	const wallMessages = $derived(data.wallMessages);
 	const viewerId = $derived(data.viewerId);
@@ -69,6 +74,38 @@
 			timeStyle: 'short'
 		});
 	}
+
+	// ----- Anoint → wall notices (OQ-2e, derived at render time) ----------------
+	// Synthesized "The Anointed Wiener anointed you ×N" lines, coalesced from the
+	// FULL persisted anoint history (`data.anointments`, un-time-bounded) by a
+	// rolling-24h window that resets at each anointing (a >24h gap starts a new
+	// notice). It derives from the full history — NOT the 6h overlay `data.sprays`
+	// window — so the notice PERSISTS as long as the source rows do (decision #29:
+	// those rows persist since the prune job is retired); only the overlay splat
+	// opacity decays over 6h. NO new schema/write path — purely derived from existing
+	// mustard_sprays rows. Un-forgeable by construction. Notices are merged
+	// chronologically into the wall alongside real messages.
+	type WallItem =
+		| { kind: 'message'; at: string; message: (typeof wallMessages)[number] }
+		| { kind: 'notice'; at: string; id: string; count: number };
+
+	const wallItems = $derived.by((): WallItem[] => {
+		const messageItems: WallItem[] = wallMessages.map((message) => ({
+			kind: 'message' as const,
+			at: message.created_at,
+			message
+		}));
+		const noticeItems: WallItem[] = coalesceAnointNotices(anointments).map((notice) => ({
+			kind: 'notice' as const,
+			at: notice.lastAt,
+			id: notice.id,
+			count: notice.count
+		}));
+		// Merge newest-first (the wall query returns messages newest-first).
+		return [...messageItems, ...noticeItems].sort(
+			(a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
+		);
+	});
 
 	// ----- Wall composer (form-validation CANON) -------------------------------
 	// Bound to the post box; cleared after a successful post.
@@ -356,33 +393,53 @@
 			</div>
 		</form>
 
-		{#if wallMessages.length === 0}
+		{#if wallItems.length === 0}
 			<div class="wall-empty">
 				<p>No word yet upon this shrine — be the first of the Faithful.</p>
 			</div>
 		{:else}
 			<ul class="wall-messages">
-				{#each wallMessages as message (message.id)}
-					<li class="wall-message fade-up">
-						<div class="wall-message-head">
-							<div class="wall-message-meta">
-								<a
-									class="wall-message-author"
-									href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
-										handle: message.author_handle
-									})}>@{message.author_handle}</a
-								>
-								<span class="wall-message-date">{formatMessageDate(message.created_at)}</span>
+				{#each wallItems as item (item.kind === 'notice' ? item.id : item.message.id)}
+					{#if item.kind === 'notice'}
+						<!-- Synthesized anoint notice (OQ-2e). Derived from mustard_sprays, not
+						     a stored wall_messages row — ranking-inert, un-forgeable. -->
+						<li class="wall-message wall-notice fade-up">
+							<div class="wall-message-head">
+								<div class="wall-message-meta">
+									<span class="wall-notice-author">The Anointed Wiener</span>
+									<span class="wall-message-date">{formatMessageDate(item.at)}</span>
+								</div>
 							</div>
-							{#if message.author_id === viewerId || isWallOwner}
-								<form method="POST" action="?/deleteMessage" use:enhance={submitWallDelete}>
-									<input type="hidden" name="messageId" value={message.id} />
-									<button type="submit" class="wall-message-delete">Delete</button>
-								</form>
-							{/if}
-						</div>
-						<p class="wall-message-body">{renderWallBody(message.body, message.id)}</p>
-					</li>
+							<p class="wall-notice-body">
+								anointed you in mustard{#if item.count > 1}
+									<span class="wall-notice-count">×{item.count}</span>{/if}
+							</p>
+						</li>
+					{:else}
+						<li class="wall-message fade-up">
+							<div class="wall-message-head">
+								<div class="wall-message-meta">
+									<a
+										class="wall-message-author"
+										href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
+											handle: item.message.author_handle
+										})}>@{item.message.author_handle}</a
+									>
+									<span class="wall-message-date">{formatMessageDate(item.message.created_at)}</span
+									>
+								</div>
+								{#if item.message.author_id === viewerId || isWallOwner}
+									<form method="POST" action="?/deleteMessage" use:enhance={submitWallDelete}>
+										<input type="hidden" name="messageId" value={item.message.id} />
+										<button type="submit" class="wall-message-delete">Delete</button>
+									</form>
+								{/if}
+							</div>
+							<p class="wall-message-body">
+								{renderWallBody(item.message.body, item.message.id)}
+							</p>
+						</li>
+					{/if}
 				{/each}
 			</ul>
 		{/if}
@@ -463,8 +520,11 @@
 		line-height: 1;
 	}
 
-	/* The Anoint splat overlay — one decaying gold splotch per spray (decision #15).
-	   The full splat visual is TASK-094; this is the tokenized base. */
+	/* The Anoint splat overlay — one decaying mustard splotch per anointing
+	   (decision #15: opacity computed at render time via mustardOpacity, now over
+	   6h). Re-themed to the splat from design/pages/The Shrine.dc.html (M8 TASK-094):
+	   a soft-edged radial blot that "blots in" on landing. All values are theme
+	   tokens (no literal hex). */
 	.anoint-layer {
 		position: absolute;
 		inset: 0;
@@ -484,6 +544,25 @@
 			transparent 72%
 		);
 		filter: blur(1.5px);
+		animation: blotIn var(--motion-entrance) var(--ease-out) both;
+	}
+
+	/* The splat "blots in" — scales up from a small spot to full size on landing
+	   (ported from the mockup's blotIn keyframes). Keeps the -50%,-50% centering. */
+	@keyframes blotIn {
+		from {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.4);
+		}
+		to {
+			transform: translate(-50%, -50%) scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.anoint-splat {
+			animation: none;
+		}
 	}
 
 	.anoint-target {
@@ -880,6 +959,37 @@
 	.wall-message-body {
 		margin: 0;
 		color: var(--color-text-muted);
+	}
+
+	/* Synthesized anoint notice — visually distinct from a real message: a gold
+	   accent rule and the mustard accent fill mark it as a temple event, not a post. */
+	.wall-notice {
+		border-color: var(--accent);
+		border-left: 3px solid var(--accent);
+		background: var(--accent-fill);
+	}
+
+	.wall-notice-author {
+		font-family: var(--font-display);
+		font-size: var(--text-sm);
+		font-weight: 600;
+		letter-spacing: var(--tracking-tight);
+		color: var(--accent);
+		white-space: nowrap;
+	}
+
+	.wall-notice-body {
+		margin: 0;
+		font-family: var(--font-body);
+		font-style: italic;
+		color: var(--accent-strong);
+	}
+
+	.wall-notice-count {
+		margin-left: var(--space-2xs);
+		font-style: normal;
+		font-weight: 700;
+		color: var(--accent);
 	}
 
 	.wall-message-delete {

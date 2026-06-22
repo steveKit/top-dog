@@ -30,9 +30,12 @@ vi.mock('$lib/features/profiles/profiles', () => ({
 }));
 
 vi.mock('$lib/features/mustard/sprays', () => ({
+	// 6h overlay window (drives splat opacity).
 	listSpraysForProfile: vi.fn(),
+	// FULL persisted anoint history (drives the persisting anoint→wall notice, OQ-2e).
+	listAnointmentsForProfile: vi.fn(),
 	// Keep the real NOT_TOP_DOG sentinel so any action-layer mapping stays faithful.
-	NOT_TOP_DOG: 'Only the current Top Dog can spray mustard.',
+	NOT_TOP_DOG: 'Only The Anointed Wiener may anoint a disciple in mustard.',
 	addSpray: vi.fn()
 }));
 
@@ -88,7 +91,7 @@ vi.mock('$lib/server/supabase', () => ({
 
 import { load } from './+page.server';
 import { getProfileByHandle, getProfileById } from '$lib/features/profiles/profiles';
-import { listSpraysForProfile } from '$lib/features/mustard/sprays';
+import { listSpraysForProfile, listAnointmentsForProfile } from '$lib/features/mustard/sprays';
 import { listWallMessages } from '$lib/features/walls/walls';
 import { getPublicUrl } from '$lib/storage';
 import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
@@ -162,6 +165,7 @@ type LoadData = {
 	avatarUrl: string | null;
 	sigilId: string | null;
 	sprays: { id: string; x: number; y: number; sprayed_at: string }[];
+	anointments: { id: string; x: number; y: number; sprayed_at: string }[];
 	canSpray: boolean;
 	wallMessages: unknown[];
 	viewerId: string;
@@ -184,6 +188,7 @@ beforeEach(() => {
 	vi.mocked(getProfileByHandle).mockResolvedValue({ ok: true, data: TARGET_PROFILE });
 	vi.mocked(getProfileById).mockResolvedValue({ ok: true, data: aViewerProfile() });
 	vi.mocked(listSpraysForProfile).mockResolvedValue({ ok: true, data: [] });
+	vi.mocked(listAnointmentsForProfile).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(listWallMessages).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(getPublicUrl).mockReturnValue('https://cdn/avatar.webp');
 	// Default: the profile carries no LIAR brands and owns no confirmed-hamburger dog
@@ -231,6 +236,7 @@ describe('profile [handle] load', () => {
 			// No avatar_path => not a sigil either.
 			sigilId: null,
 			sprays: [],
+			anointments: [],
 			canSpray: false,
 			wallMessages: [],
 			// The viewer is not the target profile, so they do not own this wall.
@@ -376,6 +382,46 @@ describe('profile [handle] load', () => {
 
 			expect(result.sprays).toEqual([]);
 			// The rest of the page is intact — only the mustard layer degraded.
+			expect(result.profile).toEqual(TARGET_PROFILE);
+			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
+	// The PERSISTING anoint→wall notice (OQ-2e, decision #29) derives from the FULL
+	// anoint history, NOT the 6h overlay `sprays` window. The load surfaces it as a
+	// SEPARATE `anointments` field, fetched on the TARGET profile id via
+	// listAnointmentsForProfile, degrading to an empty history (page not failed) on a
+	// read error — mirroring the overlay sprays degradation but on its own field.
+	describe('anointments passthrough (persisting notice source) + graceful degradation', () => {
+		it('passes the target profile’s FULL anoint history through (read on the target id)', async () => {
+			const anointments = [
+				A_SPRAY,
+				{ id: 'spray-old', x: 0.9, y: 0.1, sprayed_at: '2026-01-01T11:00:00Z' }
+			];
+			vi.mocked(listAnointmentsForProfile).mockResolvedValue({ ok: true, data: anointments });
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			// The anoint history is fetched for the TARGET profile id, not the viewer's.
+			expect(listAnointmentsForProfile).toHaveBeenCalledWith(
+				event.locals.supabase,
+				TARGET_PROFILE.id
+			);
+			expect(result.anointments).toEqual(anointments);
+		});
+
+		it('degrades to an empty anoint history (page not failed) when the read fails', async () => {
+			vi.mocked(listAnointmentsForProfile).mockResolvedValue({
+				ok: false,
+				error: 'anoint read boom'
+			});
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(result.anointments).toEqual([]);
+			// The rest of the page is intact — only the notice source degraded.
 			expect(result.profile).toEqual(TARGET_PROFILE);
 			expect(console.error).toHaveBeenCalled();
 		});

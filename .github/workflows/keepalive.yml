@@ -2,8 +2,11 @@ name: Supabase keep-alive
 
 # Supabase free-tier projects auto-pause after 7 days with no DB activity.
 # This workflow issues a tiny daily read against the REST API to keep the
-# project active, then runs the Top Dog daily tally (M2) and the mustard prune
-# job (M4 — deletes fully-faded sprays older than 24h).
+# project active, then runs the Top Dog daily tally (M2).
+#
+# The mustard prune step (M4) was REMOVED in M8 TASK-094: the prune job is retired
+# (decision #29 — mustard_sprays retention) because the "Anoint → wall notice" now
+# persists and is render-derived from those rows, so they must never be deleted.
 
 on:
   schedule:
@@ -41,30 +44,6 @@ jobs:
           echo "tally_top_dog_day HTTP ${code}"
           if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
             echo "::error::tally_top_dog_day returned non-2xx (${code})"
-            exit 1
-          fi
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-
-      - name: Prune mustard sprays (>24h, idempotent)
-        # Deletes fully-faded mustard sprays (sprayed_at older than 24h), bounding
-        # mustard_sprays growth (adversarial finding C). The RPC takes no input and
-        # is idempotent (it only ever deletes provably-expired, opacity-0 rows), so
-        # a daily call — even one after an earlier same-day dispatch — is safe and
-        # self-limiting. Anon (publishable) key is sufficient: prune_mustard_sprays()
-        # is granted to anon and is not forgeable (decision #26). Fail the step on a
-        # non-2xx so a broken prune turns the workflow red.
-        run: |
-          code=$(curl -sS -o /dev/null -w "%{http_code}" \
-            -X POST "${SUPABASE_URL}/rest/v1/rpc/prune_mustard_sprays" \
-            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_PUBLISHABLE_KEY}" \
-            -H "Content-Type: application/json" \
-            -d '{}')
-          echo "prune_mustard_sprays HTTP ${code}"
-          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
-            echo "::error::prune_mustard_sprays returned non-2xx (${code})"
             exit 1
           fi
         env:

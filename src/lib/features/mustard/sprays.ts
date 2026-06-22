@@ -39,8 +39,13 @@ const INSUFFICIENT_PRIVILEGE = '42501';
 // to a friendly position error rather than leaking the constraint text.
 const CHECK_VIOLATION = '23514';
 
-/** Friendly message when a non-Top-Dog tries to spray (exported so the form action can map it to a 403). */
-export const NOT_TOP_DOG = 'Only the current Top Dog can spray mustard.';
+/**
+ * Friendly message when a non-Top-Dog tries to anoint (exported so the form action
+ * can map it to a 403). Re-voiced to the Anoint / "The Anointed Wiener" cult voice
+ * (M8 TASK-094 — "spray mustard" copy is replaced wherever a user reads it); the
+ * identifier stays `NOT_TOP_DOG`, only the value changed.
+ */
+export const NOT_TOP_DOG = 'Only The Anointed Wiener may anoint a disciple in mustard.';
 const BAD_POSITION = 'That spray position is invalid.';
 
 /** True when n is a finite number within the inclusive [0,1] range. */
@@ -88,7 +93,7 @@ export async function addSpray(
 			code: error.code,
 			error: error.message
 		});
-		return { ok: false, error: 'Could not spray mustard right now.' };
+		return { ok: false, error: 'Could not anoint right now.' };
 	}
 
 	return { ok: true, data: null };
@@ -96,7 +101,7 @@ export async function addSpray(
 
 /**
  * Fetches the live (not-yet-fully-faded) sprays on a target profile, ordered by
- * spray time. Filtered to the last MUSTARD_LIFESPAN_MS (24h) so fully-decayed
+ * spray time. Filtered to the last MUSTARD_LIFESPAN_MS (6h) so fully-decayed
  * sprays — which render at opacity 0 anyway — aren't shipped to the client and
  * the payload stays bounded. RLS exposes all sprays to authenticated members
  * (public flair), so no owner filter is needed.
@@ -120,6 +125,50 @@ export async function listSpraysForProfile(
 			error: error.message
 		});
 		return { ok: false, error: 'Could not load mustard right now.' };
+	}
+
+	const rows = (data as SprayRow[] | null) ?? [];
+	return { ok: true, data: rows };
+}
+
+// Cap on the un-time-bounded anoint history fetch. The persisting anoint→wall
+// notice (OQ-2e, decision #29) derives from the FULL spray history rather than the
+// 6h overlay window, so this query is not bounded by MUSTARD_LIFESPAN_MS. To keep
+// the payload bounded we cap at the most-recent rows: anointings coalesce into a
+// rolling-window notice (anointNotice.ts), so even an extreme drip collapses to a
+// handful of "×N" lines — 200 source rows is far more than any realistic run needs
+// while staying a single small read. Ordered most-recent-first so the cap keeps the
+// freshest history (the coalescer re-sorts defensively).
+const ANOINT_HISTORY_CAP = 200;
+
+/**
+ * Fetches the FULL (un-time-bounded) anoint history on a target profile for the
+ * PERSISTING anoint→wall notice (OQ-2e, decision #29: the prune job is retired so
+ * these rows persist indefinitely; the notice must persist as long as the rows do,
+ * NOT age out at the 6h overlay window). This is the exact same RLS-scoped client
+ * and `mustard_sprays` table as listSpraysForProfile — only WITHOUT the 6h `gte`
+ * cutoff — so it adds NO new security surface (read-only, RLS exposes sprays to
+ * authenticated members as public flair). Capped at the most-recent
+ * ANOINT_HISTORY_CAP rows so the read can't grow unbounded; the coalescer
+ * re-sorts chronologically, so the cap order is immaterial to the result shape.
+ */
+export async function listAnointmentsForProfile(
+	supabase: SupabaseClient,
+	targetProfileId: string
+): Promise<SprayResult<SprayRow[]>> {
+	const { data, error } = await supabase
+		.from('mustard_sprays')
+		.select('id, x, y, sprayed_at')
+		.eq('target_profile_id', targetProfileId)
+		.order('sprayed_at', { ascending: false })
+		.limit(ANOINT_HISTORY_CAP);
+
+	if (error) {
+		console.error('[mustard] listAnointmentsForProfile failed', {
+			targetProfileId,
+			error: error.message
+		});
+		return { ok: false, error: 'Could not load anointings right now.' };
 	}
 
 	const rows = (data as SprayRow[] | null) ?? [];

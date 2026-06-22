@@ -1,0 +1,28 @@
+-- TASK-094 — Retire the mustard prune job (decision #29: mustard_sprays retention)
+--
+-- M8 OQ-2e makes the "Anoint → wall notice" PERSIST: it is derived at RENDER time
+-- from the existing mustard_sprays rows (src/lib/features/mustard/anointNotice.ts).
+-- A persisting notice requires its source rows to SURVIVE — so the daily prune job
+-- that DELETEd fully-faded sprays (TASK-042, prune_mustard_sprays()) is RETIRED.
+--
+-- Decision #29 (mustard_sprays retention): mustard_sprays is now effectively
+-- APPEND-ONLY / immutable — there is NO DELETE path. The table already had no
+-- client UPDATE/DELETE policy (decision #15: sprays immutable + persistent), and
+-- prune_mustard_sprays() was its SOLE delete path; dropping it removes the only
+-- writer that could reap rows. The overlay splat still DECAYS to invisible at
+-- render time (mustardOpacity, now over 6h — TASK-094 / OQ-2d), but the underlying
+-- rows persist so the wall notice can be re-derived on every render.
+--
+-- Scope: this migration touches ONLY the function. The mustard_sprays TABLE — its
+-- shape, its decision #28 base grants, and its decision #12/#25 RLS + INSERT
+-- WITH CHECK (Top-Dog-gated, sprayer pinned to auth.uid()) — is UNCHANGED. The
+-- mustard_sprays_sprayed_at_idx index (added with the prune job to support its
+-- range scan) is left in place: it is harmless and still useful for sprayed_at
+-- ordering in the spray/notice reads.
+--
+-- The keep-alive workflow's daily prune step is removed in lockstep
+-- (.github/workflows/keepalive.yml) so the workflow never calls this now-dropped
+-- RPC (avoiding the hosted-schema-drift 404 documented in CLAUDE.md). Match the
+-- exact zero-arg signature from 20260616170706_mustard_prune.sql.
+
+drop function if exists public.prune_mustard_sprays();

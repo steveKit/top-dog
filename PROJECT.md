@@ -2,7 +2,7 @@
 
 ## Status
 
-**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession + TASK-093 The Shrine + TASK-094 the "Anoint" mustard re-theme complete, 9/16 — auth is functional end-to-end, two rebuild-from-design in-app pages have landed (the feed is now at `/snacktum-snacktorum/procession`; the profile is now The Shrine at `/snacktum-snacktorum/shrine/[handle]` with a derived stat ledger), the in-app route prefix is `/snacktum-snacktorum`, and the mustard mechanic is re-skinned as "Anoint" (6h-decay splat + a persisting wall-notice + the one M8 migration retiring the prune → `mustard_sprays` is now append-only, **architecture decision #29**); the **Shrine cluster is closed** — TASK-094-R The Reliquary (a purely DERIVED badge/honors module + shelf, wired into the Shrine, **not counted in the `/16`**, so the headline stays 9/16) fills the badge placeholder TASK-093 left; plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 9/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups)
+**Phase:** M0–M7 complete · **M8 (Snacktum Snacktorum rebrand) — BUILDING + RE-SCOPED** (activated 2026-06-19; **re-scoped 2026-06-19**; TASK-087 theme + TASK-080 app shell + the **auth cluster** TASK-083 password recovery + TASK-082 sign-in + TASK-092 the Snacktum Onboarding rite at `/sign-up` + TASK-090 the foundational slug refactor + TASK-091 The Procession + TASK-093 The Shrine + TASK-094 the "Anoint" mustard re-theme + TASK-095 Your Litter complete, 10/16 — auth is functional end-to-end, three rebuild-from-design in-app pages have landed (the feed is now at `/snacktum-snacktorum/procession`; the profile is now The Shrine at `/snacktum-snacktorum/shrine/[handle]` with a derived stat ledger; the own-dogs gallery is now Your Litter at `/snacktum-snacktorum/litter`, with the `[id]` detail folder moved along rename-only — TASK-096 rebuilds The Relic at `/snacktum-snacktorum/litter/[id]`), the in-app route prefix is `/snacktum-snacktorum`, and the mustard mechanic is re-skinned as "Anoint" (6h-decay splat + a persisting wall-notice + the one M8 migration retiring the prune → `mustard_sprays` is now append-only, **architecture decision #29**); the **Shrine cluster is closed** — TASK-094-R The Reliquary (a purely DERIVED badge/honors module + shelf, wired into the Shrine, **not counted in the `/16`**, so the headline stays 10/16) fills the badge placeholder TASK-093 left; plus an **ad-hoc App Chrome rebuild** (PR #119, NOT one of the 16 tasks — rollup stays 10/16) that gave the persistent shell full-bleed chrome + a champion sub-bar; the remaining work is the per-page rebuilds from the delivered mockups)
 **Last Updated:** 2026-06-22
 
 > **‼️ M8 RE-SCOPE (2026-06-19, user-directed) — rebuild-from-design + re-slug.** The
@@ -267,6 +267,25 @@ they would need NEW persisted tracking the app does not keep — a **total-votes
 honors (`top_dog_days` records discrete days, not consecutive-run metadata) — logged DW-037 (the
 v1 `crowned` relic tiers on cumulative `days_as_top_dog` instead). **Next: the remaining per-page
 rebuilds** (Litter / Epistles / Summon / Tribunal / Catechism / Lost Pilgrim).
+
+**The tenth M8 task has now landed: TASK-095 — Your Litter (10/16; PR #128 `4cab7df`, merged
+2026-06-22), the third rebuild-from-design in-app page.** The own-dogs gallery + upload
+`+page.svelte` was rebuilt from `design/pages/Your Litter.dc.html` as Your Litter — a
+skin-not-skeleton pass that **preserved `+page.server.ts`** (its `load` plus the `upload`/`delete`
+actions) and re-wired it into the new markup. The own-gallery query stays **entirely on the
+RLS-scoped client — no service client**: this is the member's OWN litter, so decision #27's
+service-client-after-gate signing isn't needed here (the deliberate inverse of the cross-member
+feed/Relic loads). The leaf-slug was renamed **`dogs` → `litter`** via a single atomic `git mv` of
+the **whole `dogs` folder**, so the `[id]` detail subfolder rode along **rename-only** — its markup
+is untouched, leaving The Relic (`/snacktum-snacktorum/litter/[id]`) for TASK-096, which now shares
+the already-renamed `litter` leaf parent. The own-gallery is now at `/snacktum-snacktorum/litter`;
+only the `dogs` leaf moved (`messages`/`invite`/`court`/`help` are still pre-rename). The upload
+form adopts the **themed-validation CANON** on its `photo` field (file input nested inside its
+`<label>`; a new "Relic Image" themed-label special-case in `validationMessage.ts`). **No migration,
+no new dependency, no new decision row** (decisions stay #1–#29, L2 preserved). Reviewer APPROVE,
+**0 fix cycles** (two minor doc-staleness notes folded into bookkeeping); `pnpm check` 0/0, `pnpm
+lint` clean, `pnpm test` 940/940, `@smoke` 5/5, `@security` 93/93. **Next: the remaining per-page
+rebuilds** (TASK-096 The Relic / Epistles / Summon / Tribunal / Catechism / Lost Pilgrim).
 
 **All design questions are now RESOLVED:** the ritual sign-up rite, the
 5-sigil avatar mechanism, the dark-temple theme, the self-hosted Cinzel/Cormorant fonts,

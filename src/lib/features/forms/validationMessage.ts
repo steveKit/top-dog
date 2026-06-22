@@ -70,6 +70,10 @@ const NAME_LABELS = new Set(['casing']);
 // Shrine". Special-case its required failure so an empty word reads in the cult
 // voice rather than the bare generic "Speak thy Word upon the Shrine." fallback.
 const WORD_LABELS = new Set(['word upon the shrine']);
+// Your Litter (TASK-095) names the upload's photo field the "Relic Image". Special-
+// case its required failure so a missing offering reads in the cult voice rather
+// than the bare generic "Speak thy Relic Image." fallback.
+const RELIC_LABELS = new Set(['relic image']);
 
 function isEmailLabel(label: string): boolean {
 	return EMAIL_LABELS.has(label.trim().toLowerCase());
@@ -87,6 +91,10 @@ function isWordLabel(label: string): boolean {
 	return WORD_LABELS.has(label.trim().toLowerCase());
 }
 
+function isRelicLabel(label: string): boolean {
+	return RELIC_LABELS.has(label.trim().toLowerCase());
+}
+
 // Map a field's classified failure to a themed, field-naming message in the cult
 // voice. Pure: same inputs always yield the same string, no DOM, no I/O.
 export function validationMessage(context: FieldMessageContext): string {
@@ -95,6 +103,7 @@ export function validationMessage(context: FieldMessageContext): string {
 	const seal = isSealLabel(label);
 	const name = isNameLabel(label);
 	const word = isWordLabel(label);
+	const relic = isRelicLabel(label);
 
 	switch (failure) {
 		case 'valueMissing':
@@ -102,6 +111,7 @@ export function validationMessage(context: FieldMessageContext): string {
 			if (seal) return 'A Seal is required to pass.';
 			if (name) return 'Inscribe thy Casing.';
 			if (word) return 'Speak a word upon the shrine.';
+			if (relic) return 'Choose a relic image to offer.';
 			return `Speak thy ${label}.`;
 
 		case 'typeMismatch':

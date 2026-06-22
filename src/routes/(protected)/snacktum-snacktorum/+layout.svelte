@@ -48,7 +48,7 @@
 		page.url.pathname.startsWith('/snacktum-snacktorum/procession') ? 'page' : undefined
 	);
 	const onDogs = $derived<Current>(
-		page.url.pathname.startsWith('/snacktum-snacktorum/dogs') ? 'page' : undefined
+		page.url.pathname.startsWith('/snacktum-snacktorum/litter') ? 'page' : undefined
 	);
 	const onMessages = $derived<Current>(
 		page.url.pathname.startsWith('/snacktum-snacktorum/messages') ? 'page' : undefined
@@ -67,9 +67,9 @@
 	// Route ids resolved through the path alias (CLAUDE.md convention). Linking
 	// directly at /snacktum-snacktorum/procession skips the `/` → procession redirect hop.
 	// Upload routes to the hot-dog gallery (the upload form lives on
-	// /snacktum-snacktorum/dogs).
+	// /snacktum-snacktorum/litter).
 	const feedHref = resolve('/(protected)/snacktum-snacktorum/procession');
-	const dogsHref = resolve('/(protected)/snacktum-snacktorum/dogs');
+	const dogsHref = resolve('/(protected)/snacktum-snacktorum/litter');
 	const messagesHref = resolve('/(protected)/snacktum-snacktorum/messages');
 	const helpHref = resolve('/(protected)/snacktum-snacktorum/help');
 	const courtHref = resolve('/(protected)/snacktum-snacktorum/court');

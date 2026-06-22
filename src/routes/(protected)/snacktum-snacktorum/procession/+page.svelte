@@ -187,7 +187,7 @@
 								{/if}
 								<a
 									class="frank-relic-link"
-									href={resolve('/(protected)/snacktum-snacktorum/dogs/[id]', { id: dog.id })}
+									href={resolve('/(protected)/snacktum-snacktorum/litter/[id]', { id: dog.id })}
 									>View the relic <span aria-hidden="true">→</span></a
 								>
 							</div>

@@ -30,11 +30,12 @@ place and demoable:
 - **Per-dog stats + detail view** — each dog has a detail page at
   `/snacktum-snacktorum/dogs/[id]` showing the full image, owner, current and **peak** votes, and
   its reactions; feed/gallery tiles show a per-tile peak-votes indicator.
-- **Mustard** — the current Top Dog (and only the Top Dog) can spray mustard on
-  another member's profile. Sprays are persistent but **fade over 24h** — the
-  drip opacity is computed at render time from the stored timestamp — and a daily
-  job prunes fully-faded sprays. Spraying is cosmetic only: it never affects votes
-  or the Top Dog ranking.
+- **Mustard** — the current Top Dog (and only the Top Dog) can Anoint
+  another member's profile with mustard. The drip overlay **fades over ~6h** — its
+  opacity is computed at render time from the stored timestamp — but the spray rows
+  themselves **persist** (the table is append-only), so each Anointing leaves a
+  lasting wall notice even after the splat fades. Spraying is cosmetic only: it
+  never affects votes or the Top Dog ranking.
 - **Message walls** — post a message to any member's profile wall; the wall owner
   or the message author can delete it. Walls are cosmetic only — they never affect
   votes or ranking.
@@ -204,21 +205,23 @@ Migrations live in [`supabase/migrations/`](./supabase/migrations/).
 ### Keep-alive
 
 Free-tier projects auto-pause after 7 days of no DB activity. The daily
-[`keepalive.yml`](./.github/workflows/keepalive.yml) GitHub Action runs three
+[`keepalive.yml`](./.github/workflows/keepalive.yml) GitHub Action runs two
 idempotent steps against the hosted DB, all with the publishable key (the two
 repo secrets from step 5 — no service key in CI):
 
 1. **Ping** — a tiny read against `profiles` to reset the 7-day auto-pause timer.
 2. **Tally Top Dog day** — `tally_top_dog_day()` records today for the current
    Top Dog and recomputes `days_as_top_dog`.
-3. **Prune mustard sprays** — `prune_mustard_sprays()` deletes fully-faded
-   sprays (older than 24h), bounding `mustard_sprays` growth.
 
-Steps 2 and 3 are anon-callable, no-input, idempotent RPCs and each fails the
+> A mustard-prune step ran here until M8: `mustard_sprays` is now append-only
+> (the spray rows persist as lasting wall notices; only the drip overlay fades
+> at render), so `prune_mustard_sprays()` is retired and the prune step is gone.
+
+Step 2 is an anon-callable, no-input, idempotent RPC and fails the
 workflow on a non-2xx response, so a broken job turns the run red.
 
-> **Push migrations to hosted per-milestone.** The tally and prune steps call
-> RPCs added by migrations. If a migration hasn't been `supabase db push`ed to
+> **Push migrations to hosted per-milestone.** The tally step calls an
+> RPC added by a migration. If a migration hasn't been `supabase db push`ed to
 > the hosted project, its RPC returns a PostgREST 404 and the workflow turns red
 > (the `ping` step still keeps the DB alive). Run `supabase db push` when a
 > milestone's migrations land — not just at going-live.

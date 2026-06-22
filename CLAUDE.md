@@ -106,7 +106,7 @@ top-dog/
 ├── .env.example               # documented required env vars (real .env gitignored)
 ├── security-profile.yaml      # L2
 ├── .github/workflows/
-│   └── keepalive.yml          # daily keep-alive + Top Dog tally + mustard prune
+│   └── keepalive.yml          # daily keep-alive + Top Dog tally
 ├── supabase/
 │   ├── config.toml
 │   └── migrations/            # SQL migrations (schema + RLS + RPC functions)
@@ -354,9 +354,10 @@ display_name, avatar_path)` + `grant update (handle, display_name, avatar_path)`
 - **Privileged-but-cosmetic write = plain RLS write + an authorization `WITH CHECK`
   conjunct that reads a server-maintained, non-client-writable column.** When a
   cosmetic/many-allowed surface (no denormalized counter, see the gotcha above) is
-  additionally restricted to a privileged actor (e.g. only the current Top Dog may
-  spray mustard — `mustard_sprays`, TASK-041), DO NOT reach for a SECURITY DEFINER
-  RPC. Keep the plain owner-scoped RLS write and add the authorization as a second
+  additionally restricted to a privileged actor (e.g. only the current Top Dog —
+  user-facing "The Anointed Wiener" — may Anoint a member, the user-facing copy for
+  spraying on the Shrine; table/column code identifiers `mustard_sprays` / `sprayer_id`
+  are unchanged, TASK-041/094), DO NOT reach for a SECURITY DEFINER RPC. Keep the plain owner-scoped RLS write and add the authorization as a second
   INSERT `WITH CHECK` conjunct: pin the actor (`sprayer_id = (select auth.uid())`,
   so it can't be forged) AND gate on a privilege column via an EXISTS
   (`exists (select 1 from profiles p where p.id = (select auth.uid()) and
@@ -366,10 +367,11 @@ p.is_current_top_dog)`). **This is trustworthy ONLY because the gate column is
   client-writable, the predicate would be self-forgeable and the gate worthless, so
   this pattern presupposes the decision #24/#25 column-grant lockdown on whatever
   column the gate reads. Pair with NO UPDATE/DELETE policy when the rows are meant to
-  be immutable/persistent (mustard sprays persist across crown changes per decision
-  #15; removal is reserved for a separate prune job). This is decisions #12/#15/#25
-  composed, not a new architecture decision — reuse the shape for any future
-  privileged-flair surface (e.g. an M5 "only the Top Dog may …" write).
+  be immutable/persistent (Anoint sprays persist across crown changes per decision
+  #15; as of decision #29 the table has NO DELETE path at all — the daily prune was
+  retired, so `mustard_sprays` is effectively append-only). This is decisions
+  #12/#15/#25 composed, not a new architecture decision — reuse the shape for any
+  future privileged-flair surface (e.g. an M5 "only the Top Dog may …" write).
 - **`revoke execute ... from public` is NOT sufficient to lock down a function on
   Supabase.** Supabase explicitly grants EXECUTE on new `public.*` functions to
   `anon` and `authenticated`; `revoke ... from public` only strips the PUBLIC
@@ -385,8 +387,25 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   (`consumed_by is null or consumed_at is not null`), never a bidirectional one —
   a bidirectional CHECK blocks deleting the referenced user entirely. Applies to
   any future "consume once" record (redemptions, one-shot tokens, claims).
-- **Mustard + emoji are render-time computations** — the DB stores raw timestamps
-  and original text; never persist the decayed/filtered output.
+- **Mustard(Anoint) + emoji are render-time computations** — the DB stores raw
+  timestamps and original text; never persist the decayed/filtered output. The
+  Anoint overlay decays full → 0 over **6h** (`MUSTARD_LIFESPAN_MS` in
+  `src/lib/features/mustard/decay.ts`, shortened from 24h by TASK-094 / decision
+  #29 — the single source of truth; if you see "24h" mustard copy anywhere it is
+  stale).
+- **Decaying overlay + PERSISTING render-derived notice off ONE append-only table
+  (decision #29).** `mustard_sprays` is **append-only** (no client DELETE policy AND
+  the daily `prune_mustard_sprays()` job is RETIRED/dropped — TASK-094) so the spray
+  rows survive forever. Two render-time views compute off the same raw rows: (1) the
+  **decaying Anoint overlay** on the Shrine reads only the live (≤ 6h) window —
+  `listSpraysForProfile`, opacity via `mustardOpacity`; (2) the **persisting wall
+  notice** ("recently anointed") must derive from the **FULL spray history**, NOT the
+  6h overlay window — use `listAnointmentsForProfile` (capped 200 rows), because a
+  notice that says "you've been anointed" must outlive the visual splat's 6h fade.
+  The fix-cycle bug here was deriving the persisting notice from the 6h overlay query,
+  so it vanished with the splat. Reuse this shape — append-only source + one decaying
+  view + one persisting view — for any future "fades visually but the fact persists"
+  surface; never prune the source rows the persisting view needs.
 - **Storage `{owner_id}/` prefix is load-bearing for RLS:** `storage.objects`
   write/update/delete policies allow only objects whose first path segment is the
   uploader's `auth.uid()` (`(storage.foldername(name))[1] = (select auth.uid()::text)`).
@@ -447,10 +466,12 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   pauses. The hosted project is live and the workflow is **enabled and verified**
   (TASK-004 — last manual run returned HTTP 200 against `profiles`). It runs daily
   and depends on the `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` repo secrets.
-  **Two distinct red-workflow failure modes, diagnosed by which STEP fails:** (1) the
-  `ping` step itself fails → reachability/secrets — re-check the two repo secrets
-  first; (2) `ping` passes but a later RPC step (`tally`, future `prune`) returns a
-  PostgREST **404** → **hosted schema drift**: that RPC's migration was never
+  The workflow steps are `ping` + `tally` (the daily Top Dog tally); the mustard-prune
+  step was REMOVED in lockstep when TASK-094 / decision #29 retired
+  `prune_mustard_sprays()`. **Two distinct red-workflow failure modes, diagnosed by
+  which STEP fails:** (1) the `ping` step itself fails → reachability/secrets —
+  re-check the two repo secrets first; (2) `ping` passes but the `tally` RPC step
+  returns a PostgREST **404** → **hosted schema drift**: that RPC's migration was never
   `supabase db push`ed to hosted. This is NOT a secrets problem (ping proves
   reachability) and NOT necessarily an auto-pause emergency (the daily `ping` read
   keeps the DB alive even while the workflow shows red). Remedy: `supabase db push`
@@ -468,7 +489,10 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   recompute denormalized counts **authoritatively from `COUNT(*)`, never a blind
   `+1`**, so re-runs and early triggers can't drift. Wire the workflow step to **fail
   on non-2xx** so a broken job turns red (also protecting the auto-pause guarantee).
-  Reuse this pattern for the M4 mustard-prune job (TASK-042).
+  This pattern was reused for the M4 mustard-prune job (TASK-042), but that job is now
+  RETIRED (TASK-094 / decision #29 — `mustard_sprays` is append-only); `tally` is the
+  only RPC step the keep-alive workflow drives. Reuse the pattern for any future daily
+  server-fact job.
 - **E2E harness uses the LOCAL stack only, never the hosted `.env`.** Playwright
   tests (`tests/smoke.e2e.ts`, `tests/db-guards.e2e.ts`, `tests/votes.e2e.ts`,
   `tests/tally.e2e.ts`) resolve local creds via `supabase status -o env` through

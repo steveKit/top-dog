@@ -28,7 +28,7 @@ place and demoable:
   (many distinct emojis per user, toggleable). Reactions are flair only — they
   never affect a dog's vote count or the Top Dog ranking.
 - **Per-dog stats + detail view** — each dog has a detail page at
-  `/snacktum-snacktorum/dogs/[id]` showing the full image, owner, current and **peak** votes, and
+  `/snacktum-snacktorum/litter/[id]` showing the full image, owner, current and **peak** votes, and
   its reactions; feed/gallery tiles show a per-tile peak-votes indicator.
 - **Mustard** — the current Top Dog (and only the Top Dog) can Anoint
   another member's profile with mustard. The drip overlay **fades over ~6h** — its
@@ -98,7 +98,7 @@ pnpm dev
 
 The `@smoke` Playwright test drives the full M1 slice (redeem invite → set handle
 → upload a dog → see it rendered) plus the feed cast/move/remove + reaction toggle
-and the `/snacktum-snacktorum/dogs/[id]` detail render, against the **local** Supabase stack. With
+and the `/snacktum-snacktorum/litter/[id]` detail render, against the **local** Supabase stack. With
 the stack running:
 
 ```sh

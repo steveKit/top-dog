@@ -36,21 +36,21 @@ new deps.** **Skin not skeleton:**
 each rebuild preserves its `+page.server.ts` (load + actions) and re-wires all data/feature
 plumbing; no table/RPC/TS-symbol or infra rename.
 
-> **Task set (re-scoped): 10 complete + 7 pending.** Complete: TASK-087 (theme) + TASK-080
+> **Task set (re-scoped): 11 complete + 6 pending.** Complete: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) + TASK-090
 > (slug refactor — PR #115) + TASK-091 (The Procession — PR #117) + TASK-093 (The Shrine —
 > PR #122) + TASK-094 (Anoint re-theme — PR #124; the M8 migration + decision #29) + TASK-094-R
-> (The Reliquary — PR #126; derived badge module, closes the Shrine cluster). Pending:
-> per-page rebuilds — **TASK-095** Your Litter,
-> **TASK-096** The Relic, **TASK-097** Epistles+Whispers, **TASK-098** Summon, **TASK-099**
+> (The Reliquary — PR #126; derived badge module, closes the Shrine cluster) + TASK-095 (Your
+> Litter — PR #128; gallery rebuild + leaf `dogs`→`litter`). Pending:
+> per-page rebuilds — **TASK-096** The Relic, **TASK-097** Epistles+Whispers, **TASK-098** Summon, **TASK-099**
 > Tribunal, **TASK-100** Catechism, **TASK-101** The Lost Pilgrim (error/404). The old
 > pending tasks TASK-081/084/085/086/088/089 are **superseded/folded** (TASK-081 copy →
 > carried by the per-page rebuilds; 084→092, 085→093, 086→094, 088→101, 089→094-R).
 
 > **🔨 BUILDING + RE-SCOPED — 2026-06-19 (slug refactor + rebuild-from-design pages
-> landing). 9/16 complete** (theme + shell + the auth cluster: sign-in / forgot /
+> landing). 10/16 complete** (theme + shell + the auth cluster: sign-in / forgot /
 > reset — auth is functional end-to-end — + the onboarding rite + the foundational slug
-> refactor + The Procession + The Shrine + Anoint re-theme). TASK-090 moved the in-app route prefix `/app` →
+> refactor + The Procession + The Shrine + Anoint re-theme + Your Litter). TASK-090 moved the in-app route prefix `/app` →
 > `/snacktum-snacktorum` (PR #115, `38c8844`; directory + auth-guard prefix; leaf names
 > unchanged, deferred to the per-page rebuilds). **TASK-091 (The Procession) then LANDED
 > 2026-06-20** (PR #117, `dffaee5`): the feed `+page.svelte` rebuilt from
@@ -69,8 +69,11 @@ plumbing; no table/RPC/TS-symbol or infra rename.
 > retention; table now append-only)**. **TASK-094-R (The Reliquary) then LANDED 2026-06-22**
 > (PR #126, `870e401`): a purely derived badge/honors module + shelf on the Shrine (composes
 > #12/#13/#15/#27, no new decision row, no migration/dep) — **closing the Shrine cluster.**
-> The remaining work is the per-page leaf rebuilds from the delivered mockups (**TASK-095 Your
-> Litter next, then The Relic, Epistles, Summon, Tribunal, Catechism, Lost Pilgrim**).
+> **TASK-095 (Your Litter) then LANDED 2026-06-22** (PR #128, `4cab7df`): the own-dogs gallery
+> `+page.svelte` rebuilt + the whole `dogs` folder moved → `litter` (the `[id]` detail rides
+> along rename-only for TASK-096); load + upload/delete actions preserved; no migration / dep /
+> decision row. The remaining work is the per-page leaf rebuilds from the delivered mockups
+> (**TASK-096 The Relic next, then Epistles, Summon, Tribunal, Catechism, Lost Pilgrim**).
 > TASK-087 (theme, PR #99 `dcce8c3`): the M8 FOUNDATION — a tokenized dark-temple CSS layer
 > (`src/lib/styles/tokens.css`) every rebuild consumes via `var(--…)` tokens (accents via
 > `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` (no CDN/package).

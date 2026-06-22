@@ -419,13 +419,13 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `hotdogs_select_own`), the viewer's RLS-scoped client (`event.locals.supabase`)
   can only sign the viewer's OWN objects — so any **cross-member view of
   private-bucket content** (the `/snacktum-snacktorum/procession` and
-  `/snacktum-snacktorum/dogs/[id]` loads, which show
+  `/snacktum-snacktorum/litter/[id]` loads, which show
   OTHER members' dogs) MUST mint signed URLs **server-side with the service client**
   (`$lib/server` `getServiceClient()`), constructed **AFTER** the `safeGetSession()`
   gate, signing only `image_path` from rows the member's own RLS query already
   returned (no exposure widening). Keep the dog/owner/reaction QUERIES on the
   RLS-scoped client — only the storage signing uses the service client; the
-  `/snacktum-snacktorum/dogs` own-dogs gallery correctly stays fully on the RLS client. This
+  `/snacktum-snacktorum/litter` own-dogs gallery correctly stays fully on the RLS client. This
   preserves decision #6 (bucket private, 1h TTL signed URLs, service client
   server-only) with no storage RLS / bucket change. (Caught as a P0 in TASK-033 —
   the storage-baseline migration comment claiming "signed URL bypasses RLS" was
@@ -588,7 +588,8 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   (`http://localhost:54324`) → enter it at `/reset-password` with a new password.
 - **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080; in-app
   prefix renamed to `/snacktum-snacktorum` by TASK-090; feed leaf renamed to `procession` by
-  TASK-091; profile leaf renamed to `shrine` by TASK-093).**
+  TASK-091; profile leaf renamed to `shrine` by TASK-093; dogs leaf renamed to `litter` by
+  TASK-095).**
   `(protected)/snacktum-snacktorum/+layout.svelte` renders the persistent header/nav across
   every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/procession`;
   feed / Your Litter / Epistles / The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on
@@ -599,11 +600,13 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   `/snacktum-snacktorum/procession` (`src/routes/+page.server.ts`); there is **no inline
   `.app-nav`** anymore (the old hub nav + its CSS were removed). New `/snacktum-snacktorum`
   pages inherit the shell automatically — do not re-add a page-level nav. **Note: TASK-090
-  renamed only the `/app` PREFIX → `/snacktum-snacktorum`; the remaining leaf names (`dogs`,
-  `messages`, `invite`, `court`, `help`) are still UNCHANGED — their leaf
-  renames come with their own per-page rebuilds. TASK-091 renamed the leaf
-  `feed` → `procession`; TASK-093 renamed the leaf `profile/[handle]` → `shrine/[handle]`
-  (the profile page is now `/snacktum-snacktorum/shrine/[handle]`).**
+  renamed only the `/app` PREFIX → `/snacktum-snacktorum`; the leaf renames ride their own
+  per-page rebuilds. Done so far: TASK-091 `feed` → `procession`; TASK-093
+  `profile/[handle]` → `shrine/[handle]` (now `/snacktum-snacktorum/shrine/[handle]`);
+  TASK-095 `dogs` → `litter` (the whole folder, so `dogs/[id]` → `litter/[id]` rode along
+  rename-only — TASK-096 rebuilds The Relic at the already-renamed `litter/[id]`). The
+  remaining leaf names (`messages`, `invite`, `court`, `help`) are still UNCHANGED — their
+  renames ride TASK-097/098/099/100.**
 - **The app shell is FULL-BLEED — each child band self-caps; not-yet-rebuilt pages MUST
   self-cap or they sprawl to the viewport edge (M8 PR #119, the App Chrome rebuild).** The
   rebuilt `(protected)/snacktum-snacktorum/+layout.svelte` (matched to

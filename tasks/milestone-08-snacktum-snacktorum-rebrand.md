@@ -1,8 +1,8 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **9/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + three rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **10/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + four rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -15,9 +15,10 @@
 > the mustard surface to Anoint (splat, 6h decay, persisting wall-notice, retired the prune →
 > `mustard_sprays` now append-only); **TASK-094-R (Reliquary derived badge module + shelf —
 > PR #126, `870e401`) also complete, closing the Shrine cluster.** (094-R is a derived
-> sub-module, not counted in the `/16`.) **Next: the remaining leaf pages — TASK-095 Your
-> Litter → TASK-096 The Relic → TASK-097 Epistles → TASK-098 Summon → TASK-099 Tribunal →
-> TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
+> sub-module, not counted in the `/16`.) **TASK-095 (Your Litter — PR #128, `4cab7df`) rebuilt
+> the own-dogs gallery + moved the whole `dogs` folder → `litter` (the `[id]` detail rides
+> along, rename-only, for TASK-096).** **Next: TASK-096 The Relic → TASK-097 Epistles →
+> TASK-098 Summon → TASK-099 Tribunal → TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -282,61 +283,14 @@ only the in-app `app` prefix moves.
 > remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
 > **TASK-093 (The Shrine) is next.**
 
-### TASK-095: Your Litter (own-dogs gallery + upload) — rebuild from design + leaf `dogs` → `litter` [`pending`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/Your Litter.dc.html`; TASK-087
-(theme). **`@smoke`-critical** (the slice uploads a dog + sees it here). Touches
-`src/routes/(protected)/snacktum-snacktorum/dogs/+page.svelte` (rebuild) + preserves its
-`+page.server.ts`; renames the leaf `dogs` → `litter`.
-
-**Scope:** rebuild the own-dogs gallery + upload `+page.svelte` from the mockup as **Your
-Litter**, preserve the upload/list/delete load + actions, re-wire all plumbing, rename
-the leaf.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `Your Litter.dc.html`** — the temple gallery layout,
-      the upload affordance, the per-dog tiles (own dogs gallery stays on the RLS client —
-      own-bucket SELECT works without the service client). Port DSL → Svelte 5 / tokens.
-- [ ] **`dogs/+page.server.ts` PRESERVED and re-wired** — the load (own dogs + per-row
-      signed URLs via the RLS client, per-row graceful degradation) and the upload + delete
-      actions (client-side `compressToWebp`, the 100-per-user cap, `evaluateUpload` global
-      guard, owner-prefix path, fail-closed compensating delete on insert failure) are
-      unchanged; the new markup wires them. Do NOT delete/gut.
-- [ ] **Upload-limit wiring intact** (TASK-070): the form-action size/count check stays as
-      the friendly UX layer; the authoritative DB + Storage-API caps are unchanged.
-- [ ] **Form-validation CANON** applied to the upload form's required fields (the photo /
-      caption inputs) where empty-able.
-- [ ] **HAMBURGER ALARM / CONFIRMED HAMBURGER** on a flagged own-dog render correctly
-      (reuse the components) per the mock.
-- [ ] **Leaf-slug** `dogs` → `litter` (folder move); update the shell ＋Upload target +
-      nav, and the `@smoke` `/app/dogs` navigation (`→ /snacktum-snacktorum/litter`) +
-      its copy assertions ("Your hot dogs", "Add hot dog", "No hot dogs yet...") in
-      lockstep with the new strings.
-- [ ] **Security/wiring unchanged:** own-gallery stays on `event.locals.supabase`
-      (RLS-scoped); no `{@html}`; no new trust path.
-- [ ] **Responsive + accessible:** semantic gallery, image `alt`, labeled upload inputs,
-      visible focus.
-- [ ] **Tests:** `dogs/dogs-action.test.ts` stays green (update for copy/markup).
-      **`@smoke` stays green** (upload → see dog; update copy/path in lockstep).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, **`@smoke`
-      green**, `@security` green. **No migration.**
-
-**Notes (for the implementer):** the own-dogs gallery correctly stays fully on the RLS
-client (own-bucket SELECT) — do NOT introduce the service client here (that is only for
-cross-member views, decision #27, which is the Relic/Procession concern). No new
-dependency; no schema; no new decision row.
-
----
-
 ### TASK-096: The Relic (dog detail) — rebuild from design + leaf `dogs/[id]` → `litter/[id]` [`pending`] [`P2`] [`M`]
 
 **Owner:** unassigned
 **Dependencies:** TASK-090 (paths); mockup `design/pages/The Relic.dc.html`; TASK-087
-(theme); coordinates with TASK-095 (shares the `litter` leaf parent). Touches
-`src/routes/(protected)/snacktum-snacktorum/dogs/[id]/+page.svelte` (rebuild) + preserves
-its `+page.server.ts`; renames the leaf under `litter/[id]`.
+(theme); TASK-095 already `git mv`'d the leaf to `litter/[id]` (rename-only), so this task
+only rebuilds the markup. Touches
+`src/routes/(protected)/snacktum-snacktorum/litter/[id]/+page.svelte` (rebuild) + preserves
+its `+page.server.ts`; the leaf is already under `litter/[id]`.
 
 **Scope:** rebuild the dog-detail `+page.svelte` from the mockup as **The Relic**,
 preserve the detail load + any actions, re-wire the cross-member signed-URL + stats +
@@ -589,6 +543,43 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-095: Your Litter (own-dogs gallery + upload) — rebuild from design + leaf `dogs` → `litter` [`complete`] [`P2`] [`L`]
+
+**Owner:** implementer — PR #128 (squash `4cab7df`), merged 2026-06-22. Reviewer APPROVE, 0 fix cycles (two minor doc-staleness notes → folded into bookkeeping). Rebuilt the own-dogs gallery + upload `+page.svelte` from `Your Litter.dc.html` as Your Litter; the WHOLE `dogs` folder was `git mv`'d → `litter` (incl. the `[id]` detail subfolder, rename-only — TASK-096 rebuilds The Relic). `+page.server.ts` preserved (pure rename; load + upload/delete actions, own-gallery on the RLS client). Form-validation CANON on the `photo` field (label-nested; new "Relic Image" message). All `dogs`→`litter` references updated (grep zero). No migration / dep / decision row. Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 940/940, `@smoke` 5/5, `@security` 93/93.
+
+The third rebuild-from-design in-app page. The own-dogs gallery + upload `+page.svelte` was
+**rebuilt from `design/pages/Your Litter.dc.html`** as Your Litter — a skin-not-skeleton pass:
+the `+page.server.ts` was **PRESERVED** and re-wired into the new markup (its `load` plus the
+`upload` / `delete` actions, the own-gallery query running entirely on the **RLS-scoped**
+client — no service client; this is the member's OWN litter, so decision #27's
+service-client-after-gate signing is not needed here, the inverse of the cross-member feed/Relic
+loads). The page presents the member's dogs as a litter of relics with rebuilt upload framing and
+new cult copy.
+
+The leaf-slug was renamed **`dogs` → `litter`**: the **whole `dogs` folder was `git mv`'d** to
+`litter` in one atomic move, so the `[id]` detail subfolder rode along **rename-only** — its
+markup is untouched and still pre-rebuild, leaving The Relic (`/snacktum-snacktorum/litter/[id]`)
+for **TASK-096**, which now shares the already-renamed `litter` leaf parent. The own-gallery is at
+**`/snacktum-snacktorum/litter`**; only the `dogs` leaf moved this task (`messages`, `invite`,
+`court`, `help` remain pre-rename, riding their own rebuilds — `feed`/`profile` already renamed to
+`procession`/`shrine`).
+
+The upload form adopts the **themed-validation CANON** on its `photo` field: the file input is
+**nested inside its `<label>`** (the gate-form pattern, so `fieldLabel()`'s `closest('label')`
+resolves the visible label), and `validationMessage.ts` gained a new **"Relic Image"**
+themed-label special-case for the missing-photo message rather than a hand-written string at the
+call site.
+
+The whole-folder move is **leaf-rename complete** — every `dogs` reference in the rebuilt page and
+its server wiring updated, with the README/CLAUDE narrative `/snacktum-snacktorum/dogs` →
+`/snacktum-snacktorum/litter` doc sweep folded into this bookkeeping (the two minor doc-staleness
+notes the reviewer flagged). **No migration, no new dependency, no new decision row** (decisions
+stay #1–#29, L2 preserved). Reviewer APPROVE, 0 fix cycles. Gates at merge (live stack):
+`pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 940/940, `@smoke` 5/5, `@security` 93/93.
+Did NOT close the milestone (M8 is 10/16).
+
+---
 
 ### TASK-094-R: The Reliquary — derived badge / honors module + shelf [`complete`] [`P3`] [`M`]
 

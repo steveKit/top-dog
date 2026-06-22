@@ -1,17 +1,20 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **8/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + two rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **9/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + three rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
-> `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)**. The
-> slug refactor moved the in-app route prefix `/app` →
+> `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
+> **TASK-094 (Anoint re-theme — PR #124, `645373a`, 2026-06-22; the M8 migration + decision
+> #29)**. The slug refactor moved the in-app route prefix `/app` →
 > `/snacktum-snacktorum` (directory + auth-guard prefix; leaf names unchanged, deferred to
 > the per-page rebuilds); TASK-091 rebuilt the feed as The Procession (leaf `feed` →
-> `procession`) and TASK-093 rebuilt the profile as The Shrine (leaf `profile` → `shrine`,
-> URL now `/snacktum-snacktorum/shrine/[handle]`, + a derived stat ledger); **the rest of the
-> Shrine cluster — TASK-094 (Anoint) and TASK-094-R (Reliquary) — is next.** The three complete gate
+> `procession`); TASK-093 rebuilt the profile as The Shrine (leaf `profile` → `shrine`,
+> URL now `/snacktum-snacktorum/shrine/[handle]`, + a derived stat ledger); TASK-094 re-themed
+> the mustard surface to Anoint (splat, 6h decay, persisting wall-notice, retired the prune →
+> `mustard_sprays` now append-only); **next: TASK-094-R (Reliquary) then the remaining leaf
+> pages (Litter/Relic, Epistles, Summon, Tribunal, Catechism, Lost Pilgrim).** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -275,95 +278,6 @@ only the in-app `app` prefix moves.
 > prefix is `/snacktum-snacktorum` and the first leaf is renamed (`feed` → `procession`); the
 > remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
 > **TASK-093 (The Shrine) is next.**
-
-### TASK-094: "Anoint" — mustard re-theme (splat + 6h decay + persisting wall notice + prune retirement) [`pending`] [`P2`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/The Shrine.dc.html` (the splat);
-**OQ-2 FULLY RESOLVED** (all five sub-decisions — see below); composes with TASK-093 (the
-Shrine hosts the overlay + the wall the notice composes into) and TASK-094-R. **The ONLY
-M8 task that carries a migration.** Touches the mustard surface on the Shrine
-`+page.svelte`, the spray action, `src/lib/features/mustard/decay.ts`
-(`MUSTARD_LIFESPAN_MS`), the wall render (derived anoint-notice), `prune_mustard_sprays`
-(retired — one migration), and `.github/workflows/keepalive.yml` (drop the prune step).
-Does **NOT** change the `mustard_sprays` table shape, the `wall_messages`
-table/immutability, or the spray write-path authorization.
-
-**Scope (OQ-2 RESOLVED — build to these decided values):** rename the spray action to
-**"Anoint"** in user-facing copy, re-theme the visual to a **splat**, shorten the overlay
-decay to **~6h**, surface a derived/coalesced/**persisting** "anoint → wall notice", and
-**retire the prune job** so the notice's source rows survive.
-
-- **OQ-2a — keep gated.** Only the reigning champion may Anoint — the decision #25
-  `WITH CHECK` on the non-client-writable crown column is **unchanged**.
-- **OQ-2b — no re-mechanic, no merge.** Anoint stays the existing mustard spray, re-copied
-  as "anointing." The emoji reactions surface is **untouched**.
-- **OQ-2c — splat visual.** Reuse the splat animation in `design/pages/The Shrine.dc.html`.
-- **OQ-2d — decays over ~6h** (was ~24h): a render-time constant change to
-  `MUSTARD_LIFESPAN_MS` (`24h` → `6h`) + its co-located tests. **No migration for the
-  decay change** (DB still stores the raw `sprayed_at`).
-- **OQ-2e — anoint → wall notice = 24h ROLLING STACK; PERSISTS.** Render-time derived from
-  `mustard_sprays`, coalesced into one "×N" notice on the anointed member's wall; rolling
-  24h window that RESETS at each anointing; a >24h gap starts a new notice. The notice
-  PERSISTS (only the overlay decays).
-
-> **‼️ IMPLEMENTATION DIRECTION = Option A (user-approved) — CARRIES ONE MIGRATION.**
-> Because the wall notice PERSISTS and is render-derived from `mustard_sprays` rows, those
-> rows must SURVIVE → the daily **`prune_mustard_sprays()` job is RETIRED.** This task
-> ships (a) **one migration** retiring/neutering `prune_mustard_sprays` (drop or no-op —
-> keep its EXECUTE-lockdown posture; preserve the table's decision #28 grants + decision
-> #12 RLS), (b) a **keep-alive workflow edit** dropping the daily prune step, and (c) a
-> **likely new architecture-decision row #29** (mustard_sprays retention). Batch the
-> hosted push onto the standing M7 hosted-push gate. The director adds the real
-> [[PROJECT]] decision-table row when this task is implemented (the table stays #28 until
-> then).
-
-**Acceptance Criteria:**
-
-- [ ] **"Anoint" copy** replaces "spray mustard" wherever a user reads it (the Shrine
-      action button, the Catechism). Code identifiers (`mustard_sprays`, `mustardOpacity`,
-      `MUSTARD_LIFESPAN_MS`, the `spray` action, `prune_mustard_sprays`) **stay unchanged**
-      — the prune function is _retired_ (dropped/neutered), not renamed.
-- [ ] **Overlay decay → ~6h (OQ-2d):** `MUSTARD_LIFESPAN_MS` `24*60*60*1000` →
-      `6*60*60*1000`; update the module doc-comment + `decay.test.ts` boundary cases
-      (the 24h clamp/half-life assertions move to 6h). No migration.
-- [ ] **Splat visual (OQ-2c)** applied in the overlay component + theme styles, reusing
-      the splat animation from the Shrine mock.
-- [ ] **Derived, coalesced, persisting "anoint → wall notice" (OQ-2e):** RENDER-TIME
-      derived from existing `mustard_sprays` rows — **NO new schema/table/write path, NO
-      change to `wall_messages` immutability.** The wall render composes real
-      `wall_messages` with a **synthesized** anoint-notice ("The Anointed Wiener anointed
-      you ×N"), grouped by a rolling-24h window that resets at each anointing (>24h gap →
-      new notice), sorted chronologically among the messages. Un-forgeable by construction
-      (same derived no-write pattern as the Reliquary / alarm summarizer / decay).
-- [ ] **`prune_mustard_sprays()` retired (Option A):** one migration retires/neuters the
-      prune function so anoint rows are never pruned; preserve the `mustard_sprays`
-      decision #28 grants + decision #12 RLS (touch only the prune function). Edit
-      `.github/workflows/keepalive.yml` to drop the daily prune step (ping + tally stay).
-      Flag **decision #29** to the director.
-- [ ] **Authorization preserved (OQ-2a):** the plain owner-scoped RLS spray write with the
-      Top-Dog `WITH CHECK` on `is_current_top_dog` (decision #25) is **untouched**;
-      `canSpray` stays server-derived.
-- [ ] **Reactions untouched (OQ-2b).**
-- [ ] **Hosted-push gate:** push the prune-retirement migration to hosted (batch with the
-      M7 `burger_alarms` / `burger_verdicts` migrations) and drop the keep-alive prune
-      step **in lockstep** so the workflow never calls a retired RPC (avoiding the
-      hosted-schema-drift 404 in [[CLAUDE]]).
-- [ ] **Tests:** `spray-action.test.ts` green (copy); `decay.test.ts` updated for 6h; add
-      coverage for the pure anoint-notice coalescing (rolling-24h grouping, ×N, >24h →
-      new notice). Adjust any affected `@security` case if the prune retirement changes a
-      live-DB guarantee. `@smoke` / `@security` green.
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, `@security` green. **One migration** (prune retirement) — the only M8 task
-      with one.
-
-**Notes (for the implementer):** OQ-2 is fully decided — build to the resolved values, do
-not re-guess. The decay-constant change needs no migration; the **prune retirement is the
-load-bearing structural change** that makes the persisting notice coherent. Ship the
-migration + workflow edit + decision-#29 row together; batch the hosted push. Composes
-into TASK-093's Shrine page — sequence/coordinate file scope. No new dependency.
-
----
 
 ### TASK-094-R: The Reliquary — derived badge / honors module + shelf [`pending`] [`P3`] [`M`]
 
@@ -749,6 +663,57 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-094: "Anoint" — mustard re-theme (splat + 6h decay + persisting wall notice + prune retirement) [`complete`] [`P2`] [`M`]
+
+**Owner:** implementer — PR #124 (squash `645373a`), merged 2026-06-22. Reviewer APPROVE. 2 fix cycles (notice-persistence: derive from full history not the 6h overlay; + stale-comment + copy nits). The ONLY M8 migration (`20260622120000_retire_mustard_prune.sql`, DROP `prune_mustard_sprays`) + keep-alive prune step removed in lockstep. **Introduces architecture decision #29 (mustard_sprays retention — table now effectively append-only).** Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 878/878, `@smoke` 5/5, `@security` 93/93 (incl. the new retention guard). **Hosted-push gate:** batch the prune-retirement migration with the M7 migrations + drop the keep-alive prune step in lockstep (user's hand, async).
+
+The "Anoint" mustard re-theme — the user-facing re-skin of the Top-Dog mustard mechanic
+on The Shrine, plus the one M8 migration. **The mustard spray is now "Anoint"** (champion
+= "The Anointed Wiener"): the Shrine splat was re-themed to the design's Anoint visual, and
+the render-time decay window was shortened from **24h → 6h** (`MUSTARD_LIFESPAN_MS` in
+`src/lib/features/mustard/decay.ts`, the single source of truth). The shortening is
+**overlay-only** — `mustardOpacity` still computes full → 0 linearly from the raw
+`sprayed_at`, never persisted (decision #15 unchanged); only the lifespan constant moved.
+
+**A persisting wall-notice was added, render-derived from the FULL spray history.** Two
+render-time views now read the same raw rows: the **decaying Anoint overlay** reads only
+the live (≤ 6h) window via `listSpraysForProfile`, while the **persisting "recently
+anointed" wall-notice** derives from the entire spray history via a new
+`listAnointmentsForProfile` (capped 200 rows) — so the notice outlives the splat's 6h fade.
+This is the OQ-2 Option A posture: a persisting notice requires its source rows to survive.
+
+**The daily prune was retired (the only M8 migration).**
+`supabase/migrations/20260622120000_retire_mustard_prune.sql` is a **function-only** DROP
+of `public.prune_mustard_sprays()` — the table's shape, grants, RLS, and `WITH CHECK` gate
+are untouched. With no client DELETE policy AND no prune, `mustard_sprays` is now
+**effectively append-only**, which is what lets the persisting notice keep its source rows.
+The `.github/workflows/keepalive.yml` mustard-prune step was removed **in lockstep** (the
+workflow now drives only `ping` + the Top Dog `tally`). This introduces **architecture
+decision #29 (`mustard_sprays` retention — append-only)**; it composes decisions
+#12/#15/#25/#28 with no other schema/RLS/grant change.
+
+**Two fix cycles, both reviewer-surfaced.** (1) **notice persistence** — as first built the
+persisting wall-notice was derived from the 6h overlay query (`listSpraysForProfile`), so it
+vanished when the splat faded; fixed by deriving it from the full history via the new
+`listAnointmentsForProfile` (cap 200). (2) **stale-comment + Anoint-copy nits** — a comment
+left over from the 24h/prune era plus a couple of copy lines were re-voiced to the Anoint /
+6h reality. Copy was re-voiced to the cult register ("Anoint", "The Anointed Wiener")
+throughout the surface; code identifiers (`mustard_sprays`, `sprayer_id`, `mustardOpacity`,
+`MUSTARD_LIFESPAN_MS`) are unchanged per the HARD SCOPE CONSTRAINT.
+
+A rewritten mustard-retention `@security` guard asserts the append-only posture (no DELETE
+path) against the live local stack. Reviewer APPROVE; gates at merge (live stack): `pnpm
+check` 0/0, `pnpm lint` clean, `pnpm test` 878/878, `@smoke` 5/5, `@security` 93/93. **No
+new dependency.** **Hosted-push gate:** the prune-retirement migration batches with the two
+outstanding M7 hosted pushes (`burger_alarms` + `burger_verdicts`) and the TASK-083 recovery
+template config — user's hand, async, no auto-pause risk (the daily `ping` keeps the DB
+alive). Did NOT close the milestone (M8 is 9/16). Discovered: the historical base migration
+`20260616163055_mustard_sprays.sql` now carries stale 24h/prune comments (logged DW-036 —
+candidate only if a migration-comment-accuracy pass is ever run; historical migrations are
+generally not rewritten).
+
+---
 
 ### TASK-093: The Shrine (profile) — rebuild from design + display-name + stat ledger + Reliquary slot [`complete`] [`P2`] [`L`]
 

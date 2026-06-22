@@ -1,8 +1,8 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **11/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + five rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **12/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + six rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -18,8 +18,10 @@
 > sub-module, not counted in the `/16`.) **TASK-095 (Your Litter — PR #128, `4cab7df`) rebuilt
 > the own-dogs gallery + moved the whole `dogs` folder → `litter`.** **TASK-096 (The Relic —
 > PR #130, `d07315f`) rebuilt the dog-detail page in place at `litter/[id]`, preserving the
-> decision-#27 signed-URL load byte-identical.** **Next: TASK-097 Epistles → TASK-098 Summon →
-> TASK-099 Tribunal → TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
+> decision-#27 signed-URL load byte-identical.** **TASK-097 (Epistles + Whispers — PR #132,
+> `8764287`) rebuilt both DM pages + moved the leaf `messages` → `epistles` (+ `epistles/[handle]`),
+> both servers preserved.** **Next: TASK-098 Summon → TASK-099 Tribunal → TASK-100 Catechism →
+> TASK-101 Lost Pilgrim.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -284,55 +286,6 @@ only the in-app `app` prefix moves.
 > remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
 > **TASK-093 (The Shrine) is next.**
 
-### TASK-097: Epistles (DM inbox) + Whispers (DM thread) — rebuild from design + leaf `messages` → `epistles` [`pending`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockups `design/pages/Epistles.dc.html` +
-`design/pages/Whispers.dc.html`; TASK-087 (theme). Touches
-`src/routes/(protected)/snacktum-snacktorum/messages/+page.svelte` (inbox rebuild) and
-`messages/[handle]/+page.svelte` (thread rebuild) + preserves both `+page.server.ts`;
-renames the leaf `messages` → `epistles` (+ `epistles/[handle]`).
-
-**Scope:** rebuild both DM `+page.svelte`s from their mockups as **Epistles** (inbox) and
-**Whispers** (thread), preserve both loads + the send action, re-wire all plumbing, rename
-the leaf (and its `[handle]` child).
-
-**Acceptance Criteria:**
-
-- [ ] **Epistles inbox rebuilt from `Epistles.dc.html`** — the conversation list with the
-      `summarizeConversations` render-time collapse, preview via `renderMessageBody`
-      (emoji filter, decision #16), per-conversation `read_at` state. Preserve
-      `messages/+page.server.ts` (the bounded inbox load, DW-018) + re-wire.
-- [ ] **Whispers thread rebuilt from `Whispers.dc.html`** — the message thread with the
-      compose box, messages via `renderMessageBody`, the conversation-scoped privacy load.
-      Preserve `messages/[handle]/+page.server.ts` (the thread load + the send action, the
-      `read_at`-only mutation boundary, DW-025's head-limit note) + re-wire.
-- [ ] **Both `+page.server.ts` PRESERVED and re-wired** — the conversation-scoped privacy
-      SELECT, the `read_at`-only mutation boundary (decision #24 applied to a privacy
-      column), the bounded reads. Do NOT delete/gut.
-- [ ] **Form-validation CANON** applied to the Whispers compose box (the message body
-      field).
-- [ ] **Leaf-slug** `messages` → `epistles` (+ `messages/[handle]` → `epistles/[handle]`,
-      param preserved); update the shell nav (Epistles link) + every link to a thread in
-      lockstep.
-- [ ] **Security/wiring unchanged:** loads stay RLS-scoped + conversation-privacy-scoped;
-      bodies render auto-escaped via `renderMessageBody` (no `{@html}`); the send action
-      pins `author_id = auth.uid()`.
-- [ ] **Responsive + accessible:** semantic list/thread, labeled compose box, visible
-      focus.
-- [ ] **Tests:** `messages/inbox-load.test.ts` + `messages/[handle]/thread-load.test.ts`
-      stay green (update for copy/markup). `tests/dms.e2e.ts` green (update paths/copy if
-      asserted).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, `@security` green. **No migration.**
-
-**Notes (for the implementer):** two pages (inbox + thread) share the `epistles` leaf —
-rebuild both together so the leaf rename is atomic. Store-original / render-filter
-(decision #16) is structural — never persist the filtered output. No new dependency; no
-schema; no new decision row.
-
----
-
 ### TASK-098: Summon a Frank (invite) — rebuild from design + leaf `invite` → `summon` [`pending`] [`P2`] [`M`]
 
 **Owner:** unassigned
@@ -496,6 +449,50 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-097: Epistles (DM inbox) + Whispers (DM thread) — rebuild from design + leaf `messages` → `epistles` [`complete`] [`P2`] [`L`]
+
+**Owner:** implementer — PR #132 (squash `8764287`), merged 2026-06-22. Reviewer APPROVE, 0 fix cycles. Rebuilt both DM pages from `Epistles.dc.html` (inbox) + `Whispers.dc.html` (thread); whole `messages` folder `git mv`'d → `epistles` (+ `epistles/[handle]`). Both `+page.server.ts` preserved — inbox a pure rename; thread's ONLY change the self-thread redirect literal `/messages`→`/epistles` (conversation-scoped privacy SELECT, `read_at`-only mark-read boundary [decision #24], bounded reads [DW-018/025], sender-pinned send all intact). Form-validation CANON on the compose box (label-nested; new prefix-matched "Whisper unto …" message + over-match guards). All `messages`→`epistles` refs updated (grep zero). No migration / dep / decision row. Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 946/946, `@smoke` 5/5, `@security` 93/93 (DM guards green).
+
+The fifth rebuild-from-design in-app page, and the DM cluster's single task — both DM
+pages rebuilt at once. The inbox `+page.svelte` was **rebuilt from `Epistles.dc.html`** as
+Epistles and the thread `+page.svelte` from `Whispers.dc.html` as Whispers — a
+skin-not-skeleton pass that **preserved both `+page.server.ts` files** and re-wired their
+plumbing into the new markup. The whole `messages` folder was `git mv`'d → `epistles`
+(carrying the `[handle]` thread subfolder), so the inbox is now at
+`/snacktum-snacktorum/epistles` and the thread at `/snacktum-snacktorum/epistles/[handle]`
+(param preserved); **only the `messages` leaf moved** (`invite`, `court`, `help` remain
+pre-rename, riding their own rebuilds).
+
+**Both servers are preserved with the lightest possible touch.** The inbox
+`+page.server.ts` is a **pure rename** — its load is untouched. The thread
+`+page.server.ts`'s ONLY change is the self-thread redirect literal `/messages` →
+`/epistles` (the path moved, so its own redirect target had to move with it); everything
+load-bearing stays verbatim: the **conversation-scoped privacy SELECT** (a member reads
+only threads they are party to), the **`read_at`-only mark-read write boundary** (decision
+#24's column-grant lockdown — mark-read may touch only `read_at`, never forge a message),
+the **bounded reads** (DW-018/DW-025's `.limit(50)` on `listConversations` / `listThread`),
+and the **sender-pinned send** (`sender_id = auth.uid()`, un-forgeable) all intact.
+
+The compose box adopts the **themed-validation CANON** (the empty-able message field): the
+textarea is **nested inside its `<label>`** (the gate-form pattern, so `fieldLabel()`'s
+`closest('label')` resolves the visible label rather than falling back to the field
+`name`), and `validationMessage.ts` gained a new **prefix-matched "Whisper unto …" themed
+message** for the missing-body case — matched on a stable prefix (with over-match guards so
+it does not swallow unrelated field labels) rather than a hand-written string at the call
+site.
+
+Every `messages` → `epistles` reference across the rebuilt pages, their server wiring, and
+the live docs was updated (a grep for the `messages` route segment now returns zero). **No
+migration, no new dependency, no new decision row, no `{@html}`** (decisions stay #1–#29,
+L2 preserved). Reviewer APPROVE, **0 fix cycles**. Gates at merge (live stack): `pnpm
+check` 0/0, `pnpm lint` clean, `pnpm test` 946/946, `@smoke` 5/5, `@security` 93/93 (the DM
+write guards green). Did NOT close the milestone (M8 is 12/16). Discovered: a pre-existing
+dangling link — The Catechism's "← Back to your kennel" still points at the retired
+`/snacktum-snacktorum` hub (which 307-redirects to `/procession`) — logged DW-038, to be
+fixed naturally when TASK-100 rebuilds The Catechism.
+
+---
 
 ### TASK-096: The Relic (dog detail) — rebuild from design + leaf `dogs/[id]` → `litter/[id]` [`complete`] [`P2`] [`M`]
 

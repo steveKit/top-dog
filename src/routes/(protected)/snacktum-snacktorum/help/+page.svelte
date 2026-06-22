@@ -80,7 +80,7 @@
 	<p>
 		Every member has a wall where others can leave public messages. For something more private, send
 		a direct message. Check yours under <a
-			href={resolve('/(protected)/snacktum-snacktorum/messages')}>Messages</a
+			href={resolve('/(protected)/snacktum-snacktorum/epistles')}>Messages</a
 		>.
 	</p>
 </section>

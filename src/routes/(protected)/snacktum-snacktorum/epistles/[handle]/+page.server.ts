@@ -35,7 +35,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 	// You can't hold a conversation with yourself — funnel a self-thread back to
 	// the inbox rather than rendering an empty self-DM compose box.
 	if (counterparty.id === user.id) {
-		throw redirect(303, '/snacktum-snacktorum/messages');
+		throw redirect(303, '/snacktum-snacktorum/epistles');
 	}
 
 	const threadResult = await listThread(supabase, user.id, counterparty.id);

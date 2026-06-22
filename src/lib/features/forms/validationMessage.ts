@@ -74,6 +74,11 @@ const WORD_LABELS = new Set(['word upon the shrine']);
 // case its required failure so a missing offering reads in the cult voice rather
 // than the bare generic "Speak thy Relic Image." fallback.
 const RELIC_LABELS = new Set(['relic image']);
+// Whispers (TASK-097) names the DM compose field the "Whisper unto <member>…".
+// The label embeds the counterparty's name, so it's matched by PREFIX (not an
+// exact set) — special-case its required failure so an empty whisper reads in the
+// cult voice rather than the bare generic "Speak thy Whisper unto …" fallback.
+const WHISPER_LABEL_PREFIX = 'whisper unto ';
 
 function isEmailLabel(label: string): boolean {
 	return EMAIL_LABELS.has(label.trim().toLowerCase());
@@ -95,6 +100,10 @@ function isRelicLabel(label: string): boolean {
 	return RELIC_LABELS.has(label.trim().toLowerCase());
 }
 
+function isWhisperLabel(label: string): boolean {
+	return label.trim().toLowerCase().startsWith(WHISPER_LABEL_PREFIX);
+}
+
 // Map a field's classified failure to a themed, field-naming message in the cult
 // voice. Pure: same inputs always yield the same string, no DOM, no I/O.
 export function validationMessage(context: FieldMessageContext): string {
@@ -104,6 +113,7 @@ export function validationMessage(context: FieldMessageContext): string {
 	const name = isNameLabel(label);
 	const word = isWordLabel(label);
 	const relic = isRelicLabel(label);
+	const whisper = isWhisperLabel(label);
 
 	switch (failure) {
 		case 'valueMissing':
@@ -112,6 +122,7 @@ export function validationMessage(context: FieldMessageContext): string {
 			if (name) return 'Inscribe thy Casing.';
 			if (word) return 'Speak a word upon the shrine.';
 			if (relic) return 'Choose a relic image to offer.';
+			if (whisper) return 'Speak thy whisper, faithful one.';
 			return `Speak thy ${label}.`;
 
 		case 'typeMismatch':

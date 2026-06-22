@@ -219,5 +219,63 @@ describe('validationMessage', () => {
 				'Choose a relic image to offer.'
 			);
 		});
+
+		// Whispers (TASK-097) names the DM compose field the "Whisper unto <member>…",
+		// where the label EMBEDS the counterparty's display name. Unlike every other
+		// special-case (exact-set membership), this one is matched by PREFIX — a new
+		// mechanism — so it must (a) fire for any "Whisper unto …" label regardless of
+		// the trailing name, (b) stay case-insensitive/trim-tolerant like the rest,
+		// and (c) NOT over-match unrelated labels that merely contain the word
+		// "whisper".
+		describe('Whisper compose field (prefix-matched special-case)', () => {
+			it('uses the whisper voice when the required compose body is empty', () => {
+				expect(
+					validationMessage({ label: 'Whisper unto Chef Dog…', failure: 'valueMissing' })
+				).toBe('Speak thy whisper, faithful one.');
+			});
+
+			it('fires for any counterparty name embedded in the prefix label', () => {
+				// The trailing name varies per conversation; the prefix match must not
+				// depend on a specific name.
+				expect(
+					validationMessage({ label: 'Whisper unto Brunhilda the Wurst', failure: 'valueMissing' })
+				).toBe('Speak thy whisper, faithful one.');
+			});
+
+			it('matches the whisper prefix case-insensitively and trimmed', () => {
+				// fieldLabel passes the visible label verbatim; the module lowercases +
+				// trims so casing/whitespace from the markup can't defeat the prefix.
+				expect(
+					validationMessage({ label: '  WHISPER UNTO Chef Dog…  ', failure: 'valueMissing' })
+				).toBe('Speak thy whisper, faithful one.');
+			});
+
+			it('falls through to the generic non-valueMissing templates for the whisper field', () => {
+				// Only the valueMissing case is special-cased; a too-long whisper still
+				// uses the generic, label-naming template (the compose textarea has a
+				// maxlength). This also proves the prefix special-case doesn't hijack
+				// other failure kinds.
+				expect(validationMessage({ label: 'Whisper unto Chef Dog…', failure: 'tooLong' })).toBe(
+					'Thy Whisper unto Chef Dog… runs too long.'
+				);
+			});
+
+			it('does NOT over-match an unrelated label that merely contains "whisper"', () => {
+				// The match is a PREFIX, not a substring: a label that mentions "whisper"
+				// but doesn't START with "whisper unto " must fall back to the generic
+				// label-naming template, not the themed whisper copy.
+				expect(validationMessage({ label: 'Secret Whisper Token', failure: 'valueMissing' })).toBe(
+					'Speak thy Secret Whisper Token.'
+				);
+			});
+
+			it('does NOT over-match the bare word "Whisper" without the "unto " continuation', () => {
+				// A field literally named "Whisper" (no "unto ") is not the DM compose
+				// box; it must not pick up the embedded-name themed copy.
+				expect(validationMessage({ label: 'Whisper', failure: 'valueMissing' })).toBe(
+					'Speak thy Whisper.'
+				);
+			});
+		});
 	});
 });

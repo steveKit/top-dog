@@ -92,17 +92,19 @@ test('@smoke redeem invite, set handle, upload a dog, and see it rendered', asyn
 
 	// (3) Upload one hot dog. compressToWebp runs in the real browser (canvas),
 	// then the server uploads to the private `hotdogs` bucket and inserts the row.
-	await page.goto('/snacktum-snacktorum/dogs');
-	await expect(page.getByRole('heading', { name: 'Your hot dogs' })).toBeVisible();
-	await expect(page.getByText('No hot dogs yet. Upload your first one!')).toBeVisible();
+	await page.goto('/snacktum-snacktorum/litter');
+	await expect(page.getByRole('heading', { name: 'Your Litter' })).toBeVisible();
+	await expect(
+		page.getByText('The grill is cold. Offer thy first frank to the Order.')
+	).toBeVisible();
 
 	await page.locator('input[name="photo"]').setInputFiles(FIXTURE_IMAGE);
 	await page.locator('input[name="caption"]').fill('A fine frank');
-	await page.getByRole('button', { name: 'Add hot dog' }).click();
+	await page.getByRole('button', { name: 'Offer This Frank →' }).click();
 
-	// (4) See it rendered: the grid shows an <img> backed by a signed URL from the
+	// (4) See it rendered: the gallery shows an <img> backed by a signed URL from the
 	// private bucket, and the caption we set.
-	const dogImage = page.locator('ul li img').first();
+	const dogImage = page.locator('.frank-image img').first();
 	await expect(dogImage).toBeVisible({ timeout: 15000 });
 	await expect(page.getByText('A fine frank')).toBeVisible();
 

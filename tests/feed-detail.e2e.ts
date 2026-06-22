@@ -7,7 +7,7 @@ import { getLocalStackCreds } from './helpers/local-stack';
 import { generateInviteToken } from '../src/lib/features/invites/token';
 import { HOTDOGS_BUCKET } from '../src/lib/storage';
 
-// TASK-032 — E2E hardening for the /snacktum-snacktorum/procession + /snacktum-snacktorum/dogs/[id] flows (closes
+// TASK-032 — E2E hardening for the /snacktum-snacktorum/procession + /snacktum-snacktorum/litter/[id] flows (closes
 // DW-011 and the PR #45 review gaps). Unlike votes.e2e.ts / reactions.e2e.ts
 // (which drive PostgREST directly), this spec drives the REAL UI in a browser
 // against the LOCAL stack — the same browser-driven pattern as smoke.e2e.ts —
@@ -404,13 +404,13 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		expect(await voteCount(dog)).toBe(1);
 
 		// (1) View ANOTHER member's dog detail (RLS SELECT for authenticated members).
-		await page.goto(`/snacktum-snacktorum/dogs/${dog}`);
+		await page.goto(`/snacktum-snacktorum/litter/${dog}`);
 		await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible();
 		await expect(page.getByText(caption)).toBeVisible();
 
 		// (2) The signed-URL image actually renders and decodes in the browser.
 		// Scope to the detail page's own image container (.dog-image, the
-		// dogs/[id]/+page.svelte wrapper around the signed-URL <img>) — NOT a bare
+		// litter/[id]/+page.svelte wrapper around the signed-URL <img>) — NOT a bare
 		// page.locator('img'). The rebuilt persistent shell (App Chrome) renders
 		// <img> elements that precede the page content in the DOM — always the brand
 		// wordmark (img.shell-brand-mark in the shell +layout.svelte), and possibly
@@ -433,12 +433,12 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		await expect(page.getByText('Peak votes: 1')).toBeVisible();
 
 		// (4) A non-existent dog id returns 404 (not 500, no SDK internals leaked).
-		const missing = await page.goto(`/snacktum-snacktorum/dogs/${crypto.randomUUID()}`);
+		const missing = await page.goto(`/snacktum-snacktorum/litter/${crypto.randomUUID()}`);
 		expect(missing?.status(), 'a non-existent dog id 404s').toBe(404);
 		await expect(page.getByText('No such hot dog.')).toBeVisible();
 
 		// (5) A MALFORMED (non-uuid) dog id also returns 404 — no 500 / SDK leak.
-		const malformed = await page.goto('/snacktum-snacktorum/dogs/not-a-real-uuid');
+		const malformed = await page.goto('/snacktum-snacktorum/litter/not-a-real-uuid');
 		expect(malformed?.status(), 'a malformed dog id 404s').toBe(404);
 	});
 });

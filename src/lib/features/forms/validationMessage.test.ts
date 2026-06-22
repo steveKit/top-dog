@@ -205,5 +205,19 @@ describe('validationMessage', () => {
 				'Thy Word upon the Shrine runs too long.'
 			);
 		});
+
+		it('uses the Relic Image voice when the required upload photo field is empty', () => {
+			// Your Litter (TASK-095) names the upload photo field the "Relic Image";
+			// an empty offering reads in the cult voice, not the bare generic fallback.
+			expect(validationMessage({ label: 'Relic Image', failure: 'valueMissing' })).toBe(
+				'Choose a relic image to offer.'
+			);
+		});
+
+		it('matches the Relic Image special-case case-insensitively and trimmed', () => {
+			expect(validationMessage({ label: '  RELIC IMAGE  ', failure: 'valueMissing' })).toBe(
+				'Choose a relic image to offer.'
+			);
+		});
 	});
 });

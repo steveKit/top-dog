@@ -146,7 +146,7 @@ describe('(protected)/snacktum-snacktorum/+layout.server load', () => {
 			await callLoad({
 				safeGetSession,
 				supabase: makeSupabase(null),
-				url: new URL('https://x/snacktum-snacktorum/profile/someone')
+				url: new URL('https://x/snacktum-snacktorum/shrine/someone')
 			});
 		} catch (e) {
 			thrown = e;
@@ -279,7 +279,7 @@ describe('(protected)/snacktum-snacktorum/+layout.server load — champion sub-b
 				supabase: makeSupabase(null, null, {
 					championError: { message: 'champion boom', code: '500' }
 				}),
-				url: new URL('https://x/snacktum-snacktorum/profile/someone')
+				url: new URL('https://x/snacktum-snacktorum/shrine/someone')
 			});
 		} catch (e) {
 			thrown = e;

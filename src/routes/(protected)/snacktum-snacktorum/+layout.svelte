@@ -76,7 +76,7 @@
 	// The champion's profile, resolved from their handle (when crowned).
 	const championHref = $derived(
 		champion
-			? resolve('/(protected)/snacktum-snacktorum/profile/[handle]', { handle: champion.handle })
+			? resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', { handle: champion.handle })
 			: feedHref
 	);
 </script>
@@ -115,7 +115,7 @@
 			<a
 				class="shell-avatar"
 				class:is-champion={viewerIsChampion}
-				href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+				href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
 					handle: viewerHandle
 				})}
 				onclick={closeMobile}
@@ -222,7 +222,7 @@
 			<a
 				class="shell-sanctum"
 				class:is-champion={viewerIsChampion}
-				href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+				href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
 					handle: viewerHandle
 				})}
 				onclick={closeMobile}

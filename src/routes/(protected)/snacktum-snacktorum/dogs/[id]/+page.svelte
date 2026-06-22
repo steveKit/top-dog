@@ -55,8 +55,7 @@
 {/if}
 
 <p>
-	by <a
-		href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', { handle: owner.handle })}
+	by <a href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', { handle: owner.handle })}
 		>@{owner.handle || owner.display_name}</a
 	>
 </p>

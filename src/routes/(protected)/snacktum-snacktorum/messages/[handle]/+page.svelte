@@ -43,7 +43,7 @@
 		{counterparty.display_name}
 		<a
 			class="handle"
-			href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+			href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
 				handle: counterparty.handle
 			})}>@{counterparty.handle}</a
 		>

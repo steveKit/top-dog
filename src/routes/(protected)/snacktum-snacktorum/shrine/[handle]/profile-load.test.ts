@@ -61,6 +61,31 @@ vi.mock('$lib/features/reports/verdictStore', () => ({
 	getDogVerdictsForOwner: vi.fn()
 }));
 
+// Derived stat ledger (TASK-093): read-only aggregates assembled by loadShrineStats.
+// The aggregate queries are unit-tested in stats.test.ts; here we mock the assembler
+// and assert the load surfaces its result as `stats`. A real failure degrades to 0s
+// inside the module (the page is never blanked), so the load just passes it through.
+vi.mock('$lib/features/profiles/stats', () => ({
+	loadShrineStats: vi.fn(),
+	EMPTY_SHRINE_STATS: {
+		timesCrowned: 0,
+		franksOffered: 0,
+		totalDevotion: 0,
+		highestBlessing: 0,
+		disciplesSummoned: 0,
+		anointingsReceived: 0,
+		reactionsReceived: 0
+	}
+}));
+
+// The redeemed-invites head-count runs on the SERVICE client (after the gate), so
+// the load constructs one via getServiceClient() and passes it into loadShrineStats.
+// Mock it to a sentinel so we can assert it's threaded through.
+const SERVICE_CLIENT = { __service: true };
+vi.mock('$lib/server/supabase', () => ({
+	getServiceClient: vi.fn(() => SERVICE_CLIENT)
+}));
+
 import { load } from './+page.server';
 import { getProfileByHandle, getProfileById } from '$lib/features/profiles/profiles';
 import { listSpraysForProfile } from '$lib/features/mustard/sprays';
@@ -68,6 +93,19 @@ import { listWallMessages } from '$lib/features/walls/walls';
 import { getPublicUrl } from '$lib/storage';
 import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
 import { LIAR_BRAND_WINDOW_MS } from '$lib/features/reports/verdict';
+import { loadShrineStats } from '$lib/features/profiles/stats';
+
+// A representative non-zero ledger the mocked assembler returns by default, so the
+// load's passthrough of every field is exercised.
+const STATS = {
+	timesCrowned: 3,
+	franksOffered: 4,
+	totalDevotion: 2354,
+	highestBlessing: 1400,
+	disciplesSummoned: 6,
+	anointingsReceived: 12,
+	reactionsReceived: 488
+};
 
 const VIEWER_ID = '11111111-1111-4111-8111-111111111111';
 const VALID_USER = { id: VIEWER_ID, email: 'viewer@topdog.test' };
@@ -130,6 +168,7 @@ type LoadData = {
 	isWallOwner: boolean;
 	liarBrand: { active: boolean; brandCount: number; intensity: number };
 	isHeretic: boolean;
+	stats: typeof STATS;
 };
 
 async function callLoad(event: unknown): Promise<LoadData> {
@@ -151,6 +190,8 @@ beforeEach(() => {
 	// (no banners). Brand-specific tests override.
 	vi.mocked(getLiarBrandTimestamps).mockResolvedValue({ ok: true, data: [] });
 	vi.mocked(getDogVerdictsForOwner).mockResolvedValue({ ok: true, data: [] });
+	// Default: the assembler returns the representative non-zero ledger.
+	vi.mocked(loadShrineStats).mockResolvedValue(STATS);
 });
 
 describe('profile [handle] load', () => {
@@ -197,7 +238,9 @@ describe('profile [handle] load', () => {
 			isWallOwner: false,
 			// No LIAR brands and no confirmed-hamburger dog -> both banners off.
 			liarBrand: { active: false, brandCount: 0, intensity: 0 },
-			isHeretic: false
+			isHeretic: false,
+			// The derived stat ledger is surfaced from the assembler unchanged.
+			stats: STATS
 		});
 		// No avatar_path => no public-URL resolution.
 		expect(getPublicUrl).not.toHaveBeenCalled();
@@ -436,6 +479,29 @@ describe('profile [handle] load', () => {
 			expect(result.isHeretic).toBe(false);
 			expect(result.profile).toEqual(TARGET_PROFILE);
 			expect(console.error).toHaveBeenCalled();
+		});
+	});
+
+	// Derived stat ledger (TASK-093). The load assembles read-only aggregates via
+	// loadShrineStats keyed on the TARGET profile id (which IS the member's auth user
+	// id — profiles.id references auth.users — so it's passed as both the profile id
+	// and the inviter user id for the redeemed-invites count) and surfaces the result
+	// as `stats`. The RLS-scoped client runs every aggregate except the redeemed-invites
+	// head-count, which runs on the SERVICE client (passed second, after the gate). The
+	// aggregate queries themselves are unit-tested in stats.test.ts.
+	describe('derived stat ledger', () => {
+		it('assembles the ledger for the TARGET profile id and surfaces it as stats', async () => {
+			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
+
+			const result = await callLoad(event);
+
+			expect(loadShrineStats).toHaveBeenCalledWith(
+				event.locals.supabase,
+				SERVICE_CLIENT,
+				TARGET_PROFILE.id,
+				TARGET_PROFILE.id
+			);
+			expect(result.stats).toEqual(STATS);
 		});
 	});
 });

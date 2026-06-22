@@ -120,10 +120,10 @@
 	const confirmEmail = $derived(isConfirmEmail());
 	const formError = $derived(formField('error'));
 
-	// Received's "Enter →" target — the new profile page (the prior createProfile
+	// Received's "Enter →" target — the new Shrine page (the prior createProfile
 	// redirect target). Falls back to the typed handle if the echo is somehow empty.
 	const enterHref = $derived(
-		resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+		resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
 			handle: createdHandle || handle
 		})
 	);
@@ -424,7 +424,7 @@
 									// EARLY — do NOT call update()/applyAction(). Once the profile
 									// exists, any re-run of `load` (which update()'s invalidateAll
 									// triggers) finds the freshly-created profile and redirects to
-									// /snacktum-snacktorum/profile/<handle>, skipping the oath + Received. The action
+									// /snacktum-snacktorum/shrine/<handle>, skipping the oath + Received. The action
 									// returns NO redirect, so the only thing that could yank us off
 									// the rite is our own invalidate — so we must not invalidate
 									// here. The action echoes the canonical (server-validated)

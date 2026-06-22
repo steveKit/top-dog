@@ -270,7 +270,7 @@ async function signUpVoter(page: import('@playwright/test').Page): Promise<strin
 
 	await expect(page.getByRole('heading', { name: `Welcome, ${handle}` })).toBeVisible();
 	await page.getByRole('link', { name: 'Enter →' }).click();
-	await page.waitForURL(`**/snacktum-snacktorum/profile/${handle}`);
+	await page.waitForURL(`**/snacktum-snacktorum/shrine/${handle}`);
 
 	return handle;
 }

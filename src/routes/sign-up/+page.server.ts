@@ -67,7 +67,7 @@ export const load: PageServerLoad = async ({ url, locals: { supabase, safeGetSes
 	if (session && user) {
 		const existing = await getProfileById(supabase, user.id);
 		if (existing.ok && existing.data) {
-			throw redirect(303, `/snacktum-snacktorum/profile/${existing.data.handle}`);
+			throw redirect(303, `/snacktum-snacktorum/shrine/${existing.data.handle}`);
 		}
 		return { token, resumeAtProfile: true };
 	}

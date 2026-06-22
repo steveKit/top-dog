@@ -13,8 +13,11 @@
 > `procession`); TASK-093 rebuilt the profile as The Shrine (leaf `profile` → `shrine`,
 > URL now `/snacktum-snacktorum/shrine/[handle]`, + a derived stat ledger); TASK-094 re-themed
 > the mustard surface to Anoint (splat, 6h decay, persisting wall-notice, retired the prune →
-> `mustard_sprays` now append-only); **next: TASK-094-R (Reliquary) then the remaining leaf
-> pages (Litter/Relic, Epistles, Summon, Tribunal, Catechism, Lost Pilgrim).** The three complete gate
+> `mustard_sprays` now append-only); **TASK-094-R (Reliquary derived badge module + shelf —
+> PR #126, `870e401`) also complete, closing the Shrine cluster.** (094-R is a derived
+> sub-module, not counted in the `/16`.) **Next: the remaining leaf pages — TASK-095 Your
+> Litter → TASK-096 The Relic → TASK-097 Epistles → TASK-098 Summon → TASK-099 Tribunal →
+> TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -278,83 +281,6 @@ only the in-app `app` prefix moves.
 > prefix is `/snacktum-snacktorum` and the first leaf is renamed (`feed` → `procession`); the
 > remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
 > **TASK-093 (The Shrine) is next.**
-
-### TASK-094-R: The Reliquary — derived badge / honors module + shelf [`pending`] [`P3`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** mockup prompt #12 ("The Reliquary") + `design/pages/The Shrine.dc.html`
-(the shelf renders on the Shrine); **soft-couples with TASK-093** (the Shrine lays out the
-slot; this owns the module + shelf); TASK-087 (theme). **The pure module + tests are a
-separate file with no overlap — buildable in parallel with anything; only the
-profile-load wiring + shelf component collide with TASK-093.**
-
-**Scope / posture:** a **purely DERIVED, read-only** honors feature — pure functions over
-EXISTING tables, surfaced on the Shrine load. **NO new schema, NO migration, NO new write
-path, NO new dependency, NO new RPC.** Un-forgeable by construction (no client-settable
-badge state). Mirrors `voting/ranking.ts` / `mustard/decay.ts` / `reports/alarm.ts` /
-`reports/verdict.ts`. **Composes existing decisions #12/#13/#15/#27 — NOT a new numbered
-decision row** (recorded as a derived/scope note).
-
-**Acceptance Criteria:**
-
-- [ ] **New pure module `src/lib/features/badges/`** (e.g. `badges.ts`) — dependency-free,
-      no SvelteKit/Supabase imports in the pure part; takes a `BadgeInputs` value object
-      (already-loaded member facts) and returns earned + locked badge state (each badge:
-      id, earned, and for tiered badges the current tier + next threshold). The route load
-      assembles `BadgeInputs`; the module computes.
-- [ ] **Co-located TDD tests `badges.test.ts`** — each badge's earned/not-earned boundary
-      (at / just-below / just-above), every tier boundary, the all-locked (new member)
-      case, the all-earned case, defensive zero/missing inputs. Pure value-in/value-out.
-- [ ] **The v1 badge set — EXACTLY these, each VERIFIED derivable from existing schema:**
-  - **First Frank** — ≥1 `hot_dogs` (owner = member).
-  - **Crowned** — tiered 1/7/30, from `days_as_top_dog`.
-  - **Centurion** — `max(peak_votes)` ≥ 100 over the member's dogs.
-  - **The Summoner** — tiered, redeemed `invites` (`inviter_id` = member AND
-    `consumed_at is not null` — the authoritative spent signal, NOT `consumed_by`).
-  - **The Drenched** — tiered, `mustard_sprays` where `target_profile_id` = member.
-  - **Heretic** — owns a `confirmed_hamburger` verdict; **reuse `isHamburgerHeretic` /
-    `getDogVerdictsForOwner`**.
-  - **False Witness** (display label; badge id `liar` unchanged) — has a `hamburger_liars`
-    brand; **reuse `getLiarBrandTimestamps`** (decide _ever-branded_ vs _currently_ with
-    the designer; a relic shelf usually wants _ever_).
-  - **The Inquisitor** — tiered, `burger_verdicts` where `decided_by` = member.
-  - **Elder** — early member by `profiles.joined_at` (document a concrete threshold in the
-    module — a single source of truth, not a scattered magic number).
-- [ ] **Out of v1 — flag, do NOT build:** a total-votes-ever honor (the `votes` table
-      keeps only the one current vote — `UNIQUE(voter_id)`) and reign-streak honors
-      (`top_dog_days` records discrete days, not streak metadata). Note in the module
-      doc-comment + log as Discovered Work.
-- [ ] **Reliquary shelf component** (e.g. `src/lib/components/Reliquary.svelte`) —
-      presentational only (takes computed badge state as a prop; no badge logic in the
-      component), showing earned (lit) vs locked (dim) relics with tier indicators, per
-      the design. Mirrors `TopDogBadge` / `ProfilePoliceBanner`.
-- [ ] **Wired into the Shrine load** (`shrine/[handle]/+page.server.ts`) — gather inputs
-      via read-only queries on the RLS-scoped `event.locals.supabase`, build `BadgeInputs`,
-      run the module, pass the result to the page. **No service client** (no
-      anonymity-sensitive reads); **no write path.** A read failure degrades that badge to
-      locked. **Coordinate with TASK-093's stat ledger** — assemble the shared aggregates
-      once.
-- [ ] **‼️ Reporter anonymity preserved (decision #27):** no badge keys on the reporter
-      side. "Heretic" keys on the member's OWN dogs' verdicts; "False Witness" on the
-      member's OWN `hamburger_liars` brand; "Inquisitor" on `decided_by` = member. No
-      "heresies you've called" badge. Hard constraint.
-- [ ] **Code identifiers neutral** (HARD SCOPE): `badges`, `Reliquary`, `BadgeInputs`,
-      ids `first_frank`/`crowned`/`centurion`/`summoner`/`drenched`/`heretic`/`liar`/
-      `inquisitor`/`elder`. Cult names are copy/labels only.
-- [ ] **Purely derived / read-only:** no migration, no new write path, no new dependency,
-      no new RPC, no new schema. Un-forgeable. Grep at the end: no `create table` / no
-      manifest change / no new `.rpc(`.
-- [ ] **`@smoke` stays green** (the shelf renders on the Shrine the slice walks).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green (the new
-      `badges.test.ts` included), `@smoke` green, `@security` green. **No migration.**
-
-**Notes (for the implementer):** the textbook pure-render-time seam for this codebase —
-copy the shape of `voting/ranking.ts` / `mustard/decay.ts` / `reports/verdict.ts`. Reuse
-the existing verdict/liar helpers; only the count/max/threshold logic is new. The pure
-module is buildable first (design-independent); the shelf component is design-led. No new
-dependency; no schema; no new decision row.
-
----
 
 ### TASK-095: Your Litter (own-dogs gallery + upload) — rebuild from design + leaf `dogs` → `litter` [`pending`] [`P2`] [`L`]
 
@@ -663,6 +589,56 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-094-R: The Reliquary — derived badge / honors module + shelf [`complete`] [`P3`] [`M`]
+
+**Owner:** implementer — PR #126 (squash `870e401`), merged 2026-06-22. Reviewer APPROVE. 0 fix cycles (two minor no-action observations). A purely DERIVED, read-only honors feature: new pure `src/lib/features/badges/badges.ts` (`computeBadges`) + `src/lib/components/Reliquary.svelte`, wired into the Shrine load (reusing `loadShrineStats` values + existing `isHeretic`/liar-brand reads + one new RLS-client inquisitor head-count). Composes decisions #12/#13/#15/#27 — **no new decision row**; no migration / schema / RPC / dependency / service-client read. Reporter anonymity (#27) preserved structurally. Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 938/938, `@smoke` 5/5, `@security` 93/93. (Derived sub-module — not counted in the milestone `/16`.)
+
+The Reliquary closes the Shrine cluster (093 / 094 / 094-R) — a purely DERIVED, read-only
+honors feature that fills the badge placeholder TASK-093 left on the Shrine. New pure module
+`src/lib/features/badges/badges.ts` (`computeBadges(BadgeInputs)`) follows the project's
+self-contained-pure-module convention (no SvelteKit / Supabase imports, co-located unit tests
+— same shape as `voting/ranking.ts`, `mustard/decay.ts`, `reports/verdict.ts`), plus a new
+presentational `src/lib/components/Reliquary.svelte` shelf. Every badge is computed at render
+time from facts the app already keeps — **no migration / schema / RPC / dependency / write
+path / service-client read** — so the honors are un-forgeable by construction (nothing on the
+shelf is client-settable).
+
+**The v1 badge set** (neutral code ids; cult display labels live in the component): a flat
+`first_frank` (≥ 1 hot dog), four tiered relics — `crowned` 1 / 7 / 30 days as The Anointed
+Wiener, `summoner` 1 / 5 / 25 redeemed invites, `drenched` 1 / 10 / 50 anointings received,
+`inquisitor` 1 / 5 / 25 verdicts rendered (each tier = the highest threshold the count meets,
+with a `nextThreshold` for the shelf) — a flat `centurion` (a frank that ever bore ≥ 100
+votes, max `peak_votes`), an `elder` keyed on the founding-cohort cutoff
+`ELDER_CUTOFF_ISO = 2026-09-01` (a single named constant, not a scattered magic date), and two
+shame MARKS (`heretic`, `liar` = display "False Witness") rendered in a distinct disgrace
+register and excluded from the earned-honors tally. **`liar` is earned on EVER-branded, not
+currently-branded** — the relic is the lasting record of having borne false witness even after
+the decaying banner has faded (the live banner stays a separate `summarizeLiarBrand`
+derivation). All numeric inputs are default-safe (a missing / negative / non-finite read
+degrades that badge to locked, never throws).
+
+**Assembled once from already-loaded facts; no new aggregation pass.** The Shrine load builds
+the `BadgeInputs` value object by REUSING the `loadShrineStats` aggregates (TASK-093) — including
+the service-client redeemed-invites count for `summoner`, so there is **no second service-client
+read** — plus the existing `isHeretic` / liar-brand reads, and adds exactly **one new RLS-client
+`inquisitor` head-count** (`burger_verdicts` where `decided_by` = the member). **Decision #27
+reporter anonymity is preserved BY CONSTRUCTION:** no input keys on the reporter side of a report
+— `heretic` keys on the member's OWN dogs' verdicts, `liar` on the member's OWN brand, and
+`inquisitor` on the adjudicator's OWN public action (`decided_by` = the member); there is
+deliberately no "heresies you've called" badge. The feature **composes decisions #12 / #13 / #15
+/ #27 — no new numbered decision row**.
+
+Reviewer APPROVE, 0 fix cycles (two minor no-action observations). Gates at merge (live stack):
+`pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 938/938, `@smoke` 5/5, `@security` 93/93. As a
+derived sub-module it is **not counted in the milestone `/16`** (M8 stays 9/16). Discovered: two
+honors are out of v1 because they would need NEW persisted tracking the app does not keep — a
+**total-votes-ever** honor (the `votes` table keeps only the current vote per voter,
+`UNIQUE(voter_id)`) and **reign-streak** honors (`top_dog_days` records discrete days, not
+consecutive-run metadata) — logged DW-037 (the v1 `crowned` relic tiers on cumulative
+`days_as_top_dog` instead).
+
+---
 
 ### TASK-094: "Anoint" — mustard re-theme (splat + 6h decay + persisting wall notice + prune retirement) [`complete`] [`P2`] [`M`]
 

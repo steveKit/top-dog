@@ -36,11 +36,12 @@ new deps.** **Skin not skeleton:**
 each rebuild preserves its `+page.server.ts` (load + actions) and re-wires all data/feature
 plumbing; no table/RPC/TS-symbol or infra rename.
 
-> **Task set (re-scoped): 9 complete + 8 pending.** Complete: TASK-087 (theme) + TASK-080
+> **Task set (re-scoped): 10 complete + 7 pending.** Complete: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) + TASK-090
 > (slug refactor — PR #115) + TASK-091 (The Procession — PR #117) + TASK-093 (The Shrine —
-> PR #122) + TASK-094 (Anoint re-theme — PR #124; the M8 migration + decision #29). Pending:
-> per-page rebuilds — **TASK-094-R** Reliquary (derived module), **TASK-095** Your Litter,
+> PR #122) + TASK-094 (Anoint re-theme — PR #124; the M8 migration + decision #29) + TASK-094-R
+> (The Reliquary — PR #126; derived badge module, closes the Shrine cluster). Pending:
+> per-page rebuilds — **TASK-095** Your Litter,
 > **TASK-096** The Relic, **TASK-097** Epistles+Whispers, **TASK-098** Summon, **TASK-099**
 > Tribunal, **TASK-100** Catechism, **TASK-101** The Lost Pilgrim (error/404). The old
 > pending tasks TASK-081/084/085/086/088/089 are **superseded/folded** (TASK-081 copy →
@@ -65,9 +66,11 @@ plumbing; no table/RPC/TS-symbol or infra rename.
 > the Shrine mustard surface re-themed to a splat, overlay decay 24h→6h, a persisting
 > render-derived anoint→wall-notice, and the **M8 migration** retiring `prune_mustard_sprays`
 > (+ keep-alive prune step removed in lockstep) — **architecture decision #29 (mustard_sprays
-> retention; table now append-only)**. The remaining work is the per-page rebuilds from the
-> delivered mockups (**TASK-094-R Reliquary next, then Litter/Relic, Epistles, Summon,
-> Tribunal, Catechism, Lost Pilgrim**).
+> retention; table now append-only)**. **TASK-094-R (The Reliquary) then LANDED 2026-06-22**
+> (PR #126, `870e401`): a purely derived badge/honors module + shelf on the Shrine (composes
+> #12/#13/#15/#27, no new decision row, no migration/dep) — **closing the Shrine cluster.**
+> The remaining work is the per-page leaf rebuilds from the delivered mockups (**TASK-095 Your
+> Litter next, then The Relic, Epistles, Summon, Tribunal, Catechism, Lost Pilgrim**).
 > TASK-087 (theme, PR #99 `dcce8c3`): the M8 FOUNDATION — a tokenized dark-temple CSS layer
 > (`src/lib/styles/tokens.css`) every rebuild consumes via `var(--…)` tokens (accents via
 > `data-accent`), self-hosted SIL OFL Cinzel + Cormorant Garamond `.woff2` (no CDN/package).

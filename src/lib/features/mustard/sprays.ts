@@ -101,7 +101,7 @@ export async function addSpray(
 
 /**
  * Fetches the live (not-yet-fully-faded) sprays on a target profile, ordered by
- * spray time. Filtered to the last MUSTARD_LIFESPAN_MS (24h) so fully-decayed
+ * spray time. Filtered to the last MUSTARD_LIFESPAN_MS (6h) so fully-decayed
  * sprays — which render at opacity 0 anyway — aren't shipped to the client and
  * the payload stays bounded. RLS exposes all sprays to authenticated members
  * (public flair), so no owner filter is needed.

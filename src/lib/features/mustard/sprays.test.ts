@@ -24,7 +24,7 @@ import { MUSTARD_LIFESPAN_MS } from './decay';
 //   3. a 42501 (RLS WITH-CHECK / not-the-Top-Dog) maps to the NOT_TOP_DOG sentinel;
 //   4. a 23514 (CHECK backstop) maps to a friendly position error;
 //   5. an unrelated Supabase error maps to a friendly sentinel (raw text not leaked);
-//   6. listSpraysForProfile filters to the last 24h and shapes the rows the render
+//   6. listSpraysForProfile filters to the last 6h and shapes the rows the render
 //      path needs.
 
 const SPRAYER = 'sprayer-uuid';
@@ -220,7 +220,7 @@ describe('listSpraysForProfile', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('selects the render columns for the target, filtered to the last 24h, ordered by spray time', async () => {
+	it('selects the render columns for the target, filtered to the last 6h, ordered by spray time', async () => {
 		const rows: SprayRow[] = [
 			{ id: 's1', x: 0.1, y: 0.2, sprayed_at: '2026-06-16T06:00:00Z' },
 			{ id: 's2', x: 0.3, y: 0.4, sprayed_at: '2026-06-16T11:00:00Z' }
@@ -232,7 +232,7 @@ describe('listSpraysForProfile', () => {
 		expect(from).toHaveBeenCalledWith('mustard_sprays');
 		expect(select).toHaveBeenCalledWith('id, x, y, sprayed_at');
 		expect(eq).toHaveBeenCalledWith('target_profile_id', TARGET);
-		// The 24h cutoff is exactly now - MUSTARD_LIFESPAN_MS as an ISO string.
+		// The 6h cutoff is exactly now - MUSTARD_LIFESPAN_MS as an ISO string.
 		const expectedCutoff = new Date(Date.now() - MUSTARD_LIFESPAN_MS).toISOString();
 		expect(gte).toHaveBeenCalledWith('sprayed_at', expectedCutoff);
 		expect(order).toHaveBeenCalledWith('sprayed_at', { ascending: true });

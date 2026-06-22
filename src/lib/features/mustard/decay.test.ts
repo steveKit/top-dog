@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 
 import { mustardOpacity, MUSTARD_LIFESPAN_MS } from './decay';
 
-// PROJECT.md decision #15 (Mustard Mechanic): a mustard spray fades over 24h and
-// its opacity is computed at RENDER time from the stored `sprayed_at` timestamp —
-// no cron, no persisted decayed value. These tests pin that pure decay contract
-// (TASK-040): full at spray time, linear to 0 across 24h, clamped at both ends,
-// and tolerant of clock skew / mixed input forms.
+// PROJECT.md decision #15 (Mustard Mechanic): a mustard ("Anoint") splat fades
+// over 6h (M8 TASK-094 / OQ-2d — shortened from the original 24h) and its opacity
+// is computed at RENDER time from the stored `sprayed_at` timestamp — no cron, no
+// persisted decayed value. These tests pin that pure decay contract: full at spray
+// time, linear to 0 across 6h, clamped at both ends, and tolerant of clock skew /
+// mixed input forms.
 
 // Fixed reference instant so each case reads as the age it pins, not as Date
 // plumbing. All cases derive `now` (or `sprayedAt`) from this anchor.
@@ -14,8 +15,8 @@ const NOW_MS = Date.UTC(2026, 5, 16, 12, 0, 0); // 2026-06-16T12:00:00.000Z
 const HOUR_MS = 60 * 60 * 1000;
 
 describe('MUSTARD_LIFESPAN_MS', () => {
-	it('is exactly 24 hours in milliseconds', () => {
-		expect(MUSTARD_LIFESPAN_MS).toBe(24 * 60 * 60 * 1000);
+	it('is exactly 6 hours in milliseconds (OQ-2d: shortened from 24h)', () => {
+		expect(MUSTARD_LIFESPAN_MS).toBe(6 * 60 * 60 * 1000);
 	});
 });
 
@@ -24,24 +25,24 @@ describe('mustardOpacity — decay curve', () => {
 		expect(mustardOpacity(NOW_MS, NOW_MS)).toBe(1.0);
 	});
 
-	it('returns ~0.5 at the half-life (age 12h)', () => {
-		const sprayedAt = NOW_MS - 12 * HOUR_MS;
+	it('returns ~0.5 at the half-life (age 3h)', () => {
+		const sprayedAt = NOW_MS - 3 * HOUR_MS;
 		expect(mustardOpacity(sprayedAt, NOW_MS)).toBeCloseTo(0.5, 10);
 	});
 
-	it('returns ~0.75 at quarter-life (age 6h) — linearity sanity', () => {
-		const sprayedAt = NOW_MS - 6 * HOUR_MS;
+	it('returns ~0.75 at quarter-life (age 1.5h) — linearity sanity', () => {
+		const sprayedAt = NOW_MS - 1.5 * HOUR_MS;
 		expect(mustardOpacity(sprayedAt, NOW_MS)).toBeCloseTo(0.75, 10);
 	});
 
-	it('returns ~0.25 at three-quarter-life (age 18h) — linearity sanity', () => {
-		const sprayedAt = NOW_MS - 18 * HOUR_MS;
+	it('returns ~0.25 at three-quarter-life (age 4.5h) — linearity sanity', () => {
+		const sprayedAt = NOW_MS - 4.5 * HOUR_MS;
 		expect(mustardOpacity(sprayedAt, NOW_MS)).toBeCloseTo(0.25, 10);
 	});
 });
 
 describe('mustardOpacity — expiry clamping', () => {
-	it('returns exactly 0.0 at the moment of expiry (age = 24h)', () => {
+	it('returns exactly 0.0 at the moment of expiry (age = 6h)', () => {
 		const sprayedAt = NOW_MS - MUSTARD_LIFESPAN_MS;
 		expect(mustardOpacity(sprayedAt, NOW_MS)).toBe(0.0);
 	});
@@ -51,7 +52,7 @@ describe('mustardOpacity — expiry clamping', () => {
 		expect(mustardOpacity(sprayedAt, NOW_MS)).toBe(0.0);
 	});
 
-	it('returns a small positive value just before expiry (age = 24h - 1ms)', () => {
+	it('returns a small positive value just before expiry (age = 6h - 1ms)', () => {
 		const sprayedAt = NOW_MS - (MUSTARD_LIFESPAN_MS - 1);
 		const opacity = mustardOpacity(sprayedAt, NOW_MS);
 		expect(opacity).toBeGreaterThan(0);
@@ -75,7 +76,8 @@ describe('mustardOpacity — future-timestamp guard (clock skew)', () => {
 });
 
 describe('mustardOpacity — input flexibility (Date | ISO string | epoch ms)', () => {
-	const sprayedMs = NOW_MS - 12 * HOUR_MS;
+	// Half-life under the 6h lifespan is 3h, so a 3h-old spray reads ~0.5.
+	const sprayedMs = NOW_MS - 3 * HOUR_MS;
 
 	it('accepts epoch milliseconds', () => {
 		expect(mustardOpacity(sprayedMs, NOW_MS)).toBeCloseTo(0.5, 10);

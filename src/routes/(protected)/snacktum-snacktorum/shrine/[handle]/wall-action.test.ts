@@ -30,7 +30,8 @@ vi.mock('$lib/features/profiles/profiles', () => ({
 vi.mock('$lib/features/mustard/sprays', () => ({
 	addSpray: vi.fn(),
 	listSpraysForProfile: vi.fn(),
-	NOT_TOP_DOG: 'Only the current Top Dog can spray mustard.'
+	listAnointmentsForProfile: vi.fn(),
+	NOT_TOP_DOG: 'Only The Anointed Wiener may anoint a disciple in mustard.'
 }));
 
 vi.mock('$lib/features/walls/walls', () => ({

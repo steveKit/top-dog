@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { addSpray, listSpraysForProfile, NOT_TOP_DOG, type SprayRow } from './sprays';
+import {
+	addSpray,
+	listSpraysForProfile,
+	listAnointmentsForProfile,
+	NOT_TOP_DOG,
+	type SprayRow
+} from './sprays';
 import { MUSTARD_LIFESPAN_MS } from './decay';
 
 // Unit tests for the server-side mustard-spray wrappers with a fully mocked
@@ -46,6 +52,23 @@ function makeListClient(result: { data: unknown; error: unknown }) {
 	const from = vi.fn().mockReturnValue({ select });
 	const client = { from } as unknown as SupabaseClient;
 	return { client, from, select, eq, gte, order };
+}
+
+/**
+ * A fake SupabaseClient for the FULL anoint-history path:
+ * `.from(...).select(...).eq(...).order(...).limit(...)` resolves `{ data, error }`.
+ * Note the SHAPE difference from makeListClient: there is NO `.gte(...)` (the
+ * un-time-bounded history is not capped to the 6h overlay window), and the chain
+ * ends in `.limit(...)` (the most-recent cap).
+ */
+function makeHistoryClient(result: { data: unknown; error: unknown }) {
+	const limit = vi.fn().mockResolvedValue(result);
+	const order = vi.fn(() => ({ limit }));
+	const eq = vi.fn(() => ({ order }));
+	const select = vi.fn(() => ({ eq }));
+	const from = vi.fn().mockReturnValue({ select });
+	const client = { from } as unknown as SupabaseClient;
+	return { client, from, select, eq, order, limit };
 }
 
 function pgError(code: string, message = 'some postgrest prose') {
@@ -178,7 +201,7 @@ describe('addSpray', () => {
 		if (!result.ok) {
 			expect(result.error).not.toMatch(/relation/i);
 			expect(result.error).not.toBe(NOT_TOP_DOG);
-			expect(result.error).toMatch(/could not spray/i);
+			expect(result.error).toMatch(/could not anoint/i);
 		}
 		// The raw error is logged server-side for debugging.
 		expect(console.error).toHaveBeenCalled();
@@ -231,6 +254,86 @@ describe('listSpraysForProfile', () => {
 		});
 
 		const result = await listSpraysForProfile(client, TARGET);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.error).not.toMatch(/relation/i);
+			expect(result.error).toMatch(/could not load/i);
+		}
+		expect(console.error).toHaveBeenCalled();
+	});
+});
+
+// listAnointmentsForProfile: the FULL persisted anoint history for the PERSISTING
+// anoint→wall notice (OQ-2e, decision #29). Same RLS-scoped client + mustard_sprays
+// table as listSpraysForProfile but WITHOUT the 6h `gte` cutoff (the notice must NOT
+// age out at the overlay window), capped at the most-recent rows so the read stays
+// bounded.
+describe('listAnointmentsForProfile', () => {
+	beforeEach(() => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-06-16T12:00:00.000Z'));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
+
+	it('selects the render columns for the target with NO 6h cutoff, ordered desc, capped at 200', async () => {
+		const rows: SprayRow[] = [
+			// A row far OUTSIDE the 6h overlay window — the history fetch must still return
+			// it (no `gte` filter), proving the notice source persists past the overlay.
+			{ id: 's-old', x: 0.1, y: 0.2, sprayed_at: '2026-01-01T06:00:00Z' },
+			{ id: 's-new', x: 0.3, y: 0.4, sprayed_at: '2026-06-16T11:00:00Z' }
+		];
+		const { client, from, select, eq, order, limit } = makeHistoryClient({
+			data: rows,
+			error: null
+		});
+
+		const result = await listAnointmentsForProfile(client, TARGET);
+
+		expect(from).toHaveBeenCalledWith('mustard_sprays');
+		expect(select).toHaveBeenCalledWith('id, x, y, sprayed_at');
+		expect(eq).toHaveBeenCalledWith('target_profile_id', TARGET);
+		// Most-recent-first, capped at the documented ANOINT_HISTORY_CAP (200).
+		expect(order).toHaveBeenCalledWith('sprayed_at', { ascending: false });
+		expect(limit).toHaveBeenCalledWith(200);
+		expect(result).toEqual({ ok: true, data: rows });
+	});
+
+	it('does NOT apply a 6h `gte` window (no gte builder method is invoked)', async () => {
+		// The history builder chain has no `.gte` — assert the function never reaches for
+		// one (it would throw if it did, since the fake omits it). This pins the
+		// un-time-bounded contract distinct from listSpraysForProfile's 6h window.
+		const { client, eq } = makeHistoryClient({ data: [], error: null });
+
+		const result = await listAnointmentsForProfile(client, TARGET);
+
+		// The builder returned by `.eq(...)` exposes `.order`, NOT `.gte`.
+		const builder = vi.mocked(eq).mock.results[0]?.value as Record<string, unknown>;
+		expect(typeof builder.order).toBe('function');
+		expect(builder.gte).toBeUndefined();
+		expect(result).toEqual({ ok: true, data: [] });
+	});
+
+	it('coerces a null data payload to an empty array', async () => {
+		const { client } = makeHistoryClient({ data: null, error: null });
+
+		const result = await listAnointmentsForProfile(client, TARGET);
+
+		expect(result).toEqual({ ok: true, data: [] });
+	});
+
+	it('maps a Supabase error to a friendly sentinel (raw text not leaked) + logs', async () => {
+		const { client } = makeHistoryClient({
+			data: null,
+			error: pgError('42P01', 'relation "mustard_sprays" does not exist')
+		});
+
+		const result = await listAnointmentsForProfile(client, TARGET);
 
 		expect(result.ok).toBe(false);
 		if (!result.ok) {

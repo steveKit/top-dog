@@ -1,7 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getProfileByHandle, getProfileById } from '$lib/features/profiles/profiles';
-import { addSpray, listSpraysForProfile, NOT_TOP_DOG } from '$lib/features/mustard/sprays';
+import {
+	addSpray,
+	listSpraysForProfile,
+	listAnointmentsForProfile,
+	NOT_TOP_DOG
+} from '$lib/features/mustard/sprays';
 import {
 	postWallMessage,
 	listWallMessages,
@@ -82,8 +87,9 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		canSpray = viewerResult.data?.is_current_top_dog === true;
 	}
 
-	// Live sprays on this profile for render-time decay. A read failure degrades to
-	// an empty mustard layer rather than failing the whole page.
+	// Live sprays on this profile for render-time OVERLAY decay (bounded to the 6h
+	// MUSTARD_LIFESPAN_MS window — fully-faded splats render at opacity 0 anyway). A
+	// read failure degrades to an empty mustard layer rather than failing the page.
 	const spraysResult = await listSpraysForProfile(supabase, profile.id);
 	let sprays: { id: string; x: number; y: number; sprayed_at: string }[] = [];
 	if (!spraysResult.ok) {
@@ -93,6 +99,22 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		});
 	} else {
 		sprays = spraysResult.data;
+	}
+
+	// FULL anoint history for the PERSISTING anoint→wall notice (OQ-2e, decision #29).
+	// Unlike `sprays` (6h overlay window), the notice must persist as long as the
+	// source rows do — the prune job is retired — so this read is NOT time-bounded.
+	// Read-only on the same RLS-scoped client + table as the overlay fetch (no
+	// widening). A read failure degrades to no notices rather than failing the page.
+	const anointmentsResult = await listAnointmentsForProfile(supabase, profile.id);
+	let anointments: { id: string; x: number; y: number; sprayed_at: string }[] = [];
+	if (!anointmentsResult.ok) {
+		console.error('[profiles] failed to load anoint history', {
+			profileId: profile.id,
+			error: anointmentsResult.error
+		});
+	} else {
+		anointments = anointmentsResult.data;
 	}
 
 	// Latest wall messages for this profile (newest first). A read failure degrades
@@ -163,6 +185,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		avatarUrl,
 		sigilId,
 		sprays,
+		anointments,
 		canSpray,
 		wallMessages,
 		viewerId,
@@ -183,7 +206,7 @@ export const actions: Actions = {
 	spray: async ({ request, params, locals: { supabase, safeGetSession } }) => {
 		const { session, user } = await safeGetSession();
 		if (!session || !user) {
-			return fail(401, { message: 'You must be signed in to spray mustard.' });
+			return fail(401, { message: 'You must be signed in to anoint.' });
 		}
 
 		const targetResult = await getProfileByHandle(supabase, params.handle);
@@ -192,7 +215,7 @@ export const actions: Actions = {
 				handle: params.handle,
 				error: targetResult.error
 			});
-			return fail(500, { message: 'Could not spray mustard right now.' });
+			return fail(500, { message: 'Could not anoint right now.' });
 		}
 		if (!targetResult.data) {
 			return fail(404, { message: 'No such chef.' });
@@ -202,7 +225,7 @@ export const actions: Actions = {
 		const x = Number(formData.get('x'));
 		const y = Number(formData.get('y'));
 		if (!Number.isFinite(x) || !Number.isFinite(y)) {
-			return fail(400, { message: 'That spray position is invalid.' });
+			return fail(400, { message: 'That anointing position is invalid.' });
 		}
 
 		const result = await addSpray(supabase, user.id, targetResult.data.id, x, y);

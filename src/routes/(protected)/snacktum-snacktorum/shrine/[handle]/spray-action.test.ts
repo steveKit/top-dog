@@ -282,7 +282,7 @@ describe('profile spray action', () => {
 	it('maps any other addSpray failure to a 400 (not 403)', async () => {
 		vi.mocked(addSpray).mockResolvedValue({
 			ok: false,
-			error: 'Could not spray mustard right now.'
+			error: 'Could not anoint right now.'
 		});
 		const { event } = makeEvent({
 			session: VALID_SESSION,

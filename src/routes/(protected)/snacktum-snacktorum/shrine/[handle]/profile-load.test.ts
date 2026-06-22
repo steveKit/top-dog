@@ -78,6 +78,14 @@ vi.mock('$lib/features/profiles/stats', () => ({
 	}
 }));
 
+// The redeemed-invites head-count runs on the SERVICE client (after the gate), so
+// the load constructs one via getServiceClient() and passes it into loadShrineStats.
+// Mock it to a sentinel so we can assert it's threaded through.
+const SERVICE_CLIENT = { __service: true };
+vi.mock('$lib/server/supabase', () => ({
+	getServiceClient: vi.fn(() => SERVICE_CLIENT)
+}));
+
 import { load } from './+page.server';
 import { getProfileByHandle, getProfileById } from '$lib/features/profiles/profiles';
 import { listSpraysForProfile } from '$lib/features/mustard/sprays';
@@ -478,7 +486,9 @@ describe('profile [handle] load', () => {
 	// loadShrineStats keyed on the TARGET profile id (which IS the member's auth user
 	// id — profiles.id references auth.users — so it's passed as both the profile id
 	// and the inviter user id for the redeemed-invites count) and surfaces the result
-	// as `stats`. The aggregate queries themselves are unit-tested in stats.test.ts.
+	// as `stats`. The RLS-scoped client runs every aggregate except the redeemed-invites
+	// head-count, which runs on the SERVICE client (passed second, after the gate). The
+	// aggregate queries themselves are unit-tested in stats.test.ts.
 	describe('derived stat ledger', () => {
 		it('assembles the ledger for the TARGET profile id and surfaces it as stats', async () => {
 			const event = makeLoadEvent({ session: VALID_SESSION, user: VALID_USER });
@@ -487,6 +497,7 @@ describe('profile [handle] load', () => {
 
 			expect(loadShrineStats).toHaveBeenCalledWith(
 				event.locals.supabase,
+				SERVICE_CLIENT,
 				TARGET_PROFILE.id,
 				TARGET_PROFILE.id
 			);

@@ -4,9 +4,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { loadShrineStats, EMPTY_SHRINE_STATS } from './stats';
 
 // Unit coverage for the Shrine derived stat ledger (TASK-093). loadShrineStats
-// runs READ-ONLY aggregates over existing tables on the RLS-scoped client and
-// degrades each value to 0 on a read failure (the page is never blanked). There is
-// NO write path / NO new schema — these are pure reads composed into a ledger.
+// runs READ-ONLY aggregates over existing tables and degrades each value to 0 on a
+// read failure (the page is never blanked). There is NO write path / NO new schema
+// — these are pure reads composed into a ledger.
+//
+// Two clients are passed in: the RLS-scoped request client runs every aggregate
+// EXCEPT the redeemed-invites head-count, which runs on the SERVICE client because
+// `invites_select_own` RLS would zero it out on a cross-member Shrine view. We mock
+// both clients distinctly and assert `invites` is queried on the service client and
+// NOT on the RLS client.
 //
 // We fake the SupabaseClient's query-builder chain per table. Each builder is
 // thenable: head-count reads resolve `{ count }`; the hot_dogs read resolves
@@ -92,21 +98,32 @@ function makeSupabase(results: TableResults) {
 	};
 }
 
+// The redeemed-invites head-count runs on the SERVICE client; everything else on
+// the RLS client. This calls loadShrineStats with both, routing the `invites`
+// result to the service client and all other results to the RLS client, and
+// returns both fakes so tests can assert which client saw which table.
+async function loadWithSplitClients(results: TableResults, userId = USER_ID) {
+	const { invites, ...rlsResults } = results;
+	const rls = makeSupabase(rlsResults);
+	const service = makeSupabase(invites ? { invites } : {});
+
+	const stats = await loadShrineStats(rls, service, PROFILE_ID, userId);
+	return { stats, rls, service };
+}
+
 beforeEach(() => {
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
 describe('loadShrineStats', () => {
 	it('returns the all-zero ledger when a brand-new member has no rows anywhere', async () => {
-		const supabase = makeSupabase({});
-
-		const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
+		const { stats } = await loadWithSplitClients({});
 
 		expect(stats).toEqual(EMPTY_SHRINE_STATS);
 	});
 
 	it('aggregates every ledger field from the configured rows', async () => {
-		const supabase = makeSupabase({
+		const { stats } = await loadWithSplitClients({
 			top_dog_days: { count: 3 },
 			invites: { count: 6 },
 			mustard_sprays: { count: 12 },
@@ -120,8 +137,6 @@ describe('loadShrineStats', () => {
 				]
 			}
 		});
-
-		const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
 
 		expect(stats).toEqual({
 			timesCrowned: 3,
@@ -137,14 +152,12 @@ describe('loadShrineStats', () => {
 	});
 
 	it('counts only REDEEMED invites — filters on consumed_at IS NOT NULL', async () => {
-		const supabase = makeSupabase({ invites: { count: 2 } });
-
-		const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
+		const { stats, service } = await loadWithSplitClients({ invites: { count: 2 } });
 
 		expect(stats.disciplesSummoned).toBe(2);
 		// The redeemed-only signal keys on consumed_at (never nulled by FK), not
-		// consumed_by — asserted via the recorded filter chain.
-		const filters = supabase.__builders.invites.__filters as {
+		// consumed_by — asserted via the recorded filter chain on the SERVICE client.
+		const filters = service.__builders.invites.__filters as {
 			method: string;
 			args: unknown[];
 		}[];
@@ -155,27 +168,40 @@ describe('loadShrineStats', () => {
 	});
 
 	it('keys the redeemed-invites count on the INVITER user id', async () => {
-		const supabase = makeSupabase({ invites: { count: 1 } });
+		const { service } = await loadWithSplitClients({ invites: { count: 1 } });
 
-		await loadShrineStats(supabase, PROFILE_ID, USER_ID);
-
-		const filters = supabase.__builders.invites.__filters as {
+		const filters = service.__builders.invites.__filters as {
 			method: string;
 			args: unknown[];
 		}[];
 		expect(filters[0]).toEqual({ method: 'eq', args: ['inviter_id', USER_ID] });
 	});
 
+	it('issues the redeemed-invites head-count on the SERVICE client, never the RLS client', async () => {
+		// `invites_select_own` RLS zeroes this count on a cross-member Shrine view, so
+		// it MUST run on the service client (after the safeGetSession() gate). A
+		// head-count ships no rows, so it stays decision-#27-safe.
+		const { rls, service } = await loadWithSplitClients({ invites: { count: 4 } });
+
+		const serviceTables = service.__selects.map((s) => s.table);
+		expect(serviceTables).toContain('invites');
+
+		const rlsTables = rls.__selects.map((s) => s.table);
+		expect(rlsTables).not.toContain('invites');
+
+		// The invites read is a HEAD-count — ships no rows.
+		const invitesSelect = service.__selects.find((s) => s.table === 'invites');
+		expect(invitesSelect?.args).toEqual(['*', { count: 'exact', head: true }]);
+	});
+
 	it('degrades a single failing aggregate to 0 without failing the others', async () => {
-		const supabase = makeSupabase({
+		const { stats } = await loadWithSplitClients({
 			top_dog_days: { error: { message: 'crown boom' } },
 			invites: { count: 5 },
 			mustard_sprays: { count: 7 },
 			hotdog_reactions: { count: 9 },
 			hot_dogs: { data: [{ vote_count: 10, peak_votes: 10 }] }
 		});
-
-		const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
 
 		// The failing crown count is 0; everything else still resolves.
 		expect(stats.timesCrowned).toBe(0);
@@ -186,12 +212,19 @@ describe('loadShrineStats', () => {
 		expect(console.error).toHaveBeenCalled();
 	});
 
-	it('degrades the hot_dogs aggregate trio to 0 on a read error', async () => {
-		const supabase = makeSupabase({
-			hot_dogs: { error: { message: 'dogs boom' } }
+	it('degrades the redeemed-invites count to 0 on a service-client read error', async () => {
+		const { stats } = await loadWithSplitClients({
+			invites: { error: { message: 'invites boom' } }
 		});
 
-		const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
+		expect(stats.disciplesSummoned).toBe(0);
+		expect(console.error).toHaveBeenCalled();
+	});
+
+	it('degrades the hot_dogs aggregate trio to 0 on a read error', async () => {
+		const { stats } = await loadWithSplitClients({
+			hot_dogs: { error: { message: 'dogs boom' } }
+		});
 
 		expect(stats.franksOffered).toBe(0);
 		expect(stats.totalDevotion).toBe(0);
@@ -200,11 +233,9 @@ describe('loadShrineStats', () => {
 	});
 
 	it('handles a member with dogs that have zero votes (max/sum default to 0)', async () => {
-		const supabase = makeSupabase({
+		const { stats } = await loadWithSplitClients({
 			hot_dogs: { data: [{ vote_count: 0, peak_votes: 0 }] }
 		});
-
-		const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
 
 		expect(stats.franksOffered).toBe(1);
 		expect(stats.totalDevotion).toBe(0);
@@ -212,16 +243,14 @@ describe('loadShrineStats', () => {
 	});
 
 	it('keys the anointings count on target_profile_id and reactions on the owner-join', async () => {
-		const supabase = makeSupabase({
+		const { rls } = await loadWithSplitClients({
 			mustard_sprays: { count: 4 },
 			hotdog_reactions: { count: 9 }
 		});
 
-		await loadShrineStats(supabase, PROFILE_ID, USER_ID);
-
 		// Anointings RECEIVED are sprays whose TARGET is this member (a consequence
 		// borne), never sprays this member MADE.
-		const sprayFilters = supabase.__builders.mustard_sprays.__filters as {
+		const sprayFilters = rls.__builders.mustard_sprays.__filters as {
 			method: string;
 			args: unknown[];
 		}[];
@@ -229,7 +258,7 @@ describe('loadShrineStats', () => {
 
 		// Reactions RECEIVED are counted through the owning dog (hot_dogs.owner_id),
 		// never reactions this member GAVE (which would key on a reactor/user id).
-		const reactionFilters = supabase.__builders.hotdog_reactions.__filters as {
+		const reactionFilters = rls.__builders.hotdog_reactions.__filters as {
 			method: string;
 			args: unknown[];
 		}[];
@@ -255,7 +284,7 @@ describe('loadShrineStats', () => {
 		].sort();
 
 		it('queries ONLY the allowed received-consequence tables — never a reporter-side table', async () => {
-			const supabase = makeSupabase({
+			const { rls, service } = await loadWithSplitClients({
 				top_dog_days: { count: 1 },
 				invites: { count: 1 },
 				mustard_sprays: { count: 1 },
@@ -263,9 +292,11 @@ describe('loadShrineStats', () => {
 				hot_dogs: { data: [{ vote_count: 1, peak_votes: 1 }] }
 			});
 
-			await loadShrineStats(supabase, PROFILE_ID, USER_ID);
-
-			const queried = [...new Set(supabase.__selects.map((s) => s.table))].sort();
+			// The full set of tables read across BOTH clients (the invites head-count is
+			// on the service client; everything else on the RLS client).
+			const queried = [
+				...new Set([...rls.__selects.map((s) => s.table), ...service.__selects.map((s) => s.table)])
+			].sort();
 			expect(queried).toEqual(ALLOWED_TABLES);
 			// The reporter-side stores are NEVER touched — no reports-made aggregate.
 			expect(queried).not.toContain('burger_verdicts');
@@ -273,9 +304,7 @@ describe('loadShrineStats', () => {
 		});
 
 		it('returns a ledger with no reporter-side field (only received consequences)', async () => {
-			const supabase = makeSupabase({});
-
-			const stats = await loadShrineStats(supabase, PROFILE_ID, USER_ID);
+			const { stats } = await loadWithSplitClients({});
 
 			const keys = Object.keys(stats).sort();
 			expect(keys).toEqual(

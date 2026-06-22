@@ -4,10 +4,20 @@
 // There is NO write path and NO new schema: every value is a read-only aggregate
 // over EXISTING tables, surfaced as the derived stat ledger on The Shrine.
 //
-// All reads run on the RLS-scoped client (event.locals.supabase). None of these
-// are anonymity-sensitive (decision #27): only consequences BORNE by the member
-// are public (anointings received, reactions received). The reporter side is
-// NEVER surfaced here — there is deliberately no "reports made" / "heresies
+// Almost all reads run on the RLS-scoped client (event.locals.supabase). The ONE
+// exception is the redeemed-invites head-count ("Disciples Summoned"): the only
+// `invites` SELECT policy is `invites_select_own` (auth.uid() = inviter_id), so on
+// the normal CROSS-MEMBER Shrine view RLS would silently filter out 100% of the
+// target's invite rows and the count would read 0. That single count therefore
+// runs on the service client (passed in AFTER the safeGetSession() gate, the
+// established service-client-after-gate pattern), as a HEAD-count (no rows shipped)
+// filtered to this member's own redeemed invites — so it does NOT widen exposure
+// and is decision-#27-safe (the member's own summoning-contribution stat, public on
+// the Shrine, and the future "Summoner" badge input).
+//
+// None of these are anonymity-sensitive (decision #27): only consequences BORNE by
+// the member are public (anointings received, reactions received). The reporter
+// side is NEVER surfaced here — there is deliberately no "reports made" / "heresies
 // called" aggregate.
 //
 // Graceful degradation: each aggregate degrades to 0 on a read failure rather
@@ -71,10 +81,15 @@ async function countWhere(
 
 /**
  * Loads the derived stat ledger for a member by profile id. Read-only aggregates
- * over existing tables on the RLS-scoped client; each degrades to 0 independently
- * so a single failing read never blanks the page. The hot-dog vote_count /
- * peak_votes are server-maintained (decision #24) — summing/maxing them here is a
- * pure read, no write path.
+ * over existing tables; each degrades to 0 independently so a single failing read
+ * never blanks the page. The hot-dog vote_count / peak_votes are server-maintained
+ * (decision #24) — summing/maxing them here is a pure read, no write path.
+ *
+ * `supabase` is the RLS-scoped request client (event.locals.supabase) and runs
+ * every aggregate EXCEPT the redeemed-invites head-count. `serviceClient` is the
+ * service-role client (constructed AFTER the safeGetSession() gate) and runs ONLY
+ * that one count, because `invites_select_own` RLS would zero it out on a
+ * cross-member Shrine view (see the module header).
  *
  * `inviterUserId` is the member's auth user id (invites.inviter_id references
  * auth.users, not profiles — though for a member the two ids coincide). It is
@@ -83,6 +98,7 @@ async function countWhere(
  */
 export async function loadShrineStats(
 	supabase: SupabaseClient,
+	serviceClient: SupabaseClient,
 	profileId: string,
 	inviterUserId: string
 ): Promise<ShrineStats> {
@@ -90,9 +106,12 @@ export async function loadShrineStats(
 	const timesCrownedP = countWhere(supabase, 'top_dog_days', 'profile_id', profileId);
 
 	// Disciples Summoned — REDEEMED invites the member sent. `consumed_at` is the
-	// authoritative spent-signal (never nulled by FK), NOT `consumed_by`.
+	// authoritative spent-signal (never nulled by FK), NOT `consumed_by`. Runs on the
+	// SERVICE client: `invites_select_own` RLS would zero this out on a cross-member
+	// Shrine view. A HEAD-count ships no rows, so this is decision-#27-safe. Degrades
+	// to 0 on error, like every other aggregate.
 	const disciplesP = (async () => {
-		const { count, error } = await supabase
+		const { count, error } = await serviceClient
 			.from('invites')
 			.select('*', { count: 'exact', head: true })
 			.eq('inviter_id', inviterUserId)
@@ -153,7 +172,11 @@ export async function loadShrineStats(
 	const [timesCrowned, disciplesSummoned, anointingsReceived, dogs, reactionsReceived] =
 		await Promise.all([timesCrownedP, disciplesP, anointingsP, dogsP, reactionsP]);
 
+	// Seed from the all-zero ledger (the degradation baseline) and overlay the
+	// resolved aggregates, so any field a future read leaves unset stays at its 0
+	// default rather than going undefined.
 	return {
+		...EMPTY_SHRINE_STATS,
 		timesCrowned,
 		disciplesSummoned,
 		anointingsReceived,

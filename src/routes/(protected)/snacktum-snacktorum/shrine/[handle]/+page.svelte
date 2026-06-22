@@ -326,19 +326,19 @@
 			<label class="wall-post-label" for="wall-body">
 				<span class="field-label">Word upon the Shrine</span>
 				<span class="wall-post-hint">Leave word upon {displayName}'s shrine</span>
+				<textarea
+					id="wall-body"
+					name="body"
+					rows="3"
+					maxlength="1000"
+					required
+					bind:value={wallBody}
+					placeholder="Speak thy blessing, thy challenge, or thy praise…"
+					aria-invalid={validation.invalid('body')}
+					aria-describedby={validation.describedBy('body')}
+					oninput={validation.clearOnInput}
+				></textarea>
 			</label>
-			<textarea
-				id="wall-body"
-				name="body"
-				rows="3"
-				maxlength="1000"
-				required
-				bind:value={wallBody}
-				placeholder="Speak thy blessing, thy challenge, or thy praise…"
-				aria-invalid={validation.invalid('body')}
-				aria-describedby={validation.describedBy('body')}
-				oninput={validation.clearOnInput}
-			></textarea>
 			{#if validation.errors.body}
 				<p
 					class="field-error"

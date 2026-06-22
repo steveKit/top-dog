@@ -30,11 +30,17 @@ import type { SubmitFunction } from '@sveltejs/kit';
 
 import { classifyFailure, validationMessage } from './validationMessage';
 
+// The validatable form controls this layer drives: <input> AND <textarea> (both
+// participate in constraint validation, carry willValidate/validity/checkValidity,
+// and a name). The Shrine wall composer (TASK-093) is a required <textarea>, so the
+// canon must cover textareas, not inputs alone.
+type ValidatableField = HTMLInputElement | HTMLTextAreaElement;
+
 // Read the field's human label for messaging. Prefers the visible <span
 // class="field-label"> inside the wrapping <label> (the gate forms' pattern),
 // then a plain <label> text, then aria-label, then the name. Keeps the themed
 // message naming the field the way the user sees it.
-function fieldLabel(field: HTMLInputElement): string {
+function fieldLabel(field: ValidatableField): string {
 	const wrappingLabel = field.closest('label');
 	if (wrappingLabel) {
 		const span = wrappingLabel.querySelector('.field-label');
@@ -46,13 +52,15 @@ function fieldLabel(field: HTMLInputElement): string {
 	return field.name;
 }
 
-// The validatable form controls we care about: inputs that participate in
-// constraint validation and carry a name. willValidate is false for hidden /
-// disabled controls, so they're skipped automatically.
-function validatableInputs(form: HTMLFormElement): HTMLInputElement[] {
+// The validatable form controls we care about: inputs / textareas that
+// participate in constraint validation and carry a name. willValidate is false
+// for hidden / disabled controls, so they're skipped automatically.
+function validatableInputs(form: HTMLFormElement): ValidatableField[] {
 	return Array.from(form.elements).filter(
-		(el): el is HTMLInputElement =>
-			el instanceof HTMLInputElement && el.willValidate && el.name !== ''
+		(el): el is ValidatableField =>
+			(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) &&
+			el.willValidate &&
+			el.name !== ''
 	);
 }
 
@@ -89,7 +97,7 @@ export function createFormValidation(): FormValidation {
 	// Validate every control in the form, populate `errors`, focus the first
 	// invalid control, and return true when the form is valid.
 	function validate(form: HTMLFormElement): boolean {
-		let firstInvalid: HTMLInputElement | null = null;
+		let firstInvalid: ValidatableField | null = null;
 
 		for (const input of validatableInputs(form)) {
 			if (input.checkValidity()) {
@@ -129,7 +137,11 @@ export function createFormValidation(): FormValidation {
 	// re-appears on the next failed submit via re-validation.
 	const clearOnInput = (event: Event) => {
 		const input = event.currentTarget;
-		if (!(input instanceof HTMLInputElement) || input.name === '') return;
+		if (
+			!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) ||
+			input.name === ''
+		)
+			return;
 		if (errors[input.name]) {
 			clearError(input.name);
 		}

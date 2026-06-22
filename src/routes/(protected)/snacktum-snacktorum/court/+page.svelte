@@ -62,7 +62,7 @@
 				<div class="case-meta">
 					<p>
 						by <a
-							href={resolve('/(protected)/snacktum-snacktorum/profile/[handle]', {
+							href={resolve('/(protected)/snacktum-snacktorum/shrine/[handle]', {
 								handle: dog.ownerHandle
 							})}>@{dog.ownerHandle}</a
 						>

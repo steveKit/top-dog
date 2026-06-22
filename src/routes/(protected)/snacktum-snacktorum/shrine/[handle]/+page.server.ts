@@ -12,6 +12,7 @@ import { getPublicUrl } from '$lib/storage';
 import { parseSigilId } from '$lib/features/profiles/sigils';
 import { getLiarBrandTimestamps, getDogVerdictsForOwner } from '$lib/features/reports/verdictStore';
 import { summarizeLiarBrand, isHamburgerHeretic } from '$lib/features/reports/verdict';
+import { loadShrineStats } from '$lib/features/profiles/stats';
 
 // Profile view (TASK-011) + mustard spray/render (TASK-041) + message wall
 // (TASK-050). Fetches a profile by its (case-insensitive) handle and renders
@@ -141,6 +142,15 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		isHeretic = isHamburgerHeretic(heresyResult.data);
 	}
 
+	// Derived stat ledger (TASK-093) — read-only aggregates over existing tables on
+	// the RLS-scoped client. NO new schema, NO write path; each aggregate degrades
+	// to 0 internally rather than failing the page. `profiles.id` references
+	// `auth.users(id)`, so the member's profile id IS their auth user id — passed as
+	// `inviterUserId` for the redeemed-invites count (`invites.inviter_id` →
+	// auth.users). Days as The Anointed Wiener stays on `profile.days_as_top_dog`.
+	// Reporter-side counts are deliberately absent (decision #27 anonymity).
+	const stats = await loadShrineStats(supabase, profile.id, profile.id);
+
 	return {
 		profile,
 		avatarUrl,
@@ -151,7 +161,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase, safeGet
 		viewerId,
 		isWallOwner,
 		liarBrand,
-		isHeretic
+		isHeretic,
+		stats
 	};
 };
 

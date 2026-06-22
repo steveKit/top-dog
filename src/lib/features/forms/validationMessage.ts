@@ -66,6 +66,10 @@ const SEAL_LABELS = new Set(['seal', 'new seal', 'confirm the seal']);
 // Special-case it so the rite's required/charset failures read in the cult
 // voice rather than the bare generic "Speak thy Casing." fallback.
 const NAME_LABELS = new Set(['casing']);
+// The Shrine wall composer (TASK-093) names its body field the "Word upon the
+// Shrine". Special-case its required failure so an empty word reads in the cult
+// voice rather than the bare generic "Speak thy Word upon the Shrine." fallback.
+const WORD_LABELS = new Set(['word upon the shrine']);
 
 function isEmailLabel(label: string): boolean {
 	return EMAIL_LABELS.has(label.trim().toLowerCase());
@@ -79,6 +83,10 @@ function isNameLabel(label: string): boolean {
 	return NAME_LABELS.has(label.trim().toLowerCase());
 }
 
+function isWordLabel(label: string): boolean {
+	return WORD_LABELS.has(label.trim().toLowerCase());
+}
+
 // Map a field's classified failure to a themed, field-naming message in the cult
 // voice. Pure: same inputs always yield the same string, no DOM, no I/O.
 export function validationMessage(context: FieldMessageContext): string {
@@ -86,12 +94,14 @@ export function validationMessage(context: FieldMessageContext): string {
 	const email = isEmailLabel(label);
 	const seal = isSealLabel(label);
 	const name = isNameLabel(label);
+	const word = isWordLabel(label);
 
 	switch (failure) {
 		case 'valueMissing':
 			if (email) return 'Speak thy Mustard Address.';
 			if (seal) return 'A Seal is required to pass.';
 			if (name) return 'Inscribe thy Casing.';
+			if (word) return 'Speak a word upon the shrine.';
 			return `Speak thy ${label}.`;
 
 		case 'typeMismatch':

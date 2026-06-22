@@ -185,7 +185,7 @@ describe('hooks.server', () => {
 		it('redirects unauthenticated requests to nested /snacktum-snacktorum paths', async () => {
 			authStub.getSession.mockResolvedValue({ data: { session: null } });
 
-			const { thrown } = await runGuard('/snacktum-snacktorum/profile/settings');
+			const { thrown } = await runGuard('/snacktum-snacktorum/shrine/settings');
 
 			expect(isRedirect(thrown)).toBe(true);
 			expect((thrown as { location: string }).location).toBe('/sign-in');

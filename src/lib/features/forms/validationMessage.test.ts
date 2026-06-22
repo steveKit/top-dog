@@ -167,4 +167,43 @@ describe('validationMessage', () => {
 			'The Order cannot accept thy Invite token.'
 		);
 	});
+
+	// The onboarding rite (TASK-092) names the @handle field the "Casing"; the Shrine
+	// wall composer (TASK-093) names its body the "Word upon the Shrine". Both add a
+	// themed valueMissing special-case so an empty field reads in the cult voice
+	// rather than the bare generic "Speak thy <label>." fallback. Pin them so a
+	// future label rename can't silently drop the special-case.
+	describe('themed field-label special-cases', () => {
+		it('uses the Casing voice when the required handle field is empty', () => {
+			expect(validationMessage({ label: 'Casing', failure: 'valueMissing' })).toBe(
+				'Inscribe thy Casing.'
+			);
+		});
+
+		it('matches the Casing special-case case-insensitively and trimmed', () => {
+			expect(validationMessage({ label: '  CASING  ', failure: 'valueMissing' })).toBe(
+				'Inscribe thy Casing.'
+			);
+		});
+
+		it('uses the Shrine voice when the wall composer (Word upon the Shrine) is empty', () => {
+			expect(validationMessage({ label: 'Word upon the Shrine', failure: 'valueMissing' })).toBe(
+				'Speak a word upon the shrine.'
+			);
+		});
+
+		it('matches the Word-upon-the-Shrine special-case case-insensitively and trimmed', () => {
+			expect(
+				validationMessage({ label: '  WORD UPON THE SHRINE  ', failure: 'valueMissing' })
+			).toBe('Speak a word upon the shrine.');
+		});
+
+		it('falls through to the generic non-valueMissing templates for the Shrine word field', () => {
+			// Only the valueMissing case is special-cased; a too-long body still uses
+			// the generic, label-naming template (the wall textarea has a maxlength).
+			expect(validationMessage({ label: 'Word upon the Shrine', failure: 'tooLong' })).toBe(
+				'Thy Word upon the Shrine runs too long.'
+			);
+		});
+	});
 });

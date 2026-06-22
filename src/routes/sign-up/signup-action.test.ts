@@ -201,7 +201,7 @@ describe('sign-up rite load', () => {
 		}
 
 		expect(isRedirect(thrown)).toBe(true);
-		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/profile/ChefDog');
+		expect((thrown as { location: string }).location).toBe('/snacktum-snacktorum/shrine/ChefDog');
 	});
 });
 

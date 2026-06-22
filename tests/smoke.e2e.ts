@@ -36,7 +36,7 @@ test('@smoke redeem invite, set handle, upload a dog, and see it rendered', asyn
 	// the handle typed at Inscribe failed to carry forward to the createProfile
 	// submission, surfacing "Please choose a handle." at the final Continue. If the
 	// handle does not survive Inscribe → register → Sigil → Renounce, the rite
-	// never reaches /snacktum-snacktorum/profile/<handle> and this test fails.
+	// never reaches /snacktum-snacktorum/shrine/<handle> and this test fails.
 	await page.goto(`/sign-up?token=${encodeURIComponent(token)}`);
 	await expect(page.getByRole('heading', { name: 'You Have Been Summoned' })).toBeVisible();
 
@@ -86,7 +86,7 @@ test('@smoke redeem invite, set handle, upload a dog, and see it rendered', asyn
 	// end-to-end through register + the in-page Sigil-forge advance.
 	await expect(page.getByRole('heading', { name: `Welcome, ${handle}` })).toBeVisible();
 	await page.getByRole('link', { name: 'Enter →' }).click();
-	await page.waitForURL(`**/snacktum-snacktorum/profile/${handle}`);
+	await page.waitForURL(`**/snacktum-snacktorum/shrine/${handle}`);
 	await expect(page.getByRole('heading', { name: handle, exact: false })).toBeVisible();
 	await expect(page.getByText(`@${handle}`)).toBeVisible();
 

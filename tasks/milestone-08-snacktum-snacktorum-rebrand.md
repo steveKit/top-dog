@@ -1,8 +1,8 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **13/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + seven rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **14/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + eight rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -22,8 +22,11 @@
 > `8764287`) rebuilt both DM pages + moved the leaf `messages` → `epistles` (+ `epistles/[handle]`),
 > both servers preserved.** **TASK-098 (Summon a Frank — PR #134, `dc7a229`) rebuilt the invite
 > page + moved the leaf `invite` → `summon` (`+page.server.ts` byte-identical / R100 rename,
-> the invite-mint action untouched; a copy-to-clipboard affordance added).** **Next: TASK-099
-> Tribunal → TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
+> the invite-mint action untouched; a copy-to-clipboard affordance added).** **TASK-099 (The
+> Tribunal — PR #136, `94de595`, 2026-06-23) rebuilt the court page as The Tribunal of the
+> Holy Tube + moved the leaf `court` → `tribunal` (`+page.server.ts` byte-identical / R100
+> rename — the double gate + anonymous flagged-dog aggregate + the `rule` verdict action all
+> untouched).** **Next: TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -281,60 +284,14 @@ only the in-app `app` prefix moves.
 ## Active Tasks
 
 > Re-scoped 2026-06-19. The completed gate/shell/theme tasks (the foundational slug
-> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098)
+> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098/099)
 > are in § Completed Tasks. Dispatch **only on explicit user instruction**, in the
-> § Dependencies & Sequencing order. **The slug refactor and six leaf rebuilds have landed** —
+> § Dependencies & Sequencing order. **The slug refactor and seven leaf rebuilds have landed** —
 > the in-app prefix is `/snacktum-snacktorum` and the leaves `feed`/`profile`/`dogs`/
-> `messages`/`invite` are renamed to `procession`/`shrine`/`litter`/`epistles`/`summon`
-> (`court`, `help` are still pre-rename, riding their own rebuild tasks). The remaining active
-> tasks are **TASK-099 (The Tribunal) → TASK-100 (The Catechism) → TASK-101 (The Lost
-> Pilgrim)**, with **TASK-099 (The Tribunal) next.**
-
-### TASK-099: The Tribunal (court) — rebuild from design + leaf `court` → `tribunal` [`pending`] [`P2`] [`L`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/The Tribunal.dc.html`; TASK-087
-(theme). Touches `src/routes/(protected)/snacktum-snacktorum/court/+page.svelte` (rebuild)
-
-- preserves its `+page.server.ts`; renames the leaf `court` → `tribunal`.
-
-**Scope:** rebuild the court `+page.svelte` from the mockup as **The Tribunal of the Holy
-Tube**, preserve the double-gated adjudication load + verdict action, re-wire, rename the
-leaf.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `The Tribunal.dc.html`** — the tribunal layout: the
-      flagged-frank docket, the verdict controls (confirm heresy / acquit), the cult-voiced
-      framing. Port DSL → Svelte 5 / tokens; reuse the police-tape components.
-- [ ] **`court/+page.server.ts` PRESERVED and re-wired** — the **double-gated**
-      adjudication (UI crown gate + the `render_burger_verdict` SECURITY DEFINER RPC's
-      authoritative DB gate on the non-client-writable `is_current_top_dog`, decision #25),
-      the **anonymous flagged-dog aggregate** (service-client after the gate, preserving
-      TASK-071 reporter anonymity, decision #27), and the verdict action are unchanged; the
-      new markup wires them. Do NOT delete/gut.
-- [ ] **‼️ Reporter anonymity + crown gate preserved (decisions #25/#27):** the flagged-dog
-      list stays an anonymous service-client aggregate AFTER the crown gate; never expose
-      reporter ids; the verdict write stays RPC-only.
-- [ ] **Champion-title copy = "The Anointed Wiener"** in the "Top Dog is the adjudicator"
-      framing (copy only). FALSE WITNESS / HERETIC labels applied per the design.
-- [ ] **Leaf-slug** `court` → `tribunal` (folder move); update the **crown-gated shell nav
-      link** (☩ The Tribunal) target + active-route check, and the gate stays driven by
-      `data.profile.is_current_top_dog` — not widened.
-- [ ] **Security/wiring unchanged:** the double gate + anonymity are load-bearing; no
-      `{@html}`.
-- [ ] **Responsive + accessible:** semantic docket, labeled verdict controls, visible
-      focus.
-- [ ] **Tests:** `court/court-action.test.ts` stays green (update for copy/markup).
-      `tests/burger-court.e2e.ts` green (update paths/copy if asserted).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, **`@security` green** (the court is a privileged surface). **No migration.**
-
-**Notes (for the implementer):** the Tribunal is the most authorization-sensitive page —
-the double gate (UI + DB RPC) and the anonymous aggregate are load-bearing; preserve them
-exactly. No new dependency; no schema; no new decision row.
-
----
+> `messages`/`invite`/`court` are renamed to `procession`/`shrine`/`litter`/`epistles`/`summon`/
+> `tribunal` (only `help` is still pre-rename, riding its own rebuild task). The remaining active
+> tasks are **TASK-100 (The Catechism) → TASK-101 (The Lost Pilgrim)**, with **TASK-100 (The
+> Catechism) next.**
 
 ### TASK-100: The Catechism (help) — rebuild from design + leaf `help` → `catechism` (accuracy-checked) [`pending`] [`P3`] [`M`]
 
@@ -418,6 +375,58 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-099: The Tribunal (court) — rebuild from design + leaf `court` → `tribunal` [`complete`] [`P2`] [`L`]
+
+**Owner:** implementer — PR #136 (squash `94de595`), merged 2026-06-23. Reviewer APPROVE, 0 fix cycles (one minor README path-drift finding → folded into this bookkeeping). All acceptance criteria verified met; every security invariant preserved.
+
+The seventh rebuild-from-design in-app page. The court `+page.svelte` was **rebuilt from
+`design/pages/The Tribunal.dc.html`** as The Tribunal of the Holy Tube — a skin-not-skeleton
+pass that rebuilt only the page's **main content** (the header/nav chrome and the champion
+sub-bar stay owned by the app shell) and **preserved the `+page.server.ts` byte-identical**.
+The mockup's DSL docket was ported to a Svelte 5 `{#each}` over the real `data.flagged` rows,
+and the mock's per-case visual states were mapped onto the **REAL `dog.verdict`** rather than
+a static mock: `null` (awaiting) renders the ⚠ ACCUSED police-tape plus both ruling buttons;
+`confirmed_hamburger` renders the **`ConfirmedHamburgerStamp`** component + a "Hamburger
+Heretic" treatment; `not_a_hamburger` renders the "False Witnesses" treatment. The existing
+`ConfirmedHamburgerStamp` flair component was **reused and re-placed** per the mock, not
+re-implemented (per the porting guide).
+
+**The `+page.server.ts` is byte-identical** — the whole `court` folder was `git mv`'d →
+`tribunal` as an **R100 rename**, so the adjudication server moved without a diff. Every
+load-bearing security invariant is therefore wholly untouched: the **double gate** (the UI
+crown redirect AND the `render_burger_verdict` SECURITY DEFINER RPC's authoritative re-check
+on the non-client-writable `is_current_top_dog`, decision #25), the **anonymous flagged-dog
+aggregate** (minted with the service client **after** the `safeGetSession()` gate, with the
+decision #27/#33 signed-URL handling for the cross-member private-bucket images), and the
+`rule` verdict action all stay verbatim. **Reporter anonymity is intact by construction** —
+the docket is driven only by `data.flagged` (no reporter ids surface; no service-client call
+was added to the component), and the `{#if data.profile?.is_current_top_dog}` crown gate on
+both navs is unchanged and not widened. The shell nav was updated `court` → `tribunal` (href +
+active-check + the crown-gated ☩ Tribunal link, desktop and mobile). The court is now at
+**`/snacktum-snacktorum/tribunal`**; only the `court` leaf moved this task (`help` remains
+pre-rename, riding TASK-100 — `feed`/`profile`/`dogs`/`messages`/`invite` already renamed to
+`procession`/`shrine`/`litter`/`epistles`/`summon`).
+
+This was a **skin-not-skeleton** pass: **no migration, no new dependency, no new
+architecture-decision row, and no code-identifier rename** — `confirmed_hamburger` /
+`not_a_hamburger` / `renderBurgerVerdict` / `is_current_top_dog` and every other DB/RPC/TS
+identifier stay as-is (decisions stay #1–#29, L2 preserved). Copy is the cult register ("The
+Anointed Wiener" / Hamburger Heretic / False Witness). The co-located action test was rescoped
+`tribunal-action.test.ts` (labels only — the action contract is unchanged, 23/23), and
+`tests/burger-court.e2e.ts` was **deliberately left unchanged** (a pure-PostgREST `@security`
+guard with no route/copy assertions). Reviewer APPROVE, **0 fix cycles**. The one finding —
+a stale `/snacktum-snacktorum/court` route path in `README.md` — was minor and folded into
+this bookkeeping (alongside a pre-existing `/snacktum-snacktorum/messages` README staleness
+from TASK-097's rename). Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean,
+`pnpm test` 946/946, `@smoke` 5/5, `@security` 93/93 (the burger-court double-gate / anonymity
+/ RPC-only-write guards all green). Did NOT close the milestone (M8 is 14/16 — TASK-100
+Catechism + TASK-101 Lost Pilgrim remain). Discovered: the presentational CSS class
+`shell-nav-court` in `+layout.svelte` was left as-is (it is a styling hook, not a route or
+code symbol) — a candidate to normalize to `shell-nav-tribunal` in the visual-tweak session,
+logged DW-040.
+
+---
 
 ### TASK-098: Summon a Frank (invite) — rebuild from design + leaf `invite` → `summon` [`complete`] [`P2`] [`M`]
 

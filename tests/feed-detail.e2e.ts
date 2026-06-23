@@ -432,10 +432,14 @@ test.describe.serial('@smoke feed + dog detail UI flows', () => {
 		await expect(page.getByText('Current votes: 1')).toBeVisible();
 		await expect(page.getByText('Peak votes: 1')).toBeVisible();
 
-		// (4) A non-existent dog id returns 404 (not 500, no SDK internals leaked).
+		// (4) A non-existent dog id returns 404 (not 500) and renders the designed
+		// "Lost Pilgrim" 404 page. The root +error.svelte deliberately suppresses
+		// page.error.message (L2 no-internal-detail-leak), so the raw server message
+		// ('No such hot dog.') must NOT appear — only the friendly themed copy does.
 		const missing = await page.goto(`/snacktum-snacktorum/litter/${crypto.randomUUID()}`);
 		expect(missing?.status(), 'a non-existent dog id 404s').toBe(404);
-		await expect(page.getByText('No such hot dog.')).toBeVisible();
+		await expect(page.getByText('Thou Hast Strayed')).toBeVisible();
+		await expect(page.getByText('No such hot dog.')).toHaveCount(0);
 
 		// (5) A MALFORMED (non-uuid) dog id also returns 404 — no 500 / SDK leak.
 		const malformed = await page.goto('/snacktum-snacktorum/litter/not-a-real-uuid');

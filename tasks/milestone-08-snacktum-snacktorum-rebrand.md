@@ -1,8 +1,8 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **14/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + eight rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **15/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + nine rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -26,7 +26,13 @@
 > Tribunal — PR #136, `94de595`, 2026-06-23) rebuilt the court page as The Tribunal of the
 > Holy Tube + moved the leaf `court` → `tribunal` (`+page.server.ts` byte-identical / R100
 > rename — the double gate + anonymous flagged-dog aggregate + the `rule` verdict action all
-> untouched).** **Next: TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
+> untouched).** **TASK-100 (The Catechism — PR #138, `e42087a`, 2026-06-23) rebuilt the
+> static how-it-works page as The Catechism + moved the leaf `help` → `catechism` (a static
+> page — no `+page.server.ts`; accuracy-checked against source, correcting the mockup's stale
+> "fades over about a day" Anoint copy to the real ~6h, and dropping the dangling kennel link →
+> DW-038 closed). With it, ALL in-app leaves are now renamed (procession / shrine / litter /
+> epistles / summon / tribunal / catechism) — no pre-rename leaves remain.** **Next: TASK-101
+> Lost Pilgrim (the only remaining task — completing it closes the milestone).** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -284,57 +290,15 @@ only the in-app `app` prefix moves.
 ## Active Tasks
 
 > Re-scoped 2026-06-19. The completed gate/shell/theme tasks (the foundational slug
-> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098/099)
+> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098/099/100)
 > are in § Completed Tasks. Dispatch **only on explicit user instruction**, in the
-> § Dependencies & Sequencing order. **The slug refactor and seven leaf rebuilds have landed** —
+> § Dependencies & Sequencing order. **The slug refactor and all eight leaf rebuilds have landed** —
 > the in-app prefix is `/snacktum-snacktorum` and the leaves `feed`/`profile`/`dogs`/
-> `messages`/`invite`/`court` are renamed to `procession`/`shrine`/`litter`/`epistles`/`summon`/
-> `tribunal` (only `help` is still pre-rename, riding its own rebuild task). The remaining active
-> tasks are **TASK-100 (The Catechism) → TASK-101 (The Lost Pilgrim)**, with **TASK-100 (The
-> Catechism) next.**
-
-### TASK-100: The Catechism (help) — rebuild from design + leaf `help` → `catechism` (accuracy-checked) [`pending`] [`P3`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/The Catechism.dc.html`; TASK-087
-(theme); **must reflect TASK-094's ~6h mustard change** (OQ-2d) if TASK-094 has landed.
-Touches `src/routes/(protected)/snacktum-snacktorum/help/+page.svelte` (rebuild — it has no
-`+page.server.ts`, static content); renames the leaf `help` → `catechism`.
-
-**Scope:** rebuild the help `+page.svelte` from the mockup as **The Catechism**, re-theme
-the copy to cult voice, **preserve mechanical accuracy** (it describes live mechanics),
-rename the leaf.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `The Catechism.dc.html`** — the catechism / illuminated
-      doctrine layout explaining what members can do, the **vote system** emphasized (one
-      movable vote, no self-vote, most votes → crown, sticky tie-break, days tally), plus
-      Top Dog powers, reactions, Anoint(mustard), walls & DMs, the Tribunal. Port DSL →
-      Svelte 5 / tokens. Static content (no load, no per-user data).
-- [ ] **‼️ Mechanical accuracy preserved** — the cult re-theme changes only the VOICE, not
-      any described BEHAVIOR. Re-verify every mechanic-bearing line against source
-      (`voting/ranking.ts`, `mustard/decay.ts`, `reports/verdict.ts`) exactly as TASK-075
-      did. **Update the mustard/Anoint lifespan copy from "~24h" → "~6h"** (OQ-2d /
-      `MUSTARD_LIFESPAN_MS`) in lockstep with TASK-094 — if TASK-094 lands first, reflect
-      ~6h; if this lands first, coordinate so the two don't disagree. Apply the FALSE
-      WITNESS / "The Anointed Wiener" labels.
-- [ ] **Leaf-slug** `help` → `catechism` (folder move); update the shell nav (The Catechism
-      link) + any "how it works" link in lockstep.
-- [ ] **XSS-safe:** fixed strings, no `{@html}`, no user content. `aria-labelledby`
-      sections.
-- [ ] **Responsive + accessible:** semantic sections, visible focus on any links.
-- [ ] **Tests:** no per-user tests (static), but `@smoke` green (if the shell/nav link is
-      asserted, update). Add/adjust nothing unless a test asserts catechism copy.
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, `@security` green. **No migration.**
-
-**Notes (for the implementer):** the Catechism is static but **accuracy-critical** — a
-re-themed line that misstates a mechanic is a bug. Cross-check every mechanic against
-source; the ~24h→~6h mustard update is the one factual change (it tracks
-`MUSTARD_LIFESPAN_MS`). No new dependency; no schema; no new decision row.
-
----
+> `messages`/`invite`/`court`/`help` are renamed to `procession`/`shrine`/`litter`/`epistles`/`summon`/
+> `tribunal`/`catechism`; **no pre-rename leaves remain.** The **single remaining active task is
+> TASK-101 (The Lost Pilgrim)** — the brand-new root `+error.svelte` page. **Completing it closes
+> the milestone:** the M8-close wiring audit re-passes and the director cuts the `milestone-08`
+> tag.
 
 ### TASK-101: The Lost Pilgrim — designed error / 404 page [`pending`] [`P3`] [`S`]
 
@@ -375,6 +339,59 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-100: The Catechism (help) — rebuild from design + leaf `help` → `catechism` (accuracy-checked) [`complete`] [`P3`] [`M`]
+
+**Owner:** implementer — PR #138 (squash `e42087a`), merged 2026-06-23. Reviewer APPROVE, 0 fix cycles (one minor README path-drift finding → folded into this bookkeeping). All acceptance criteria verified met; every mechanic-bearing line cross-checked accurate against source.
+
+The eighth — and final — rebuild-from-design in-app page, and the lightest kind: a **static**
+page (no `load`, no `actions`, no per-user data) rebuilt from `design/pages/The Catechism.dc.html`
+as **The Catechism**. The help `+page.svelte` was rebuilt as six illuminated "Article" sections
+in the cult voice — Of the Vote and the Crown, Powers of The Anointed Wiener, Of Reactions, Of
+the Anointing, Of Walls and Epistles, and The Tribunal of the Holy Tube — closing on a doxology
+outro. Like every other rebuild it rebuilt only the page's **main content** (the header/nav chrome
+stays owned by the app shell). The whole `help` folder was `git mv`'d → `catechism`; because the
+page is static there is **no `+page.server.ts`** to preserve — the move is purely the markup
+rebuild plus the slug change.
+
+**‼️ The headline is accuracy, not skin.** A static how-it-works page is only as good as it is
+true, and the mockup itself had drifted: it described the Anoint mustard as fading "over about a
+day". The implementer **corrected this to ~six hours**, matching `MUSTARD_LIFESPAN_MS = 6h` —
+the single source of truth shortened from 24h by TASK-094 / decision #29 (OQ-2d). Every other
+mechanic-bearing line was likewise cross-checked against source rather than against the mock:
+**FALSE WITNESS** fades over **7 days** (`LIAR_BRAND_WINDOW_MS`) and **HERETIC is permanent**,
+both verified against `reports/verdict.ts`; the vote/crown rules (a single movable vote, no
+self-vote, most votes → the crown, the strict sticky tie-break, the days-as-champion tally)
+and the report → ALARM → verdict flow were cross-checked against `voting/ranking.ts` +
+`reports/verdict.ts`; reactions' ranking-inertness was restated verbatim. Cult display labels
+were applied throughout (FALSE WITNESS, not HAMBURGER LIAR; The Anointed Wiener, not Top Dog) —
+**display copy only**, with no code-identifier touched.
+
+**DW-038 was fixed by construction.** The old page's dangling "← Back to your kennel" link —
+which pointed at the retired `/snacktum-snacktorum` hub (a needless 307 to The Procession, with
+stale pre-rebrand "kennel" wording) — was dropped entirely: the mockup ends at the doxology, and
+the app shell already provides all navigation, so there is nothing to re-point. DW-038 is closed
+by this task.
+
+The shell nav was updated `help` → `catechism` (href + active-check + the link, desktop and
+mobile), and the retired-hub `+page.svelte`'s comment path `/help` → `/catechism`. The page is
+now at **`/snacktum-snacktorum/catechism`**. With this rename, **every in-app leaf is now
+renamed** — procession / shrine / litter / epistles / summon / tribunal / catechism — so there
+are **no remaining pre-rename leaves**; only TASK-101's brand-new `+error.svelte` page is left in
+the milestone.
+
+This was a **skin-not-skeleton** pass at its very lightest: **no migration, no new dependency, no
+new architecture-decision row, and no code-identifier rename** — `hamburger_liars` /
+`summarizeLiarBrand` / `ProfilePoliceBanner` and every other DB/RPC/TS identifier stay as-is
+(FALSE WITNESS is display copy only; decisions stay #1–#29, L2 preserved). Reviewer APPROVE,
+**0 fix cycles**. The one finding — a stale `/snacktum-snacktorum/help` route path plus
+pre-rebrand "How Top Dog works" copy in `README.md` — was minor and folded into this bookkeeping.
+Gates at merge (live local stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 946/946,
+`@smoke` 5/5, `@security` 93/93. Did NOT close the milestone (M8 is 15/16 — only TASK-101 The
+Lost Pilgrim remains; completing it closes the milestone via the wiring audit + the
+`milestone-08` tag).
+
+---
 
 ### TASK-099: The Tribunal (court) — rebuild from design + leaf `court` → `tribunal` [`complete`] [`P2`] [`L`]
 

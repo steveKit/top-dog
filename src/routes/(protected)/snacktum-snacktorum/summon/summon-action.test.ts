@@ -3,8 +3,11 @@ import { isActionFailure } from '@sveltejs/kit';
 import { actions } from './+page.server';
 import { isValidTokenFormat } from '$lib/features/invites/token';
 
-// Test-after coverage for the authed invite-minting form action (project
-// strategy: test-after for form actions / wiring). The action is exercised with
+// Test-after coverage for the Summon page's authed invite-minting `create` form
+// action (project strategy: test-after for form actions / wiring). The page was
+// renamed invite -> summon; the +page.server.ts action is byte-identical, so the
+// contract under test ({ token } on success, fail(401)/fail(500)) is unchanged.
+// The action is exercised with
 // a fake `event` exposing `locals.supabase` + `locals.safeGetSession`. Key
 // invariants:
 //   - session is read via safeGetSession() (the validated path), never a raw
@@ -50,7 +53,7 @@ function makeEvent(opts: {
 	return { event, safeGetSession, rawGetSession, from, insert };
 }
 
-describe('(protected)/snacktum-snacktorum/invite create action', () => {
+describe('(protected)/snacktum-snacktorum/summon create action', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});

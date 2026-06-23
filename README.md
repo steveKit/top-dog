@@ -39,7 +39,7 @@ place and demoable:
 - **Message walls** — post a message to any member's profile wall; the wall owner
   or the message author can delete it. Walls are cosmetic only — they never affect
   votes or ranking.
-- **Direct messages** — send a private DM to another member at `/snacktum-snacktorum/messages`; the
+- **Direct messages** — send a private DM to another member at `/snacktum-snacktorum/epistles`; the
   inbox shows your conversations (with unread counts) and each thread lets you read
   and reply. Only the two participants can read a conversation.
 - **Hot-dog emoji rendering** — wall messages and DMs are filtered at render time so
@@ -48,7 +48,7 @@ place and demoable:
   transform is purely cosmetic and applied only when rendering.
 - **🍔 Hamburger Court** — report another member's dog as a hamburger; enough fresh
   reports trip a render-time **HAMBURGER ALARM** banner across the image (reporters
-  stay anonymous). The current Top Dog adjudicates at `/snacktum-snacktorum/court`: a "not a hamburger"
+  stay anonymous). The current Top Dog adjudicates at `/snacktum-snacktorum/tribunal`: a "not a hamburger"
   verdict brands the reporters **HAMBURGER LIAR** (fades over ~7 days), a "confirmed
   hamburger" verdict brands the uploader a persistent **HAMBURGER HERETIC**. Reporting
   and verdicts are cosmetic only — they never affect votes or the Top Dog ranking.

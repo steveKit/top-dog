@@ -581,7 +581,7 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   real working login form** (email/password → `signInWithPassword`, M8 TASK-082), so a
   seeded dev login (`dev@topdog.test`, created via the service-role client) is directly
   usable through the UI — or you can still use the **sign-up + invite path** (mint an
-  invite at `/snacktum-snacktorum/invite`, redeem via `/sign-up?token=…`). **A `supabase db reset` wipes
+  invite at `/snacktum-snacktorum/summon`, redeem via `/sign-up?token=…`). **A `supabase db reset` wipes
   any seeded user** — re-seed, or run `pnpm test:e2e --grep @smoke` (it mints
   `smoke-inviter@topdog.test`). **Forgot/reset password also exist** (M8 TASK-083):
   `/forgot-password` → a **6-digit recovery code** delivered locally to **Mailpit**
@@ -589,7 +589,8 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
 - **App navigation lives in the persistent shell, not a per-page nav (M8 TASK-080; in-app
   prefix renamed to `/snacktum-snacktorum` by TASK-090; feed leaf renamed to `procession` by
   TASK-091; profile leaf renamed to `shrine` by TASK-093; dogs leaf renamed to `litter` by
-  TASK-095).**
+  TASK-095; messages leaf renamed to `epistles` by TASK-097; invite leaf renamed to `summon` by
+  TASK-098).**
   `(protected)/snacktum-snacktorum/+layout.svelte` renders the persistent header/nav across
   every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/procession`;
   feed / Your Litter / Epistles / The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on
@@ -604,9 +605,11 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   per-page rebuilds. Done so far: TASK-091 `feed` → `procession`; TASK-093
   `profile/[handle]` → `shrine/[handle]` (now `/snacktum-snacktorum/shrine/[handle]`);
   TASK-095 `dogs` → `litter` (the whole folder, so `dogs/[id]` → `litter/[id]` rode along
-  rename-only — TASK-096 rebuilds The Relic at the already-renamed `litter/[id]`). The
-  remaining leaf names (`messages`, `invite`, `court`, `help`) are still UNCHANGED — their
-  renames ride TASK-097/098/099/100.**
+  rename-only — TASK-096 rebuilds The Relic at the already-renamed `litter/[id]`); TASK-097
+  `messages` → `epistles` (the whole folder, so `messages/[handle]` → `epistles/[handle]` rode
+  along); TASK-098 `invite` → `summon` (the whole folder, `+page.server.ts` byte-identical /
+  R100 rename). The remaining leaf names (`court`, `help`) are still UNCHANGED — their renames
+  ride TASK-099/100.**
 - **The app shell is FULL-BLEED — each child band self-caps; not-yet-rebuilt pages MUST
   self-cap or they sprawl to the viewport edge (M8 PR #119, the App Chrome rebuild).** The
   rebuilt `(protected)/snacktum-snacktorum/+layout.svelte` (matched to

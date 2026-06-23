@@ -1,8 +1,8 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
 > **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **12/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + six rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **13/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + seven rebuild-from-design pages done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -20,8 +20,10 @@
 > PR #130, `d07315f`) rebuilt the dog-detail page in place at `litter/[id]`, preserving the
 > decision-#27 signed-URL load byte-identical.** **TASK-097 (Epistles + Whispers — PR #132,
 > `8764287`) rebuilt both DM pages + moved the leaf `messages` → `epistles` (+ `epistles/[handle]`),
-> both servers preserved.** **Next: TASK-098 Summon → TASK-099 Tribunal → TASK-100 Catechism →
-> TASK-101 Lost Pilgrim.** The three complete gate
+> both servers preserved.** **TASK-098 (Summon a Frank — PR #134, `dc7a229`) rebuilt the invite
+> page + moved the leaf `invite` → `summon` (`+page.server.ts` byte-identical / R100 rename,
+> the invite-mint action untouched; a copy-to-clipboard affordance added).** **Next: TASK-099
+> Tribunal → TASK-100 Catechism → TASK-101 Lost Pilgrim.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -279,47 +281,14 @@ only the in-app `app` prefix moves.
 ## Active Tasks
 
 > Re-scoped 2026-06-19. The completed gate/shell/theme tasks (the foundational slug
-> refactor, TASK-090, and the first rebuild-from-design page, TASK-091) are in § Completed
-> Tasks. Dispatch **only on explicit user instruction**, in the § Dependencies & Sequencing
-> order. **TASK-090 (slug refactor) and TASK-091 (The Procession) have landed** — the in-app
-> prefix is `/snacktum-snacktorum` and the first leaf is renamed (`feed` → `procession`); the
-> remaining leaves are still pre-rename (their renames ride their own rebuild tasks);
-> **TASK-093 (The Shrine) is next.**
-
-### TASK-098: Summon a Frank (invite) — rebuild from design + leaf `invite` → `summon` [`pending`] [`P2`] [`M`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (paths); mockup `design/pages/Summon a Frank.dc.html`;
-TASK-087 (theme). Touches
-`src/routes/(protected)/snacktum-snacktorum/invite/+page.svelte` (rebuild) + preserves its
-`+page.server.ts`; renames the leaf `invite` → `summon`.
-
-**Scope:** rebuild the invite `+page.svelte` from the mockup as **Summon a Frank**,
-preserve the invite-minting load + action, re-wire, rename the leaf.
-
-**Acceptance Criteria:**
-
-- [ ] **`+page.svelte` rebuilt from `Summon a Frank.dc.html`** — the temple "summon" ritual
-      framing, the generated invite link display + copy affordance. Port DSL → Svelte 5 /
-      tokens.
-- [ ] **`invite/+page.server.ts` PRESERVED and re-wired** — the invite-mint load/action
-      (a unique invite link via the existing invite RPC/flow, decisions #17/#22/#23) is
-      unchanged; the new markup wires it. Do NOT delete/gut.
-- [ ] **Form-validation CANON** applied if the rebuilt form has a required field (e.g. a
-      "mint" trigger or any input the design adds); otherwise N/A for a single-button mint.
-- [ ] **Leaf-slug** `invite` → `summon` (folder move); update any link to invite (e.g. the
-      shell's ＋Summon target if it points at invite vs upload — verify which) in lockstep.
-- [ ] **Security/wiring unchanged:** load/action stay RLS-scoped; the invite token is
-      minted server-side; no `{@html}`.
-- [ ] **Responsive + accessible:** labeled copy-link control, visible focus.
-- [ ] **Tests:** `invite/invite-action.test.ts` stays green (update for copy/markup).
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, `@security` green. **No migration.**
-
-**Notes (for the implementer):** the invite mint is the growth path's source — preserve
-the single-use invite mechanics exactly. No new dependency; no schema; no new decision row.
-
----
+> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098)
+> are in § Completed Tasks. Dispatch **only on explicit user instruction**, in the
+> § Dependencies & Sequencing order. **The slug refactor and six leaf rebuilds have landed** —
+> the in-app prefix is `/snacktum-snacktorum` and the leaves `feed`/`profile`/`dogs`/
+> `messages`/`invite` are renamed to `procession`/`shrine`/`litter`/`epistles`/`summon`
+> (`court`, `help` are still pre-rename, riding their own rebuild tasks). The remaining active
+> tasks are **TASK-099 (The Tribunal) → TASK-100 (The Catechism) → TASK-101 (The Lost
+> Pilgrim)**, with **TASK-099 (The Tribunal) next.**
 
 ### TASK-099: The Tribunal (court) — rebuild from design + leaf `court` → `tribunal` [`pending`] [`P2`] [`L`]
 
@@ -449,6 +418,46 @@ No new dependency; no schema; no new decision row.
 ---
 
 ## Completed Tasks (this milestone)
+
+### TASK-098: Summon a Frank (invite) — rebuild from design + leaf `invite` → `summon` [`complete`] [`P2`] [`M`]
+
+**Owner:** implementer — PR #134 (squash `dc7a229`), merged 2026-06-23. Reviewer APPROVE, 0 fix cycles (two minor optional a11y enhancements noted for the tweak session). Rebuilt the invite `+page.svelte` from `Summon a Frank.dc.html` as Summon a Frank (main content only — header/nav chrome stays in the app shell); ported the DSL `<sc-if>` states to Svelte 5 runes bound to the REAL form contract (idle → minting → minted → error); added a copy-to-clipboard affordance. The whole `invite` folder was `git mv`'d → `summon` (`+page.server.ts` byte-identical / R100 rename — the `?/create` invite-mint action, decisions #17/#22/#23, untouched; the test renamed `invite-action.test.ts` → `summon-action.test.ts`, only its `describe` label + header comment rescoped). No migration / dep / decision row / code-identifier rename (`$lib/features/invites` untouched). Gates at merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 946/946, `@smoke` 5/5, `@security` 93/93.
+
+The sixth rebuild-from-design in-app page. The invite `+page.svelte` was **rebuilt from
+`design/pages/Summon a Frank.dc.html`** as Summon a Frank — a skin-not-skeleton pass that
+rebuilt only the page's **main content** (the header/nav chrome stays owned by the app
+shell) and **preserved the `+page.server.ts`** entirely. The mockup's DSL `<sc-if>` states
+were ported to **Svelte 5 runes** bound to the page's REAL form contract — the four states
+**idle → minting → minted → error** are driven from the actual `?/create` action result and
+the `use:enhance` lifecycle, not a static mock. A **copy-to-clipboard affordance** was added
+for the minted invite link (`navigator.clipboard.writeText` with a legacy `execCommand`
+fallback and a transient "Copied ✓"); this is **net-new over the original page**, which had
+no copy affordance at all.
+
+**The `+page.server.ts` is byte-identical** — the whole `invite` folder was `git mv`'d →
+`summon` as an **R100 rename**, so the invite-mint server moved without a diff. The
+load-bearing **`?/create` invite-mint action** (decisions #17/#22/#23 — single-use invites,
+the consumed-once guard keyed on `consumed_at`, owner-scoped issuance) is wholly untouched.
+The invite is now at **`/snacktum-snacktorum/summon`**; only the `invite` leaf moved this
+task (`court`, `help` remain pre-rename, riding their own rebuilds — `feed`/`profile`/`dogs`/
+`messages` already renamed to `procession`/`shrine`/`litter`/`epistles`). The co-located test
+was renamed `invite-action.test.ts` → `summon-action.test.ts` (only its `describe` label +
+header comment rescoped — the assertions are unchanged).
+
+This was a **skin-not-skeleton** pass at its lightest: **no migration, no new dependency, no
+new architecture-decision row, and no code-identifier rename** — `$lib/features/invites` and
+every DB/RPC identifier stay as-is (decisions stay #1–#29, L2 preserved). Reviewer APPROVE,
+**0 fix cycles**. The two findings the reviewer surfaced were **minor, optional, and additive
+over the original page** (which had no copy affordance), deferred to the visual-tweak session,
+not fixed: (1) the "Copied ✓" feedback has no `aria-live` / `role="status"` region, and (2)
+the legacy `execCommand` fallback path doesn't restore focus to the copy button. Gates at
+merge (live stack): `pnpm check` 0/0, `pnpm lint` clean, `pnpm test` 946/946, `@smoke` 5/5,
+`@security` 93/93. Did NOT close the milestone (M8 is 13/16). Discovered: the Summon page has
+**no inbound nav link**, and the app shell's "＋ Summon a Frank" header button actually targets
+**upload** (`/snacktum-snacktorum/litter`), not this invite page — a label/reachability clash
+logged DW-039, to be resolved in the visual-tweak session.
+
+---
 
 ### TASK-097: Epistles (DM inbox) + Whispers (DM thread) — rebuild from design + leaf `messages` → `epistles` [`complete`] [`P2`] [`L`]
 

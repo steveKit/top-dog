@@ -590,7 +590,8 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   prefix renamed to `/snacktum-snacktorum` by TASK-090; feed leaf renamed to `procession` by
   TASK-091; profile leaf renamed to `shrine` by TASK-093; dogs leaf renamed to `litter` by
   TASK-095; messages leaf renamed to `epistles` by TASK-097; invite leaf renamed to `summon` by
-  TASK-098; court leaf renamed to `tribunal` by TASK-099).**
+  TASK-098; court leaf renamed to `tribunal` by TASK-099; help leaf renamed to `catechism` by
+  TASK-100 — ALL in-app leaves are now renamed).**
   `(protected)/snacktum-snacktorum/+layout.svelte` renders the persistent header/nav across
   every `/snacktum-snacktorum` route (🌭 home → The Procession `/snacktum-snacktorum/procession`;
   feed / Your Litter / Epistles / The Catechism; ＋ Upload; a 🍔/☩ Tribunal link **gated on
@@ -610,9 +611,12 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   along); TASK-098 `invite` → `summon` (the whole folder, `+page.server.ts` byte-identical /
   R100 rename); TASK-099 `court` → `tribunal` (the whole folder, `+page.server.ts`
   byte-identical / R100 rename — the double gate + anonymous flagged-dog aggregate + `rule`
-  action untouched). So the renamed set is now
-  `procession`/`shrine`/`litter`/`epistles`/`summon`/`tribunal`, and **only `help` remains
-  pre-rename** — its `help` → `catechism` rename rides TASK-100.**
+  action untouched); TASK-100 `help` → `catechism` (the whole folder, a STATIC page so there is
+  **no `+page.server.ts`** — the move is the markup rebuild + slug change). So **all in-app
+  leaves are now renamed** — the complete set is
+  `procession`/`shrine`/`litter`/`epistles`/`summon`/`tribunal`/`catechism`, and **no leaf
+  remains pre-rename.** (Only TASK-101's brand-new root `+error.svelte` page is left in the
+  milestone.)**
 - **The app shell is FULL-BLEED — each child band self-caps; not-yet-rebuilt pages MUST
   self-cap or they sprawl to the viewport edge (M8 PR #119, the App Chrome rebuild).** The
   rebuilt `(protected)/snacktum-snacktorum/+layout.svelte` (matched to

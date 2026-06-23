@@ -55,8 +55,8 @@ place and demoable:
 - **Upload limits** — hot-dog and avatar uploads are hard-capped server-side (2 MiB
   per file at the Storage API, 100 hot dogs per member, plus a global storage guard),
   so the limits hold even against a direct API call, not just the upload form.
-- **In-app help** — a static "How Top Dog works" page at `/snacktum-snacktorum/help` explains the
-  mechanics (with the vote system emphasized) for anyone who needs a refresher.
+- **In-app help** — **The Catechism**, a static how-it-works page at `/snacktum-snacktorum/catechism`,
+  explains the mechanics (with the vote system emphasized) for anyone who needs a refresher.
 
 ## Stack
 

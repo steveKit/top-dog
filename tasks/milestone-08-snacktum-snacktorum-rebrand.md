@@ -1,8 +1,10 @@
 # Milestone M8: Snacktum Snacktorum — Rebrand & Redesign
 
-> **Status:** `active` — **BUILDING** (activated 2026-06-19; **RE-SCOPED 2026-06-19**).
-> **15/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
-> slug refactor + nine rebuild-from-design pages done: TASK-087 (theme) + TASK-080
+> **Status:** `complete` — **MILESTONE COMPLETE** (activated 2026-06-19; **RE-SCOPED
+> 2026-06-19**; **closed 2026-06-23**, tag `milestone-08-snacktum-snacktorum-rebrand`).
+> **16/16 complete** — auth cluster + theme + shell + onboarding rite + the foundational
+> slug refactor + ten designed surfaces (eight in-app page rebuilds + the onboarding rite +
+> the new error page) done: TASK-087 (theme) + TASK-080
 > (shell) + TASK-083 (password recovery) + TASK-082 (sign-in) + TASK-092 (onboarding rite) +
 > **TASK-090 (slug refactor — PR #115, 2026-06-20)** + **TASK-091 (The Procession — PR #117,
 > `dffaee5`, 2026-06-20)** + **TASK-093 (The Shrine — PR #122, `851fa0e`, 2026-06-22)** +
@@ -31,8 +33,15 @@
 > page — no `+page.server.ts`; accuracy-checked against source, correcting the mockup's stale
 > "fades over about a day" Anoint copy to the real ~6h, and dropping the dangling kennel link →
 > DW-038 closed). With it, ALL in-app leaves are now renamed (procession / shrine / litter /
-> epistles / summon / tribunal / catechism) — no pre-rename leaves remain.** **Next: TASK-101
-> Lost Pilgrim (the only remaining task — completing it closes the milestone).** The three complete gate
+> epistles / summon / tribunal / catechism) — no pre-rename leaves remain.** **TASK-101 (The
+> Lost Pilgrim — PR #140, `0d6a63d`, 2026-06-23) then CLOSED the milestone (16/16):** the
+> brand-new root `src/routes/+error.svelte` boundary (no `+page.server.ts`), driven by
+> `page.status` + `page.error` — a 404 → "Thou Hast Strayed", any other status → "A Disturbance
+> in the Tube" + the actual status numeral; it renders ONLY friendly copy + the numeric status,
+> never `page.error.message` (L2 no-leak, structural). 1 fix cycle (a `@smoke`-caught 404-render
+> interaction — the `litter/[id]` 404 now renders this page, suppressing its message, so the old
+> `feed-detail.e2e.ts` assertion was strengthened to assert the designed page + a positive
+> no-leak guard). The M8-close wiring audit re-passed and the milestone is CLOSED.** The three complete gate
 > pages (sign-in / forgot-password / reset-password) are finalized **and KEEP their
 > descriptive slugs** (`/sign-in`, `/forgot-password`, `/reset-password` — the user
 > finalized that these stay; they are NOT re-slugged).
@@ -49,7 +58,7 @@
 > cult routes, a per-page presentational rebuild of every remaining page, the
 > "Anoint" mustard re-theme, an error/404 page, and a derived honors Reliquary — plus
 > the champion-title copy swap "Top Dog" → **"The Anointed Wiener"** everywhere users
-> see it. **All designs are in hand** (`design/pages/`).
+> see it. **All designs are in hand\*\* (`design/pages/`).
 
 ---
 
@@ -290,55 +299,61 @@ only the in-app `app` prefix moves.
 ## Active Tasks
 
 > Re-scoped 2026-06-19. The completed gate/shell/theme tasks (the foundational slug
-> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098/099/100)
-> are in § Completed Tasks. Dispatch **only on explicit user instruction**, in the
-> § Dependencies & Sequencing order. **The slug refactor and all eight leaf rebuilds have landed** —
-> the in-app prefix is `/snacktum-snacktorum` and the leaves `feed`/`profile`/`dogs`/
-> `messages`/`invite`/`court`/`help` are renamed to `procession`/`shrine`/`litter`/`epistles`/`summon`/
-> `tribunal`/`catechism`; **no pre-rename leaves remain.** The **single remaining active task is
-> TASK-101 (The Lost Pilgrim)** — the brand-new root `+error.svelte` page. **Completing it closes
-> the milestone:** the M8-close wiring audit re-passes and the director cuts the `milestone-08`
-> tag.
+> refactor TASK-090 and the rebuild-from-design pages TASK-091/093/094/094-R/095/096/097/098/099/100/101)
+> are in § Completed Tasks. **The milestone is CLOSED (2026-06-23, 16/16).** The slug refactor and
+> all eight leaf rebuilds landed — the in-app prefix is `/snacktum-snacktorum` and the leaves
+> `feed`/`profile`/`dogs`/`messages`/`invite`/`court`/`help` are renamed to
+> `procession`/`shrine`/`litter`/`epistles`/`summon`/`tribunal`/`catechism`; **no pre-rename
+> leaves remain.** The final task, **TASK-101 (The Lost Pilgrim)** — the brand-new root
+> `+error.svelte` page — closed the milestone: the M8-close wiring audit re-passed and the
+> director cuts the `milestone-08-snacktum-snacktorum-rebrand` tag.
 
-### TASK-101: The Lost Pilgrim — designed error / 404 page [`pending`] [`P3`] [`S`]
-
-**Owner:** unassigned
-**Dependencies:** TASK-090 (final paths for the "return" link); mockup
-`design/pages/The Lost Pilgrim.dc.html`; TASK-087 (theme). `design-light` — an error
-boundary is standard SvelteKit; only copy/visual come from the mock.
-
-**Problem:** there is **no `+error.svelte`** anywhere — errors and 404s fall back to
-SvelteKit's default unstyled boundary.
-
-**Acceptance Criteria:**
-
-- [ ] **`src/routes/+error.svelte` rebuilt from `The Lost Pilgrim.dc.html`** — the root
-      error boundary: the haloed relic mark, the big `{{ status }}` numeral, the cult-voiced
-      eyebrow + line, and a "Return to the Procession →" CTA. Drive it from `page.status` +
-      `page.error` (`$app/state`): a **404** ("Thou Hast Strayed") vs a generic error
-      ("A Disturbance in the Tube"), mirroring the mock's `mode` (404/500) branching. The
-      CTA links to **The Procession** (the final feed slug — `/snacktum-snacktorum/procession`)
-      or `/` per the design.
-- [ ] **XSS-safe + no internal-detail leak:** `page.error.message` renders as escaped text
-      and **no sensitive internal error detail is shown** — friendly copy only (server logs
-      hold the detail). No `{@html}`.
-- [ ] **Optional nested `(protected)/snacktum-snacktorum/+error.svelte`** if the design
-      wants a distinct in-app error treatment (keeping the shell chrome). The root boundary
-      is the required minimum; decide the nested one with the design.
-- [ ] **Responsive + accessible:** semantic, visible focus on the CTA, the relic mark
-      `aria-hidden`.
-- [ ] **Tests:** none required (error boundary); `@smoke` / `@security` green.
-- [ ] **Gates green:** `pnpm check` 0, `pnpm lint` clean, `pnpm test` green, `@smoke`
-      green, `@security` green. **No migration.**
-
-**Notes (for the implementer):** the mock is a clean, near-direct port (`mode`/`eyebrow`/
-`status`/`line`/CTA). **Security:** never render raw stack traces or internal detail to the
-user (L2 / OWASP "security misconfiguration" + insufficient-logging awareness). Small task.
-No new dependency; no schema; no new decision row.
-
----
+_All tasks complete — see § Completed Tasks below. **Milestone closed 2026-06-23.**_
 
 ## Completed Tasks (this milestone)
+
+### TASK-101: The Lost Pilgrim — designed error / 404 page [`complete`] [`P3`] [`S`]
+
+**Owner:** implementer — PR #140 (squash `0d6a63d`), merged 2026-06-23. Reviewer APPROVE, 1 fix cycle (a `@smoke`-caught 404-rendering interaction — see Notes; resolved by strengthening the test, not the page). All acceptance criteria verified met. **This was the final M8 task — closes the milestone (16/16).**
+
+The ninth — and final — rebuild-from-design surface, and the only **brand-new** page of the
+milestone: a root error / 404 boundary at `src/routes/+error.svelte`, rebuilt from
+`design/pages/The Lost Pilgrim.dc.html`. Unlike every other M8 page this is not a re-slug or a
+markup swap over an existing route — there was no error boundary before, so this is **net-new
+markup with no `+page.server.ts`, no migration, no new dependency, and no new
+architecture-decision row** (decisions stay #1–#29, L2 preserved). The page is driven entirely
+by `page.status` + `page.error` from `$app/state`: a **404** renders the designed "Thou Hast
+Strayed" lost-pilgrim treatment, and **any other status** renders "A Disturbance in the Tube"
+with the actual status numeral interpolated. The CTA back home and the brand mark route via
+`resolve('/')`.
+
+**‼️ The security crux is what is NOT rendered.** The boundary renders **only friendly cult copy
+plus the numeric status** — `page.error.message` is **never** put on screen, and there is no
+`{@html}`. This is the L2 no-internal-detail-leak posture made structural: a server `error(...)`
+message (which can carry implementation detail) cannot leak through this page because the page
+has no code path that reads it. The director's one fix was a lint fix, not a logic change — a
+bare `href="/"` was changed to `resolve('/')` to satisfy `svelte/no-navigation-without-resolve`.
+
+**The single fix cycle was a `@smoke`-caught interaction, resolved by strengthening the test
+rather than the page.** `feed-detail.e2e.ts` had asserted on the literal text `'No such hot dog.'`
+— the message string that the `litter/[id]` load throws via `error(404, 'No such hot dog.')`.
+Now that this `+error.svelte` boundary exists, that 404 renders **this page**, which by design
+suppresses the message — so the old assertion broke. The tester updated it to the correct, and
+**stronger**, expectation: assert the designed page is shown (the "Thou Hast Strayed" copy is
+visible) **plus a positive no-leak guard** (the suppressed message `'No such hot dog.'` has a DOM
+count of 0). The breakage was the no-leak contract working as intended; the test now pins both
+the friendly-render and the no-leak halves.
+
+An optional nested in-app `+error.svelte` (a themed boundary inside the `/snacktum-snacktorum`
+shell, distinct from this root one) was deliberately **skipped as a future enhancement** — the
+root boundary covers every route, and the milestone scope was the one designed page. Reviewer
+APPROVE, 1 fix cycle. Gates at merge (live local stack): `pnpm check` 0/0, `pnpm lint` clean,
+`pnpm test` 946/946, `@smoke` 5/5, `@security` 93/93. **This was the final M8 task — it CLOSES
+the milestone (16/16):** the M8-close wiring audit re-passed (every new M8 export/component has a
+non-test consumer; the known orphaned _assets_ are tracked as DW-031, non-blocking), and the
+director cuts the `milestone-08-snacktum-snacktorum-rebrand` tag.
+
+---
 
 ### TASK-100: The Catechism (help) — rebuild from design + leaf `help` → `catechism` (accuracy-checked) [`complete`] [`P3`] [`M`]
 

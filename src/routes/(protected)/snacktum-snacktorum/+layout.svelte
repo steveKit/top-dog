@@ -53,8 +53,8 @@
 	const onMessages = $derived<Current>(
 		page.url.pathname.startsWith('/snacktum-snacktorum/epistles') ? 'page' : undefined
 	);
-	const onHelp = $derived<Current>(
-		page.url.pathname.startsWith('/snacktum-snacktorum/help') ? 'page' : undefined
+	const onCatechism = $derived<Current>(
+		page.url.pathname.startsWith('/snacktum-snacktorum/catechism') ? 'page' : undefined
 	);
 	const onTribunal = $derived<Current>(
 		page.url.pathname.startsWith('/snacktum-snacktorum/tribunal') ? 'page' : undefined
@@ -71,7 +71,7 @@
 	const feedHref = resolve('/(protected)/snacktum-snacktorum/procession');
 	const dogsHref = resolve('/(protected)/snacktum-snacktorum/litter');
 	const messagesHref = resolve('/(protected)/snacktum-snacktorum/epistles');
-	const helpHref = resolve('/(protected)/snacktum-snacktorum/help');
+	const catechismHref = resolve('/(protected)/snacktum-snacktorum/catechism');
 	const tribunalHref = resolve('/(protected)/snacktum-snacktorum/tribunal');
 	// The champion's profile, resolved from their handle (when crowned).
 	const championHref = $derived(
@@ -96,7 +96,7 @@
 			<a href={feedHref} aria-current={onFeed}>The Procession</a>
 			<a href={dogsHref} aria-current={onDogs}>Your Litter</a>
 			<a href={messagesHref} aria-current={onMessages}>Epistles</a>
-			<a href={helpHref} aria-current={onHelp}>The Catechism</a>
+			<a href={catechismHref} aria-current={onCatechism}>The Catechism</a>
 			<!-- The ☩ Tribunal of the Holy Tube is the current Top Dog's alone. Gated on
 			     the live, non-client-writable crown flag (decision #25); the tribunal
 			     route's own load + the DB RPC re-check it authoritatively. -->
@@ -208,7 +208,7 @@
 			<a href={feedHref} aria-current={onFeed} onclick={closeMobile}>The Procession</a>
 			<a href={dogsHref} aria-current={onDogs} onclick={closeMobile}>Your Litter</a>
 			<a href={messagesHref} aria-current={onMessages} onclick={closeMobile}>Epistles</a>
-			<a href={helpHref} aria-current={onHelp} onclick={closeMobile}>The Catechism</a>
+			<a href={catechismHref} aria-current={onCatechism} onclick={closeMobile}>The Catechism</a>
 			{#if data.profile?.is_current_top_dog}
 				<a
 					class="shell-nav-court"

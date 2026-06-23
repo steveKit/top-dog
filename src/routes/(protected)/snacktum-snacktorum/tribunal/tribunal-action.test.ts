@@ -1,13 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { isActionFailure, isRedirect, isHttpError } from '@sveltejs/kit';
 
-// Test-after coverage for the 🍔 Hamburger Court adjudication surface (TASK-073;
-// project strategy: test-after for load functions / form actions). The court is the
-// Top-Dog-only moderation surface: its load is CROWN-GATED (a non-Top-Dog is
-// redirected to /snacktum-snacktorum/procession and never sees the flagged-dog queue) and its `rule` action
-// passes only the dog id + verdict to renderBurgerVerdict on the RLS-scoped client —
-// the adjudicating Top Dog is derived server-side (auth.uid() INSIDE the RPC), NEVER a
-// client-supplied id (the sibling of the feed voter-id guard).
+// Test-after coverage for The Tribunal of the Holy Tube — the Top-Dog-only adjudication
+// surface (TASK-073; re-skinned as M8 TASK-099, route leaf court -> tribunal). The
+// +page.server.ts under test (the crown-gated load + the `rule` verdict action) is
+// preserved byte-identical across the rebuild; only the presentation changed, so this
+// action coverage is unchanged against the same contract. The Tribunal is the
+// Top-Dog-only moderation surface: its load is CROWN-GATED (a non-Top-Dog is redirected
+// to /snacktum-snacktorum/procession and never sees the flagged-dog queue) and its
+// `rule` action passes only the dog id + verdict to renderBurgerVerdict on the
+// RLS-scoped client — the adjudicating Top Dog is derived server-side (auth.uid() INSIDE
+// the RPC), NEVER a client-supplied id (the sibling of the feed voter-id guard).
 //
 // The verdictStore / profiles / storage modules are dependency-injected via their
 // import surface, so we mock the network-touching wrappers with vi.mock and assert the
@@ -22,8 +25,9 @@ import { isActionFailure, isRedirect, isHttpError } from '@sveltejs/kit';
 //
 // The crown EXISTS gate, the RPC-as-sole-write-path, ranking-inertness, and the
 // LIAR/HERETIC consequences are the authoritative DB guarantees — live-DB coverage in
-// tests/burger-court.e2e.ts (@security). summarizeReactions-style pure math isn't on
-// this surface; the REAL sentinels are kept so the action's mapping is faithful.
+// tests/burger-court.e2e.ts (@security; the verdict RPC + table identifiers are
+// unchanged code-level names). summarizeReactions-style pure math isn't on this
+// surface; the REAL sentinels are kept so the action's mapping is faithful.
 
 vi.mock('$lib/features/profiles/profiles', () => ({
 	getProfileById: vi.fn()
@@ -177,7 +181,7 @@ beforeEach(() => {
 	vi.mocked(renderBurgerVerdict).mockResolvedValue({ ok: true, data: 'verdict-1' });
 });
 
-describe('court load (crown gate)', () => {
+describe('tribunal load (crown gate)', () => {
 	it('reads the session via safeGetSession(), never raw getSession()', async () => {
 		asTopDog();
 		const { event, safeGetSession, rawGetSession } = makeLoadEvent({
@@ -325,7 +329,7 @@ describe('court load (crown gate)', () => {
 		const result = await loadData(event);
 
 		// Only per-dog metadata + an aggregate count reach the page — never owner_id or
-		// reporter ids (the court shows WHAT was flagged, not WHO reported).
+		// reporter ids (the Tribunal shows WHAT was flagged, not WHO reported).
 		const serialized = JSON.stringify(result);
 		expect(serialized).not.toContain('99999999-9999-4999-8999-999999999999');
 		expect(serialized).not.toMatch(/reporter_?id|owner_id/i);
@@ -369,7 +373,7 @@ describe('court load (crown gate)', () => {
 	});
 });
 
-describe('court rule action', () => {
+describe('tribunal rule action', () => {
 	it('reads the session via safeGetSession(), never raw getSession()', async () => {
 		const { event, safeGetSession, rawGetSession } = makeActionEvent({
 			session: VALID_SESSION,

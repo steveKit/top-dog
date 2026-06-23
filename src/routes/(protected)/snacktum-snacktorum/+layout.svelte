@@ -56,8 +56,8 @@
 	const onHelp = $derived<Current>(
 		page.url.pathname.startsWith('/snacktum-snacktorum/help') ? 'page' : undefined
 	);
-	const onCourt = $derived<Current>(
-		page.url.pathname.startsWith('/snacktum-snacktorum/court') ? 'page' : undefined
+	const onTribunal = $derived<Current>(
+		page.url.pathname.startsWith('/snacktum-snacktorum/tribunal') ? 'page' : undefined
 	);
 
 	function closeMobile() {
@@ -72,7 +72,7 @@
 	const dogsHref = resolve('/(protected)/snacktum-snacktorum/litter');
 	const messagesHref = resolve('/(protected)/snacktum-snacktorum/epistles');
 	const helpHref = resolve('/(protected)/snacktum-snacktorum/help');
-	const courtHref = resolve('/(protected)/snacktum-snacktorum/court');
+	const tribunalHref = resolve('/(protected)/snacktum-snacktorum/tribunal');
 	// The champion's profile, resolved from their handle (when crowned).
 	const championHref = $derived(
 		champion
@@ -98,10 +98,10 @@
 			<a href={messagesHref} aria-current={onMessages}>Epistles</a>
 			<a href={helpHref} aria-current={onHelp}>The Catechism</a>
 			<!-- The ☩ Tribunal of the Holy Tube is the current Top Dog's alone. Gated on
-			     the live, non-client-writable crown flag (decision #25); the court
+			     the live, non-client-writable crown flag (decision #25); the tribunal
 			     route's own load + the DB RPC re-check it authoritatively. -->
 			{#if data.profile?.is_current_top_dog}
-				<a class="shell-nav-court" href={courtHref} aria-current={onCourt}>☩ The Tribunal</a>
+				<a class="shell-nav-court" href={tribunalHref} aria-current={onTribunal}>☩ The Tribunal</a>
 			{/if}
 		</nav>
 
@@ -210,8 +210,11 @@
 			<a href={messagesHref} aria-current={onMessages} onclick={closeMobile}>Epistles</a>
 			<a href={helpHref} aria-current={onHelp} onclick={closeMobile}>The Catechism</a>
 			{#if data.profile?.is_current_top_dog}
-				<a class="shell-nav-court" href={courtHref} aria-current={onCourt} onclick={closeMobile}
-					>☩ The Tribunal</a
+				<a
+					class="shell-nav-court"
+					href={tribunalHref}
+					aria-current={onTribunal}
+					onclick={closeMobile}>☩ The Tribunal</a
 				>
 			{/if}
 		</nav>

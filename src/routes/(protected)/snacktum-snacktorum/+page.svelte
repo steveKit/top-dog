@@ -6,7 +6,7 @@
 	// practice; it remains only as a minimal SSR fallback in case the redirect is
 	// somehow bypassed. The old inline nav now lives in the shell, and the Top Dog
 	// Privileges notice was retired in M8 — Top Dog powers are documented in the
-	// Catechism (`/snacktum-snacktorum/help`), and the crown-gated Tribunal nav link
+	// Catechism (`/snacktum-snacktorum/catechism`), and the crown-gated Tribunal nav link
 	// covers adjudication in the Court.
 </script>
 

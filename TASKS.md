@@ -58,6 +58,10 @@ activate one — the **planner** explodes a stub into its milestone file on acti
   **server-side allowlist** of operator ids (no schema, non-forgeable) over a
   non-client-writable `is_admin` column; this is distinct from the in-game "Anointed
   Wiener" role. Read-only monitoring for v1.
+  **Security item to fold in at activation — see [[tasks/discovered]] DW-041:**
+  `app_storage_bytes()` (the function M9's storage-used metric consumes) is currently
+  anon-callable (missing `revoke execute … from public, anon`); tighten its grants as
+  part of this milestone, or ship the one-line migration standalone sooner.
 
 Other future work is tracked in [[tasks/discovered]].
 

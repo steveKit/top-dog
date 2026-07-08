@@ -624,7 +624,7 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
 - **The app shell is FULL-BLEED — each child band self-caps; not-yet-rebuilt pages MUST
   self-cap or they sprawl to the viewport edge (M8 PR #119, the App Chrome rebuild).** The
   rebuilt `(protected)/snacktum-snacktorum/+layout.svelte` (matched to
-  `design/pages/App Chrome.dc.html`) makes the nav header AND the "The Anointed Wiener"
+  `docs/design/snacktum-snacktorum/pages/App Chrome.dc.html`) makes the nav header AND the "The Anointed Wiener"
   champion sub-bar span the viewport edge-to-edge, content centered at a new token
   **`--measure-shell: 100rem` (1600px)** in `tokens.css` — the chrome content measure, distinct
   from **`--measure-content`** which still caps PAGE content. Implemented via `app.css`
@@ -661,7 +661,7 @@ anon, authenticated`. Easy to miss — apply it to every private helper RPC (e.g
   (the `.gate-mark`, 15rem) + `snacktum-snacktorum-header.svg` (the `.gate-header`
   wordmark)** via shared `.gate-mark`/`.gate-header` in `app.css`. So as of TASK-092:
   `snacktum-snacktorum-header.svg` is **WIRED**, and **`the-holy-tube.svg` is now
-  ORPHANED in app code** (only in `design/` mockups). **As of the App Chrome rebuild (PR #119)
+  ORPHANED in app code** (only in `docs/design/snacktum-snacktorum/` mockups). **As of the App Chrome rebuild (PR #119)
   the wordmark `snacktum-snacktorum-header.svg` is ALSO the app-shell brand** — the user kept
   the wordmark image rather than the mockup's holy-tube-icon+text lockup, so the wordmark is now
   used in BOTH the auth gates AND the app shell; `the-holy-tube.svg` stays orphaned. The 5 sigil

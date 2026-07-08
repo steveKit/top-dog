@@ -26,3 +26,4 @@ Chronological index of session handoffs for [[CLAUDE|Top Dog]]. One row per hand
 | [[Handoffs/handoff-018]] | 2026-06-20 | Advanced M8 from 5/16 to 7/16 — the foundational slug refactor (route tree → /snacktum-snacktorum), The Procession page, and a full-bleed App Chrome rebuild.              |
 | [[Handoffs/handoff-019]] | 2026-06-22 | Advanced M8 from 7/16 to 12/16 with six tasks — the Shrine cluster, Litter pair, and DM cluster; one migration + architecture decision #29 (append-only mustard_sprays).   |
 | [[Handoffs/handoff-020]] | 2026-06-23 | Took M8 from 12/16 to COMPLETE (16/16) and closed/tagged the milestone — Summon, Tribunal, Catechism, and error-boundary pages; all in-app leaves renamed.                 |
+| [[Handoffs/handoff-021]] | 2026-07-08 | Maintenance session — migrated to workflow v5 and relocated design artifacts `design/` → `docs/design/snacktum-snacktorum/`; no product tasks; M8 closed, M9 pending.      |

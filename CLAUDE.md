@@ -1,5 +1,7 @@
 # Top Dog
 
+workflow-version: 5
+
 Invite-only social app for showing off homemade hot dogs. See [[PROJECT]] for
 architecture decisions and [[TASKS]] for the work queue.
 
@@ -259,6 +261,8 @@ top-dog/
   SvelteKit guarantees it never ships to the browser.
 
 ## Testing Strategy
+
+testing-paradigm: adaptive
 
 - **Approach:** Adaptive. TDD-first for pure logic; test-after for UI/wiring.
 - **What to test (TDD-first):** vote/move-vote rules, ranking + sticky tie-break,

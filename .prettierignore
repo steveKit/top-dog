@@ -9,4 +9,4 @@ bun.lockb
 /static/
 
 # Design source (design-tool .dc.html exports + assets — not code, not formatted)
-/design/
+/docs/design/

@@ -1,3 +1,5 @@
+status: point-in-time (origin) — records design intent; superseded by code; do not update
+
 # Snacktum Snacktorum — Page Design Prompts
 
 Ready-to-paste design prompts for every **not-yet-designed** page of the

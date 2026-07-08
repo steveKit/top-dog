@@ -12,8 +12,8 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	// Design source (design-tool .dc.html exports + their vendor runtime JS) is not
-	// project code — never lint it (mirrors the /design/ rule in .prettierignore).
-	{ ignores: ['design/'] },
+	// project code — never lint it (mirrors the /docs/design/ rule in .prettierignore).
+	{ ignores: ['docs/design/'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

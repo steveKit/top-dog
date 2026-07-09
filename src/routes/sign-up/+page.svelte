@@ -6,6 +6,8 @@
 	import snacktumHeader from '$lib/assets/brand/snacktum-snacktorum-header.svg';
 	import Sigil from '$lib/components/Sigil.svelte';
 	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
+	import { validationMessage } from '$lib/features/forms/validationMessage';
+	import { isValidTokenFormat } from '$lib/features/invites/token';
 	import { errorSlideFade } from '$lib/motion/reducedMotion';
 	import {
 		SIGIL_IDS,
@@ -98,6 +100,23 @@
 	// fresh-registrant Inscribe credentials validation.
 	const resumeNameValidation = createFormValidation();
 
+	// Themed inline validation for the Summoned step's token field. That step
+	// advances IN-PAGE (no server round-trip), so it does not use a
+	// createFormValidation instance / native constraint validation — instead it
+	// runs the pure `isValidTokenFormat` shape check at the point of entry (the DB
+	// remains authoritative) and surfaces a themed error the same way the other
+	// steps do. `tokenInput` is bound so a failed advance can refocus the field.
+	const TOKEN_FIELD_LABEL = 'Your Summoning Token';
+	let tokenError = $state('');
+	let tokenInput: HTMLInputElement | null = $state(null);
+
+	// The Casing (handle) charset+length allowlist, mirroring the server's
+	// validateHandle regex. Bound as an expression (not an inline literal) so the
+	// `{2,32}` quantifier braces aren't parsed as a Svelte expression tag. Adding
+	// this `pattern` is what makes a space in a handle trip `patternMismatch` at the
+	// point of entry instead of only failing later at createProfile.
+	const HANDLE_PATTERN = '[A-Za-z0-9_]{2,32}';
+
 	// In-flight affordances for the two server actions.
 	let registering = $state(false);
 	let creatingProfile = $state(false);
@@ -133,6 +152,24 @@
 	}
 
 	function beginRite() {
+		// Validate the token AT THE POINT OF ENTRY: a malformed/empty token must not
+		// advance the rite (previously it sailed through to `register`, after the
+		// user had also typed email + password). `isValidTokenFormat` is a pure shape
+		// check; the redeem RPC remains authoritative. Surface a themed inline error
+		// (never the native bubble — this isn't even a <form>).
+		// Compute emptiness BEFORE the guard: `isValidTokenFormat` is a `token is
+		// string` type guard, so inside the negated branch TS would narrow `token` to
+		// `never` and `.trim()` would not type-check.
+		const isEmptyToken = token.trim() === '';
+		if (!isValidTokenFormat(token)) {
+			tokenError = validationMessage({
+				label: TOKEN_FIELD_LABEL,
+				failure: isEmptyToken ? 'valueMissing' : 'patternMismatch'
+			});
+			tokenInput?.focus();
+			return;
+		}
+		tokenError = '';
 		step = STEP.inscribe;
 	}
 
@@ -183,7 +220,22 @@
 						<div class="rite-form">
 							<label>
 								<span class="field-label">Your Summoning Token</span>
-								<input class="token-input" type="text" name="token" bind:value={token} required />
+								<input
+									class="token-input"
+									type="text"
+									name="token"
+									bind:value={token}
+									bind:this={tokenInput}
+									required
+									aria-invalid={tokenError ? 'true' : undefined}
+									aria-describedby={tokenError ? 'token-error' : undefined}
+									oninput={() => (tokenError = '')}
+								/>
+								{#if tokenError}
+									<p class="field-error" role="alert" id="token-error" transition:errorSlideFade>
+										{tokenError}
+									</p>
+								{/if}
 							</label>
 
 							<button class="btn-relic" type="button" onclick={beginRite}>Take a Bite →</button>
@@ -224,6 +276,7 @@
 									bind:value={handle}
 									minlength="2"
 									maxlength="32"
+									pattern={HANDLE_PATTERN}
 									placeholder="e.g. FrankfurterTheFaithful"
 									autocomplete="username"
 									required
@@ -285,6 +338,7 @@
 									bind:value={handle}
 									minlength="2"
 									maxlength="32"
+									pattern={HANDLE_PATTERN}
 									placeholder="e.g. FrankfurterTheFaithful"
 									autocomplete="username"
 									required

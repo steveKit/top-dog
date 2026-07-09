@@ -21,10 +21,18 @@ import { HANDLE_TAKEN } from '$lib/features/profiles/profiles';
 //   redeem_invite RPC keyed to the new user id.
 //
 // Mock the server-only service client so the orphan-cleanup path can be exercised
-// without a real secret-key Supabase client.
+// without a real secret-key Supabase client. The same client is now ALSO used by
+// register's handle-uniqueness pre-check as a head count
+// (`from('profiles').select('id', { count, head }).eq('handle', …)`), so the mock
+// exposes a `from` builder resolving to a configurable count. Defaults to
+// "available" (count 0); the taken-handle test overrides with mockResolvedValueOnce.
 const deleteUser = vi.fn().mockResolvedValue({ data: null, error: null });
+const serviceHandleCount = vi.fn().mockResolvedValue({ count: 0, error: null });
+const serviceEq = vi.fn(() => serviceHandleCount());
+const serviceSelect = vi.fn(() => ({ eq: serviceEq }));
+const serviceFrom = vi.fn(() => ({ select: serviceSelect }));
 vi.mock('$lib/server/supabase', () => ({
-	getServiceClient: () => ({ auth: { admin: { deleteUser } } })
+	getServiceClient: () => ({ auth: { admin: { deleteUser } }, from: serviceFrom })
 }));
 
 const register = actions.register;
@@ -70,7 +78,12 @@ function makeRegisterEvent(opts: {
 	return { event, signUpFn, rpc };
 }
 
-const GOOD_FIELDS = { token: A_TOKEN, email: 'newchef@topdog.test', password: 'hunter2hunter2' };
+const GOOD_FIELDS = {
+	token: A_TOKEN,
+	email: 'newchef@topdog.test',
+	password: 'hunter2hunter2',
+	handle: 'ChefDog'
+};
 
 // ---------------------------------------------------------------------------
 // createProfile (absorbed onboarding) — fake event
@@ -380,6 +393,100 @@ describe('register — input validation', () => {
 
 		await register(event);
 
+		expect(signUpFn).toHaveBeenCalledOnce();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// register — handle validation (FIX-RITE-VALIDATION)
+//
+// The Inscribe step posts name="handle"; validating it only at the later Sigil
+// step meant a malformed handle created the auth account and BURNED the single-
+// use invite before being rejected. register must now reject a bad handle at the
+// boundary — BEFORE the invite gate / signUp / redemption — and reject an
+// already-taken handle (via a service-client head count) AFTER the invite gate
+// but BEFORE signUp. Asserting that ORDERING is asserting the bug is fixed.
+// ---------------------------------------------------------------------------
+
+describe('register — handle validation', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('rejects an invalid-charset handle before the invite gate, signUp, or redemption', async () => {
+		// A handle with a space is length-legal but charset-illegal. It must die at
+		// the boundary — no invite probe, no account, no invite consumption.
+		const { event, signUpFn, rpc } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: 'Frank The Faithful' }
+		});
+
+		const result = await register(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect((result as { data: { error: string } }).data.error).toMatch(
+			/letters, numbers, and underscores/i
+		);
+		// Ordering IS the fix: no invite gate/redeem RPC, no account, no uniqueness probe.
+		expect(rpc).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(serviceFrom).not.toHaveBeenCalled();
+		// The bad handle echoes back so the rite repopulates the field.
+		expect((result as { data: { handle: string } }).data.handle).toBe('Frank The Faithful');
+	});
+
+	it('rejects an empty handle before signUp', async () => {
+		const { event, signUpFn, rpc } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: '' }
+		});
+
+		const result = await register(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(rpc).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+	});
+
+	it('rejects an already-taken handle after the invite gate but before signUp, via a service-client head count', async () => {
+		serviceHandleCount.mockResolvedValueOnce({ count: 1, error: null });
+		const { event, signUpFn, rpc } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		const result = await register(event);
+
+		// The invite gate ran and passed; the uniqueness probe then rejected — so the
+		// account was NEVER created and the invite was NEVER consumed.
+		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: A_TOKEN });
+		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
+		expect(signUpFn).not.toHaveBeenCalled();
+		// The probe used the SERVICE client as a head count keyed on the handle.
+		expect(serviceFrom).toHaveBeenCalledWith('profiles');
+		expect(serviceSelect).toHaveBeenCalledWith('id', { count: 'exact', head: true });
+		expect(serviceEq).toHaveBeenCalledWith('handle', 'ChefDog');
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect((result as { data: { error: string } }).data.error).toMatch(/already worn|taken/i);
+	});
+
+	it('probes handle uniqueness ONLY after the invite gate passes (a valid invite is required to probe)', async () => {
+		// A used/invalid token fails the invite gate first, so the uniqueness probe
+		// never runs — only a valid-invite holder can learn whether a handle exists.
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: GOOD_FIELDS,
+			redeemableResult: { data: false, error: null }
+		});
+
+		const result = await register(event);
+
+		expect(serviceFrom).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(isActionFailure(result)).toBe(true);
+	});
+
+	it('proceeds to signUp for a valid, available handle (head count 0)', async () => {
+		const { event, signUpFn } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		await register(event);
+
+		expect(serviceFrom).toHaveBeenCalledWith('profiles');
 		expect(signUpFn).toHaveBeenCalledOnce();
 	});
 });

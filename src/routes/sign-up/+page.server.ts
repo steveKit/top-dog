@@ -30,17 +30,22 @@ import { isSigilId, sigilAvatarValue, DEFAULT_SIGIL } from '$lib/features/profil
 //                  redirecting so the client can advance Sigil → Renounce →
 //                  Received in-page (a redirect would skip the oath + Received).
 //
-// Redemption order (register) is UNCHANGED and defensive against an orphaned-
-// account race (decisions #17/#22/#23):
-//   1. validate token shape,
+// Redemption order (register) is defensive against an orphaned-account race
+// (decisions #17/#22/#23) AND against burning a single-use invite on a bad handle
+// (FIX-RITE-VALIDATION):
+//   1. validate token shape, email, password, AND the Casing (handle) — ALL at the
+//      boundary, BEFORE any account/invite work, so a malformed handle can never
+//      create an orphan account or consume the invite,
 //   2. best-effort pre-check that the token is redeemable BEFORE signUp (so the
 //      common "already used" case never leaves an orphan auth user),
-//   3. signUp(),
-//   4. consume the token via the SECURITY DEFINER redeem_invite RPC keyed to the
+//   3. best-effort handle-uniqueness pre-check (service-client head count) AFTER
+//      the invite gate — only a valid-invite holder may probe handle existence,
+//   4. signUp(),
+//   5. consume the token via the SECURITY DEFINER redeem_invite RPC keyed to the
 //      new user id (the conditional UPDATE is the authoritative single-use check),
-//   5. if redemption loses the narrow race, delete the just-created auth user with
+//   6. if redemption loses the narrow race, delete the just-created auth user with
 //      the service client (server-side only) so the email is reusable,
-//   6. branch on whether signUp returned a session.
+//   7. branch on whether signUp returned a session.
 //
 // Resumability (AC): an authenticated-but-profile-less member funneled here by the
 // app guard already has a session — `load` surfaces `resumeAtProfile` so the rite
@@ -84,6 +89,7 @@ export const actions: Actions = {
 		const token = String(formData.get('token') ?? '');
 		const email = String(formData.get('email') ?? '').trim();
 		const password = String(formData.get('password') ?? '');
+		const rawHandle = String(formData.get('handle') ?? '');
 
 		// Validate at the boundary before doing any work.
 		if (!isValidTokenFormat(token)) {
@@ -99,6 +105,16 @@ export const actions: Actions = {
 				error: `Seal must be at least ${MIN_PASSWORD_LENGTH} characters.`
 			});
 		}
+		// Validate the Casing (handle) HERE, at the Inscribe boundary — BEFORE the
+		// invite gate and signUp — the same care already taken with the token. The
+		// Inscribe form posts name="handle"; validating it only at the later Sigil
+		// step meant a malformed handle (e.g. one with a space) sailed through here,
+		// created the auth account, and BURNED the single-use invite before being
+		// rejected. createProfile still re-validates as the authoritative backstop.
+		const handleCheck = validateHandle(rawHandle);
+		if (!handleCheck.ok) {
+			return fail(400, { token, email, handle: rawHandle, error: handleCheck.reason });
+		}
 
 		// Best-effort pre-check: reject an invalid/already-used token BEFORE creating
 		// an account, so the common case never leaves an orphaned auth user. The
@@ -109,6 +125,31 @@ export const actions: Actions = {
 				token,
 				email,
 				error: 'This invite link is invalid or has already been used.'
+			});
+		}
+
+		// Best-effort handle-uniqueness pre-check (the DB citext UNIQUE constraint on
+		// profiles.handle stays authoritative for the narrow race). Placed AFTER the
+		// invite gate on purpose: only the holder of a valid, unconsumed invite may
+		// probe whether a Casing is already taken.
+		//
+		// This MUST use the SERVICE client: the register caller is unauthenticated
+		// (no session exists yet), and profiles' only SELECT policy/grant is for the
+		// `authenticated` role — an RLS-scoped probe here would silently return zero
+		// rows and report EVERY handle as free. A head count ships no rows, only the
+		// integer (the established service-client-after-gate head-count pattern).
+		// handle is extensions.citext, so .eq() is already case-insensitive — do not
+		// lowercase.
+		const { count: handleCount, error: handleCountError } = await getServiceClient()
+			.from('profiles')
+			.select('id', { count: 'exact', head: true })
+			.eq('handle', handleCheck.value);
+		if (!handleCountError && (handleCount ?? 0) > 0) {
+			return fail(400, {
+				token,
+				email,
+				handle: rawHandle,
+				error: 'That Casing is already worn by another of the faithful. Choose another.'
 			});
 		}
 

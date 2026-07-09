@@ -163,6 +163,16 @@ describe('HANDLE_PATTERN_SOURCE', () => {
 		expect(HANDLE_PATTERN_SOURCE).toContain(`{${HANDLE_MIN_LENGTH},${HANDLE_MAX_LENGTH}}`);
 	});
 
+	it('pins the exact charset literal so a broadening of the SOURCE itself is caught', () => {
+		// The cross-check below derives BOTH `anchored` and (indirectly) validateHandle's
+		// internal regex from HANDLE_PATTERN_SOURCE, so broadening the source's CHARSET
+		// (e.g. adding a space) moves both sides together and slips past that check. Pin
+		// the charset literal directly here — the bounds still track the shared constants,
+		// but `[A-Za-z0-9_]` is an independent literal, so any charset edit to the source
+		// fails HERE regardless of the validator. This is the real anti-tautology guard.
+		expect(HANDLE_PATTERN_SOURCE).toBe(`[A-Za-z0-9_]{${HANDLE_MIN_LENGTH},${HANDLE_MAX_LENGTH}}`);
+	});
+
 	it('accepts/rejects the same normalized handles as validateHandle', () => {
 		for (const sample of samples) {
 			expect(anchored.test(sample)).toBe(validateHandle(sample).ok);

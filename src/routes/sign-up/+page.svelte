@@ -8,6 +8,7 @@
 	import { createFormValidation } from '$lib/features/forms/formValidation.svelte';
 	import { validationMessage } from '$lib/features/forms/validationMessage';
 	import { isValidTokenFormat } from '$lib/features/invites/token';
+	import { HANDLE_PATTERN_SOURCE } from '$lib/features/profiles/handle';
 	import { errorSlideFade } from '$lib/motion/reducedMotion';
 	import {
 		SIGIL_IDS,
@@ -110,12 +111,15 @@
 	let tokenError = $state('');
 	let tokenInput: HTMLInputElement | null = $state(null);
 
-	// The Casing (handle) charset+length allowlist, mirroring the server's
-	// validateHandle regex. Bound as an expression (not an inline literal) so the
-	// `{2,32}` quantifier braces aren't parsed as a Svelte expression tag. Adding
-	// this `pattern` is what makes a space in a handle trip `patternMismatch` at the
-	// point of entry instead of only failing later at createProfile.
-	const HANDLE_PATTERN = '[A-Za-z0-9_]{2,32}';
+	// The Casing (handle) charset+length allowlist — the SINGLE source of truth,
+	// imported from the server-side validator (`$lib/features/profiles/handle`) so
+	// the client `pattern` attribute and `validateHandle` cannot drift. Bound to a
+	// local `const` (an EXPRESSION, never an inline attribute literal) because the
+	// `{2,32}` quantifier braces would otherwise be parsed as a Svelte expression
+	// tag inside the attribute string. Adding this `pattern` is what makes a space
+	// in a handle trip `patternMismatch` at the point of entry instead of only
+	// failing later at createProfile.
+	const handlePattern = HANDLE_PATTERN_SOURCE;
 
 	// In-flight affordances for the two server actions.
 	let registering = $state(false);
@@ -276,7 +280,7 @@
 									bind:value={handle}
 									minlength="2"
 									maxlength="32"
-									pattern={HANDLE_PATTERN}
+									pattern={handlePattern}
 									placeholder="e.g. FrankfurterTheFaithful"
 									autocomplete="username"
 									required
@@ -338,7 +342,7 @@
 									bind:value={handle}
 									minlength="2"
 									maxlength="32"
-									pattern={HANDLE_PATTERN}
+									pattern={handlePattern}
 									placeholder="e.g. FrankfurterTheFaithful"
 									autocomplete="username"
 									required

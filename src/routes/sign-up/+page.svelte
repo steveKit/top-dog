@@ -173,8 +173,8 @@
 						<span class="eyebrow">The First Bite</span>
 						<h1>You Have Been Summoned</h1>
 						<p>
-							Pilgrim — the Order has watched you linger at the grill and deems you worthy to judge
-							the sacred links. Present your token and take the bite bestowed upon you.
+							Hotdog aficionado — the Order has watched you linger at the grill and deems you worthy
+							to judge the sacred links. Present your token and take the first bite.
 						</p>
 
 						<!-- Summoned only PRESENTS the token (pre-filled from the invite link);

@@ -79,6 +79,12 @@ const RELIC_LABELS = new Set(['relic image']);
 // exact set) — special-case its required failure so an empty whisper reads in the
 // cult voice rather than the bare generic "Speak thy Whisper unto …" fallback.
 const WHISPER_LABEL_PREFIX = 'whisper unto ';
+// The onboarding rite's Summoned step (FIX-RITE-VALIDATION) names the invite
+// field the "Your Summoning Token". Special-case its empty / malformed failures
+// so the first-step token error reads in the cult voice rather than the awkward
+// generic "Speak thy Your Summoning Token." / "That is no proper Your Summoning
+// Token." fallbacks.
+const TOKEN_LABELS = new Set(['your summoning token']);
 
 function isEmailLabel(label: string): boolean {
 	return EMAIL_LABELS.has(label.trim().toLowerCase());
@@ -104,6 +110,10 @@ function isWhisperLabel(label: string): boolean {
 	return label.trim().toLowerCase().startsWith(WHISPER_LABEL_PREFIX);
 }
 
+function isTokenLabel(label: string): boolean {
+	return TOKEN_LABELS.has(label.trim().toLowerCase());
+}
+
 // Map a field's classified failure to a themed, field-naming message in the cult
 // voice. Pure: same inputs always yield the same string, no DOM, no I/O.
 export function validationMessage(context: FieldMessageContext): string {
@@ -114,6 +124,7 @@ export function validationMessage(context: FieldMessageContext): string {
 	const word = isWordLabel(label);
 	const relic = isRelicLabel(label);
 	const whisper = isWhisperLabel(label);
+	const token = isTokenLabel(label);
 
 	switch (failure) {
 		case 'valueMissing':
@@ -123,6 +134,7 @@ export function validationMessage(context: FieldMessageContext): string {
 			if (word) return 'Speak a word upon the shrine.';
 			if (relic) return 'Choose a relic image to offer.';
 			if (whisper) return 'Speak thy whisper, faithful one.';
+			if (token) return 'Present thy Summoning Token.';
 			return `Speak thy ${label}.`;
 
 		case 'typeMismatch':
@@ -141,6 +153,11 @@ export function validationMessage(context: FieldMessageContext): string {
 		}
 
 		case 'patternMismatch':
+			// The Casing (handle) charset failure must state the rule, not just
+			// "that is no proper Casing" — a user who typed a space needs to know
+			// what IS allowed. The generic fallback stays for every other field.
+			if (name) return 'A Casing bears only letters, numbers, and underscores.';
+			if (token) return 'That is no true Summoning Token.';
 			return `That is no proper ${label}.`;
 
 		case 'tooLong':

@@ -16,11 +16,26 @@
 // collide. `normalizeHandle` only trims surrounding whitespace before
 // validation — it never changes case.
 
-/** Allowed handle characters and length, agreeing with the DB length CHECK. */
-const HANDLE_PATTERN = /^[A-Za-z0-9_]{2,32}$/;
-
 export const HANDLE_MIN_LENGTH = 2;
 export const HANDLE_MAX_LENGTH = 32;
+
+/**
+ * The SINGLE source of truth for the handle charset + length: the raw pattern
+ * BODY (no `^`/`$` anchors), in the form an HTML `<input pattern>` attribute
+ * expects — HTML `pattern` is implicitly full-match, so it must be unanchored.
+ * The sign-up rite imports this for its `pattern={...}` attribute so the client
+ * `pattern` and the server validator cannot drift (previously the page carried
+ * a hand-copied mirror constant). Derive the anchored `RegExp` below from it —
+ * never write the charset twice.
+ */
+export const HANDLE_PATTERN_SOURCE = `[A-Za-z0-9_]{${HANDLE_MIN_LENGTH},${HANDLE_MAX_LENGTH}}`;
+
+/**
+ * Allowed handle characters and length, agreeing with the DB length CHECK.
+ * Anchored full-match, derived from `HANDLE_PATTERN_SOURCE` so there is exactly
+ * one definition of the charset in the codebase.
+ */
+const HANDLE_PATTERN = new RegExp(`^${HANDLE_PATTERN_SOURCE}$`);
 
 /** Discriminated result for handle validation. */
 export type HandleValidation = { ok: true; value: string } | { ok: false; reason: string };

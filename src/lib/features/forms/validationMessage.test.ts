@@ -186,6 +186,47 @@ describe('validationMessage', () => {
 			);
 		});
 
+		it('states the allowed charset when the Casing has a bad character (patternMismatch)', () => {
+			// FIX-RITE-VALIDATION: a bad-charset handle (e.g. one with a space) must be
+			// told WHAT is allowed, not just "that is no proper Casing". The message
+			// must name letters, numbers, and underscores.
+			const message = validationMessage({ label: 'Casing', failure: 'patternMismatch' });
+			expect(message).toBe('A Casing bears only letters, numbers, and underscores.');
+			expect(message).toMatch(/letters/i);
+			expect(message).toMatch(/numbers/i);
+			expect(message).toMatch(/underscores/i);
+		});
+
+		it('matches the Casing patternMismatch special-case case-insensitively and trimmed', () => {
+			expect(validationMessage({ label: '  CASING  ', failure: 'patternMismatch' })).toBe(
+				'A Casing bears only letters, numbers, and underscores.'
+			);
+		});
+
+		// FIX-RITE-VALIDATION: the rite's Summoned step names the invite field the
+		// "Your Summoning Token". Its empty / malformed failures get themed copy so the
+		// first-step token error doesn't read as the awkward generic "Speak thy Your
+		// Summoning Token." / "That is no proper Your Summoning Token." fallback.
+		describe('Summoning token field special-case', () => {
+			it('uses the token voice when the required Summoning Token is empty', () => {
+				expect(validationMessage({ label: 'Your Summoning Token', failure: 'valueMissing' })).toBe(
+					'Present thy Summoning Token.'
+				);
+			});
+
+			it('uses the token voice for a malformed Summoning Token', () => {
+				expect(
+					validationMessage({ label: 'Your Summoning Token', failure: 'patternMismatch' })
+				).toBe('That is no true Summoning Token.');
+			});
+
+			it('matches the Summoning Token special-case case-insensitively and trimmed', () => {
+				expect(
+					validationMessage({ label: '  YOUR SUMMONING TOKEN  ', failure: 'patternMismatch' })
+				).toBe('That is no true Summoning Token.');
+			});
+		});
+
 		it('uses the Shrine voice when the wall composer (Word upon the Shrine) is empty', () => {
 			expect(validationMessage({ label: 'Word upon the Shrine', failure: 'valueMissing' })).toBe(
 				'Speak a word upon the shrine.'

@@ -21,10 +21,18 @@ import { HANDLE_TAKEN } from '$lib/features/profiles/profiles';
 //   redeem_invite RPC keyed to the new user id.
 //
 // Mock the server-only service client so the orphan-cleanup path can be exercised
-// without a real secret-key Supabase client.
+// without a real secret-key Supabase client. The same client is now ALSO used by
+// register's handle-uniqueness pre-check as a head count
+// (`from('profiles').select('id', { count, head }).eq('handle', …)`), so the mock
+// exposes a `from` builder resolving to a configurable count. Defaults to
+// "available" (count 0); the taken-handle test overrides with mockResolvedValueOnce.
 const deleteUser = vi.fn().mockResolvedValue({ data: null, error: null });
+const serviceHandleCount = vi.fn().mockResolvedValue({ count: 0, error: null });
+const serviceEq = vi.fn(() => serviceHandleCount());
+const serviceSelect = vi.fn(() => ({ eq: serviceEq }));
+const serviceFrom = vi.fn(() => ({ select: serviceSelect }));
 vi.mock('$lib/server/supabase', () => ({
-	getServiceClient: () => ({ auth: { admin: { deleteUser } } })
+	getServiceClient: () => ({ auth: { admin: { deleteUser } }, from: serviceFrom })
 }));
 
 const register = actions.register;
@@ -61,16 +69,33 @@ function makeRegisterEvent(opts: {
 		Promise.resolve(fn === 'invite_is_redeemable' ? redeemableResult : rpcResult)
 	);
 
+	// The RLS-scoped client register holds (event.locals.supabase). The production
+	// action MUST NEVER use this for the handle-uniqueness probe: the register
+	// caller is unauthenticated, and profiles grants SELECT only to `authenticated`,
+	// so an RLS-scoped probe would report EVERY handle as free. We give it a WORKING
+	// `from` builder (rather than leaving it absent) so a misuse does not merely
+	// crash with an opaque TypeError but is caught by an explicit
+	// `expect(rlsFrom).not.toHaveBeenCalled()` — making the two clients genuinely
+	// distinguishable in both directions (service used, RLS untouched).
+	const rlsFrom = vi.fn(() => ({
+		select: () => ({ eq: () => Promise.resolve({ count: 0, error: null }) })
+	}));
+
 	const event = {
 		request: { formData: vi.fn().mockResolvedValue(formData) },
-		locals: { supabase: { auth: { signUp: signUpFn }, rpc } }
+		locals: { supabase: { auth: { signUp: signUpFn }, rpc, from: rlsFrom } }
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} as any;
 
-	return { event, signUpFn, rpc };
+	return { event, signUpFn, rpc, rlsFrom };
 }
 
-const GOOD_FIELDS = { token: A_TOKEN, email: 'newchef@topdog.test', password: 'hunter2hunter2' };
+const GOOD_FIELDS = {
+	token: A_TOKEN,
+	email: 'newchef@topdog.test',
+	password: 'hunter2hunter2',
+	handle: 'ChefDog'
+};
 
 // ---------------------------------------------------------------------------
 // createProfile (absorbed onboarding) — fake event
@@ -381,6 +406,273 @@ describe('register — input validation', () => {
 		await register(event);
 
 		expect(signUpFn).toHaveBeenCalledOnce();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// register — handle validation (FIX-RITE-VALIDATION)
+//
+// The Inscribe step posts name="handle"; validating it only at the later Sigil
+// step meant a malformed handle created the auth account and BURNED the single-
+// use invite before being rejected. register must now reject a bad handle at the
+// boundary — BEFORE the invite gate / signUp / redemption — and reject an
+// already-taken handle (via a service-client head count) AFTER the invite gate
+// but BEFORE signUp. Asserting that ORDERING is asserting the bug is fixed.
+// ---------------------------------------------------------------------------
+
+describe('register — handle validation', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('rejects an invalid-charset handle before the invite gate, signUp, or redemption', async () => {
+		// A handle with a space is length-legal but charset-illegal. It must die at
+		// the boundary — no invite probe, no account, no invite consumption.
+		const { event, signUpFn, rpc, rlsFrom } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: 'Frank The Faithful' }
+		});
+
+		const result = await register(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect((result as { data: { error: string } }).data.error).toMatch(
+			/letters, numbers, and underscores/i
+		);
+		// Ordering IS the fix: no invite gate/redeem RPC, no account, no uniqueness probe
+		// on EITHER client.
+		expect(rpc).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(serviceFrom).not.toHaveBeenCalled();
+		expect(rlsFrom).not.toHaveBeenCalled();
+		// The bad handle echoes back so the rite repopulates the field.
+		expect((result as { data: { handle: string } }).data.handle).toBe('Frank The Faithful');
+	});
+
+	it('rejects an empty handle before the invite gate, signUp, or either uniqueness probe', async () => {
+		const { event, signUpFn, rpc, rlsFrom } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: '' }
+		});
+
+		const result = await register(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(rpc).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+		// Neither client is touched — the empty handle dies at the boundary.
+		expect(serviceFrom).not.toHaveBeenCalled();
+		expect(rlsFrom).not.toHaveBeenCalled();
+	});
+
+	it('rejects an already-taken handle after the invite gate but before signUp, via a service-client head count', async () => {
+		serviceHandleCount.mockResolvedValueOnce({ count: 1, error: null });
+		const { event, signUpFn, rpc, rlsFrom } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		const result = await register(event);
+
+		// The invite gate ran and passed; the uniqueness probe then rejected — so the
+		// account was NEVER created and the invite was NEVER consumed.
+		expect(rpc).toHaveBeenCalledWith('invite_is_redeemable', { invite_token: A_TOKEN });
+		expect(rpc).not.toHaveBeenCalledWith('redeem_invite', expect.anything());
+		expect(signUpFn).not.toHaveBeenCalled();
+		// The probe used the SERVICE client as a head count keyed on the handle — NOT
+		// the RLS-scoped locals client (which would report every handle as free).
+		expect(serviceFrom).toHaveBeenCalledWith('profiles');
+		expect(serviceSelect).toHaveBeenCalledWith('id', { count: 'exact', head: true });
+		expect(serviceEq).toHaveBeenCalledWith('handle', 'ChefDog');
+		expect(rlsFrom).not.toHaveBeenCalled();
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect((result as { data: { error: string } }).data.error).toMatch(/already worn|taken/i);
+	});
+
+	it('probes handle uniqueness ONLY after the invite gate passes (a valid invite is required to probe)', async () => {
+		// A used/invalid token fails the invite gate first, so the uniqueness probe
+		// never runs — only a valid-invite holder can learn whether a handle exists.
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: GOOD_FIELDS,
+			redeemableResult: { data: false, error: null }
+		});
+
+		const result = await register(event);
+
+		expect(serviceFrom).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(isActionFailure(result)).toBe(true);
+	});
+
+	it('proceeds to signUp for a valid, available handle (head count 0)', async () => {
+		const { event, signUpFn } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		await register(event);
+
+		expect(serviceFrom).toHaveBeenCalledWith('profiles');
+		expect(signUpFn).toHaveBeenCalledOnce();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// register — uniqueness-probe client identity + full step ordering
+//
+// The security contract of the fix is ORDERING, not merely "a bad handle is
+// rejected". Two invariants that a loose toHaveBeenCalled() would miss:
+//   (a) the probe runs on the SERVICE client, never the RLS-scoped locals client
+//       — an RLS probe by an unauthenticated caller reports every handle free;
+//   (b) the probe sits AFTER the invite gate and BEFORE signUp/redeem, so a taken
+//       handle can neither leak handle-existence to a stranger nor burn an invite.
+// ---------------------------------------------------------------------------
+
+describe('register — uniqueness probe client identity + ordering', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('uses the SERVICE client for the uniqueness probe, never the RLS-scoped locals client', async () => {
+		// If the probe accidentally used event.locals.supabase, an unauthenticated
+		// caller would see zero rows for EVERY handle (profiles SELECT is granted only
+		// to `authenticated`). Pinning that the RLS `from` is never touched — while the
+		// service `from` IS — makes the two clients distinguishable in both directions.
+		const { event, rlsFrom } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		await register(event);
+
+		expect(serviceFrom).toHaveBeenCalledWith('profiles');
+		expect(serviceSelect).toHaveBeenCalledWith('id', { count: 'exact', head: true });
+		expect(rlsFrom).not.toHaveBeenCalled();
+	});
+
+	it('orders the steps: invite gate -> uniqueness probe -> signUp -> redeem', async () => {
+		const { event, signUpFn, rpc } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		await register(event);
+
+		const inviteGateOrder = rpc.mock.invocationCallOrder[0]; // invite_is_redeemable
+		const probeOrder = serviceFrom.mock.invocationCallOrder[0];
+		const signUpOrder = signUpFn.mock.invocationCallOrder[0];
+		const redeemOrder = rpc.mock.invocationCallOrder[1]; // redeem_invite
+
+		expect(inviteGateOrder).toBeLessThan(probeOrder);
+		expect(probeOrder).toBeLessThan(signUpOrder);
+		expect(signUpOrder).toBeLessThan(redeemOrder);
+	});
+
+	it('treats the uniqueness probe as best-effort: a probe ERROR still proceeds to signUp', async () => {
+		// The code gates on `!handleCountError && count > 0`, so a probe that ERRORS
+		// must NOT block signup — the DB citext UNIQUE constraint stays authoritative.
+		// This pins the best-effort semantics: flipping it to reject-on-error breaks here.
+		serviceHandleCount.mockResolvedValueOnce({ count: null, error: { message: 'probe boom' } });
+		const { event, signUpFn } = makeRegisterEvent({ fields: GOOD_FIELDS });
+
+		const result = await register(event);
+
+		expect(signUpFn).toHaveBeenCalledOnce();
+		expect(isActionFailure(result)).toBe(false);
+		expect(result).toEqual({ registered: true });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// register — handle boundary cases AT THE register boundary
+//
+// handle.test.ts covers the pure validateHandle boundaries; these prove the
+// register ACTION wires that validator at the entry boundary with zero side
+// effects on rejection, and that normalize/trim + case-preservation flow into
+// the service-client uniqueness probe.
+// ---------------------------------------------------------------------------
+
+describe('register — handle boundary cases', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	// A rejection that must die at the handle boundary: no invite gate, no probe on
+	// either client, no account, no redemption.
+	async function expectRejectedAtBoundary(handle: string) {
+		const { event, signUpFn, rpc, rlsFrom } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle }
+		});
+
+		const result = await register(event);
+
+		expect(isActionFailure(result)).toBe(true);
+		expect((result as { status: number }).status).toBe(400);
+		expect(rpc).not.toHaveBeenCalled();
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(serviceFrom).not.toHaveBeenCalled();
+		expect(rlsFrom).not.toHaveBeenCalled();
+		return result;
+	}
+
+	it('rejects a 1-char handle (below the 2-char minimum) with no side effects', async () => {
+		await expectRejectedAtBoundary('a');
+	});
+
+	it('rejects a 33-char handle (above the 32-char maximum) with no side effects', async () => {
+		await expectRejectedAtBoundary('a'.repeat(33));
+	});
+
+	it('rejects a whitespace-only handle (collapses to empty after trim) with no side effects', async () => {
+		await expectRejectedAtBoundary('   ');
+	});
+
+	it('rejects an emoji/unicode handle with no side effects', async () => {
+		await expectRejectedAtBoundary('hot🌭dog');
+	});
+
+	it('rejects a handle with an embedded control character (newline) with no side effects', async () => {
+		await expectRejectedAtBoundary('chef\ndog');
+	});
+
+	it('accepts a 2-char handle (the minimum boundary) and probes/signs up with it', async () => {
+		const { event, signUpFn, rlsFrom } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: 'ab' }
+		});
+
+		await register(event);
+
+		expect(serviceFrom).toHaveBeenCalledWith('profiles');
+		expect(serviceEq).toHaveBeenCalledWith('handle', 'ab');
+		expect(signUpFn).toHaveBeenCalledOnce();
+		expect(rlsFrom).not.toHaveBeenCalled();
+	});
+
+	it('accepts a 32-char handle (the maximum boundary) and probes/signs up with it', async () => {
+		const maxHandle = 'a'.repeat(32);
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: maxHandle }
+		});
+
+		await register(event);
+
+		expect(serviceEq).toHaveBeenCalledWith('handle', maxHandle);
+		expect(signUpFn).toHaveBeenCalledOnce();
+	});
+
+	it('trims a surrounding-whitespace handle and carries the TRIMMED value into the probe + signUp', async () => {
+		// normalizeHandle trims surrounding whitespace, so "  Chef  " is a VALID handle
+		// server-side. The trimmed value — not the raw padded one — must flow into the
+		// uniqueness probe, or the citext lookup would miss the real row.
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: '  Chef  ' }
+		});
+
+		await register(event);
+
+		expect(serviceEq).toHaveBeenCalledWith('handle', 'Chef');
+		expect(serviceEq).not.toHaveBeenCalledWith('handle', '  Chef  ');
+		expect(signUpFn).toHaveBeenCalledOnce();
+	});
+
+	it('preserves handle casing into the probe (no lowercasing — citext collides Chef with chef)', async () => {
+		// citext makes uniqueness case-insensitive at the DB, so the app must NOT
+		// lowercase: it passes the case-PRESERVED handle and lets citext collide `Chef`
+		// with an existing `chef`. Count 1 simulates that existing row.
+		serviceHandleCount.mockResolvedValueOnce({ count: 1, error: null });
+		const { event, signUpFn } = makeRegisterEvent({
+			fields: { ...GOOD_FIELDS, handle: 'Chef' }
+		});
+
+		const result = await register(event);
+
+		expect(serviceEq).toHaveBeenCalledWith('handle', 'Chef');
+		expect(serviceEq).not.toHaveBeenCalledWith('handle', 'chef');
+		expect(signUpFn).not.toHaveBeenCalled();
+		expect(isActionFailure(result)).toBe(true);
 	});
 });
 

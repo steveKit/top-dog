@@ -5,7 +5,8 @@ import {
 	validateHandle,
 	normalizeHandle,
 	HANDLE_MIN_LENGTH,
-	HANDLE_MAX_LENGTH
+	HANDLE_MAX_LENGTH,
+	HANDLE_PATTERN_SOURCE
 } from './handle';
 
 // Unit tests for the PURE handle validator (the required app-boundary charset
@@ -122,6 +123,59 @@ describe('validateHandle', () => {
 		expect(result.ok).toBe(false);
 		if (!result.ok) {
 			expect(result.reason).toMatch(/letters, numbers, and underscores/i);
+		}
+	});
+});
+
+describe('HANDLE_PATTERN_SOURCE', () => {
+	// Invariant: the exported pattern source (consumed by the sign-up page's HTML
+	// `pattern` attribute) and the server validator MUST agree, so a future edit
+	// to one without the other fails here. HTML `pattern` is unanchored /
+	// implicitly full-match, so the source carries no `^`/`$`; anchor it to
+	// mirror how the browser applies it. Compare over already-trimmed inputs —
+	// `validateHandle` trims first, whereas the raw pattern does not, so we test
+	// the charset+length agreement on normalized values.
+	const anchored = new RegExp(`^${HANDLE_PATTERN_SOURCE}$`);
+
+	const samples = [
+		'chef_dog_99',
+		'ChefDog',
+		'a1',
+		'__',
+		'a'.repeat(HANDLE_MIN_LENGTH),
+		'a'.repeat(HANDLE_MAX_LENGTH),
+		'a', // too short
+		'a'.repeat(HANDLE_MAX_LENGTH + 1), // too long
+		'chef dog',
+		'chef-dog',
+		'chef.dog',
+		'chef@dog',
+		'hot🌭dog',
+		'café'
+	];
+
+	it('carries no regex anchors (HTML pattern is implicitly full-match)', () => {
+		expect(HANDLE_PATTERN_SOURCE.startsWith('^')).toBe(false);
+		expect(HANDLE_PATTERN_SOURCE.endsWith('$')).toBe(false);
+	});
+
+	it('embeds the shared length bounds (single source of truth)', () => {
+		expect(HANDLE_PATTERN_SOURCE).toContain(`{${HANDLE_MIN_LENGTH},${HANDLE_MAX_LENGTH}}`);
+	});
+
+	it('pins the exact charset literal so a broadening of the SOURCE itself is caught', () => {
+		// The cross-check below derives BOTH `anchored` and (indirectly) validateHandle's
+		// internal regex from HANDLE_PATTERN_SOURCE, so broadening the source's CHARSET
+		// (e.g. adding a space) moves both sides together and slips past that check. Pin
+		// the charset literal directly here — the bounds still track the shared constants,
+		// but `[A-Za-z0-9_]` is an independent literal, so any charset edit to the source
+		// fails HERE regardless of the validator. This is the real anti-tautology guard.
+		expect(HANDLE_PATTERN_SOURCE).toBe(`[A-Za-z0-9_]{${HANDLE_MIN_LENGTH},${HANDLE_MAX_LENGTH}}`);
+	});
+
+	it('accepts/rejects the same normalized handles as validateHandle', () => {
+		for (const sample of samples) {
+			expect(anchored.test(sample)).toBe(validateHandle(sample).ok);
 		}
 	});
 });

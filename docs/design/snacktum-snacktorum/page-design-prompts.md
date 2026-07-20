@@ -12,7 +12,7 @@ Every prompt below is grounded in the **real, shipped functionality** of the
 existing routes under `src/routes/(protected)/app/...` — no invented features.
 Where a feature is named here, it exists in the codebase today (the rebrand is a
 skin pass; the skeleton is unchanged — see
-`tasks/milestone-08-snacktum-snacktorum-rebrand.md`).
+`workflow/tasks/milestone-08-snacktum-snacktorum-rebrand.md`).
 
 Each prompt is self-contained enough to paste standalone: it restates the key
 tokens, then leans on the **Design System** preamble below for the full system.

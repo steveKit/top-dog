@@ -8,7 +8,7 @@
 
 ## How this works
 
-- Each milestone has its own file under `tasks/` holding its tasks in full detail.
+- Each milestone has its own file under `workflow/tasks/` holding its tasks in full detail.
 - Future milestones live here as **one-line stubs** until activated. Only the
   **planner** explodes a stub into its milestone file (never the director or
   other agents).
@@ -16,13 +16,13 @@
   frozen file is the milestone's permanent archive — there is no separate archive
   for new milestones. The pre-migration milestones (M0, M1) are grandfathered in
   [[TASKS-ARCHIVE]].
-- Two cross-milestone logs: [[tasks/deferred]] and [[tasks/discovered]].
+- Two cross-milestone logs: [[workflow/tasks/deferred]] and [[workflow/tasks/discovered]].
 
 ## Active Milestones
 
 **None.** Milestone **M8 — Snacktum Snacktorum: Rebrand & Redesign** closed **2026-06-23**
 (16/16, tag `milestone-08-snacktum-snacktorum-rebrand`) — see § Completed Milestones below and
-its frozen archive [[tasks/milestone-08-snacktum-snacktorum-rebrand]] for the full per-task
+its frozen archive [[workflow/tasks/milestone-08-snacktum-snacktorum-rebrand]] for the full per-task
 record. **The next milestone is the stub M9 — Operator / Admin Dashboard in § Planned
 Milestones; activate it via the planner when ready** (no task auto-chains — wait for explicit
 user instruction).
@@ -58,12 +58,12 @@ activate one — the **planner** explodes a stub into its milestone file on acti
   **server-side allowlist** of operator ids (no schema, non-forgeable) over a
   non-client-writable `is_admin` column; this is distinct from the in-game "Anointed
   Wiener" role. Read-only monitoring for v1.
-  **Security item to fold in at activation — see [[tasks/discovered]] DW-041:**
+  **Security item to fold in at activation — see [[workflow/tasks/discovered]] DW-041:**
   `app_storage_bytes()` (the function M9's storage-used metric consumes) is currently
   anon-callable (missing `revoke execute … from public, anon`); tighten its grants as
   part of this milestone, or ship the one-line migration standalone sooner.
 
-Other future work is tracked in [[tasks/discovered]].
+Other future work is tracked in [[workflow/tasks/discovered]].
 
 ## Deferred Milestones
 
@@ -75,16 +75,16 @@ None.
 | ------------------------------------------------------ | ---------- | ------------------------------------------ | -------------------------------------------------- |
 | Milestone 00: Scaffold & Infra                         | 2026-06-08 | `milestone-00-scaffold-infra`              | [[TASKS-ARCHIVE]] (§ Milestone M0)                 |
 | Milestone 01: Vertical Slice                           | 2026-06-09 | `milestone-01-vertical-slice`              | [[TASKS-ARCHIVE]] (§ Milestone M1)                 |
-| Milestone 02: Voting & Top Dog Engine                  | 2026-06-12 | `milestone-02-voting-top-dog-engine`       | [[tasks/milestone-02-voting-top-dog-engine]]       |
-| Milestone 03: Reactions & Per-Dog Stats                | 2026-06-12 | `milestone-03-reactions-per-dog-stats`     | [[tasks/milestone-03-reactions-per-dog-stats]]     |
-| Milestone 04: Mustard Mechanic                         | 2026-06-16 | `milestone-04-mustard-mechanic`            | [[tasks/milestone-04-mustard-mechanic]]            |
-| Milestone 05: Walls & DMs                              | 2026-06-17 | `milestone-05-walls-dms`                   | [[tasks/milestone-05-walls-dms]]                   |
-| Milestone 06: Emoji Library                            | 2026-06-17 | `milestone-06-emoji-library`               | [[tasks/milestone-06-emoji-library]]               |
-| Milestone 07: Safety & Polish                          | 2026-06-18 | `milestone-07-safety-polish`               | [[tasks/milestone-07-safety-polish]]               |
-| Milestone 08: Snacktum Snacktorum — Rebrand & Redesign | 2026-06-23 | `milestone-08-snacktum-snacktorum-rebrand` | [[tasks/milestone-08-snacktum-snacktorum-rebrand]] |
+| Milestone 02: Voting & Top Dog Engine                  | 2026-06-12 | `milestone-02-voting-top-dog-engine`       | [[workflow/tasks/milestone-02-voting-top-dog-engine]]       |
+| Milestone 03: Reactions & Per-Dog Stats                | 2026-06-12 | `milestone-03-reactions-per-dog-stats`     | [[workflow/tasks/milestone-03-reactions-per-dog-stats]]     |
+| Milestone 04: Mustard Mechanic                         | 2026-06-16 | `milestone-04-mustard-mechanic`            | [[workflow/tasks/milestone-04-mustard-mechanic]]            |
+| Milestone 05: Walls & DMs                              | 2026-06-17 | `milestone-05-walls-dms`                   | [[workflow/tasks/milestone-05-walls-dms]]                   |
+| Milestone 06: Emoji Library                            | 2026-06-17 | `milestone-06-emoji-library`               | [[workflow/tasks/milestone-06-emoji-library]]               |
+| Milestone 07: Safety & Polish                          | 2026-06-18 | `milestone-07-safety-polish`               | [[workflow/tasks/milestone-07-safety-polish]]               |
+| Milestone 08: Snacktum Snacktorum — Rebrand & Redesign | 2026-06-23 | `milestone-08-snacktum-snacktorum-rebrand` | [[workflow/tasks/milestone-08-snacktum-snacktorum-rebrand]] |
 
 ## Logs
 
-- [[tasks/deferred]] — task-level deferred / descoped work, with disposition
+- [[workflow/tasks/deferred]] — task-level deferred / descoped work, with disposition
   (whole-milestone deferral lives in § Deferred Milestones above)
-- [[tasks/discovered]] — discovered-work log (feeds future milestone stubs)
+- [[workflow/tasks/discovered]] — discovered-work log (feeds future milestone stubs)

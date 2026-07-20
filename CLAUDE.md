@@ -25,12 +25,12 @@ Canonical [[wikilink]] targets for this project:
 - [[CLAUDE]] — this file (agent conventions, stack, commands)
 - [[PROJECT]] — status, architecture decisions, milestones
 - [[TASKS]] — milestone index / dashboard
-- [[tasks/discovered]] — discovered-work log
-- [[tasks/deferred]] — deferred / descoped task log
+- [[workflow/tasks/discovered]] — discovered-work log
+- [[workflow/tasks/deferred]] — deferred / descoped task log
 - [[TASKS-ARCHIVE]] — completed-milestone archive (pre-migration M0/M1)
 - [[README]] — setup, usage, contributing
-- [[memory/MEMORY]] — stable cross-session agent patterns
-- [[Handoffs/]] — session continuity directory (latest: [[Handoffs/handoff-021]])
+- [[workflow/memory/MEMORY]] — stable cross-session agent patterns
+- [[workflow/handoffs/]] — session continuity directory (latest: [[workflow/handoffs/handoff-021]])
 
 ## Commands
 
@@ -136,7 +136,10 @@ top-dog/
 │   ├── fonts/                 # self-hosted SIL OFL .woff2 (Cinzel, Cormorant) + OFL licenses
 │   └── favicon.svg, favicon-32/64.png, apple-touch-icon.png  # wired in +layout.svelte (M8)
 ├── tests/                     # Playwright E2E
-└── Handoffs/                  # session continuity
+└── workflow/                  # workflow state
+    ├── handoffs/              # session continuity
+    ├── memory/                # cross-session agent patterns
+    └── tasks/                 # per-milestone task files + logs + archive
 ```
 
 ## Conventions
